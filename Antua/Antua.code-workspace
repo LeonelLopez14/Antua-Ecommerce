@@ -1,0 +1,12 @@
+{
+"folders": [
+    { "name": "API (Nest.js)", "path": "antua-api" },
+    { "name": "Web (React)", "path": "antua-web" }
+],
+"settings": {
+    "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true
+    	}
+	}
+}

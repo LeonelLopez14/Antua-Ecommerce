@@ -1,0 +1,2 @@
+﻿1- iniciar docker: docker start antua-mysql
+2- iniciar workspace: pnpm run dev

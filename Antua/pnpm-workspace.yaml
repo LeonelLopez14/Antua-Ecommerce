@@ -1,0 +1,7 @@
+packages:
+  - antua-api
+  - antua-web
+allowBuilds:
+  '@scarf/scarf': true
+  bcrypt: true
+  unrs-resolver: true

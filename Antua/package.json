@@ -1,0 +1,9 @@
+{
+    "name": "antua-workspace",
+    "private": true,
+    "scripts": {
+    "dev": "pnpm --parallel -r run dev",
+    "dev:api": "pnpm --filter antua-api run start:dev",
+    "dev:web": "pnpm --filter antua-web run dev"
+    }
+}

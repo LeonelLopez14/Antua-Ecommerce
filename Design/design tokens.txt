@@ -1,0 +1,65 @@
+﻿Nombre : Antojarte / Antua / Amtoja
+Lema: “Date un gsutito, llevate un antojo” / “Hechas para darte un gustito.” / “El gusto de darte un gusto”
+Propuesta de valor: cookies caseras, opciones sin gluten, veganas, sin azúcar, etc.
+Naming de categorías de producto (clásicas, sin gluten, veganas, de temporada, packs/regalos)
+
+Paleta de colores: Modo claro, el principal.
+
+Color	Rol	Descripción	Uso
+#2E2D2C	Texto principal	Garantiza legibilidad y contraste.	Títulos, texto, descripciones e iconos principales.
+#F7F5FF	Superficies	Genera jerarquía visual entre elementos.	Cards, navbar, footer, formularios y modales.
+#FFFBE9	Fondo principal	Aporta calidez y amplitud visual.	Fondo general y secciones principales.
+#FFF2BD	Acento secundario	Resalta información sin perder armonía.	Badges, etiquetas, highlights y estados hover.
+#8D572E	Acento principal	Representa la identidad artesanal de la marca.	Botones principales, precios, enlaces y CTA.
+#A8B89A	Acento terciario	Comunica frescura y naturalidad.	Botones secundarios, filtros, iconos y badges de ingredientes.
+ 
+Modo oscuro, el secundario.
+
+Color	Rol	Descripción	Uso
+#151515	Fondo principal	Aporta profundidad y reduce la fatiga visual.	Fondo general y secciones principales.
+#1E1D1C	Superficies	Crea niveles y separación entre componentes.	Navbar, footer, formularios, modales y cards.
+#2A2826	Tarjetas / Secciones	Destaca bloques de contenido sin perder coherencia.	Cards de productos, listas y secciones destacadas.
+#F5F2E8	Texto principal	Asegura una excelente legibilidad sobre fondos oscuros.	Títulos, texto e iconos principales.
+#CFC8BC	Texto secundario	Reduce la jerarquía visual del contenido auxiliar.	Descripciones, placeholders, fechas e información secundaria.
+#D7A46A	Acento principal	Mantiene la identidad cálida y artesanal en modo oscuro.	Botones principales, precios, enlaces y CTA.
+
+Fonts: Titulos (Playfair Display), Textos (Lato)
+
+
+
+
+
+
+
+Spacing: 
+
+Variable	Valor	Uso
+XS	4px	Separación entre iconos y texto
+SM	8px	Elementos pequeños
+MD	16px	Espaciado interno de componentes
+LG	24px	Separación entre tarjetas
+XL	32px	Secciones
+XXL	48px	Grandes bloques de contenido
+XXXL	64px	Separación entre secciones principales
+ 
+Radius:
+
+Elemento	Radio
+Botones	999px (pill)
+Inputs	12px
+Cards	20px
+Modal	24px
+Chips / Badges	999px
+Imágenes de productos	20px
+
+
+Elemento	Tamanhos
+Espaciado	Escala de 8 px (4, 8, 16, 24, 32, 48, 64)
+Bordes	Muy redondeados (12–24 px y 999px en botones)
+Sombras	Suaves y sutiles, con ligera elevación al hover
+Botón primario	Fondo #8D572E, texto #FFFBE9, forma tipo pill
+Botón secundario	Borde #A8B89A, fondo transparente
+Cards	20px de radio, 24px de padding y sombra ligera
+Animaciones	200–300 ms, ease-out, con elevación y cambios de color suaves
+
+Icons: Lucide
