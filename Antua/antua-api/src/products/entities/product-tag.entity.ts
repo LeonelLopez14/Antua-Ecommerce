@@ -1,8 +1,9 @@
-import {  Entity, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from 'typeorm';
+import {  Entity, PrimaryGeneratedColumn, JoinColumn, ManyToOne, Unique } from 'typeorm';
 import { Product } from './product.entity';
 import { Tag } from 'src/tags/entities/tag.entity';
 
 @Entity('product_tags')
+@Unique(['product', 'tag'])
 export class ProductTag {
     @PrimaryGeneratedColumn()
     id: number;

@@ -6,5 +6,6 @@ import { Coupon } from './entities/coupon.entity';
 @Module({
   imports: [TypeOrmModule.forFeature([Coupon])],
   providers: [CouponsService]
+  exports: [TypeOrmModule]
 })
 export class CouponsModule {}

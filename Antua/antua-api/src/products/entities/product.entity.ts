@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Review } from '../../reviews/entities/review.entity';
 import { ProductVariant } from './product-variant.entity';
 import { Image } from './product-image.entity';
@@ -21,7 +21,7 @@ export class Product {
     @Column({ type: 'varchar', length: 100 })
     allergens: string;
 
-    @Column({ type: 'text', length: 255 })
+    @Column({ type: 'text' })
     description: string;
 
     @Column({ type: 'decimal', precision: 10, scale: 2 })

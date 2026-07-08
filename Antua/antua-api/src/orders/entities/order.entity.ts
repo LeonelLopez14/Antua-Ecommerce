@@ -28,7 +28,7 @@ export class Order {
     @Column({ type: 'varchar', length: 50, default: 'pending' })
     payment_status: string;
 
-    @Column({ type: 'varchar', length: 200, nullable: true })
+    @Column({ type: 'varchar', length: 200 })
     shipping_full_name: string;
 
     @Column({ type: 'varchar', length: 50 })
@@ -69,6 +69,6 @@ export class Order {
     @OneToMany(() => OrderItem, (item) => item.order)
     items: OrderItem[];
 
-    @OneToOne(() => Payment, { nullable: true })
+    @OneToOne(() => Payment, (payment) => payment.order, { nullable: true })
     payment: Payment;
 }

@@ -1,6 +1,6 @@
 import { Cart } from 'src/cart/entities/cart.entity';
 import { Order } from 'src/orders/entities/order.entity';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 
 @Entity('coupons')
 export class Coupon {
@@ -10,7 +10,7 @@ export class Coupon {
     @Column({ type: 'varchar', length: 50, unique: true })
     code: string;
 
-    @Column({ type: 'string', length: 50 })
+    @Column({ type: 'varchar', length: 50 })
     discount_type: string; // "percentage" or "fixed"
 
     @Column({ type: 'decimal', precision: 10, scale: 2 })
@@ -22,8 +22,14 @@ export class Coupon {
     @Column({ type: 'int' })
     usage_limit: number;
 
-    @CreateDateColumn()
+    @Column({ type: 'timestamp' })
     valid_until: Date;
+
+    @Column({ type: 'timestamp' })
+    valid_from: Date;
+
+    @Column({ type: 'int', default: 0 })
+    times_used: number;
 
     @Column({ type: 'boolean', default: true })
     is_active: boolean;
