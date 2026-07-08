@@ -7,7 +7,7 @@ import { Payment } from '../../payments/entities/payment.entity';
 export enum OrderStatus {
     PENDING = 'pending',
     PREPARING = 'preparing',
-    SHIPED = 'shipped',
+    SHIPPED = 'shipped',
     DELIVERED = 'delivered',
     CANCELED = 'canceled',
 }
@@ -17,14 +17,10 @@ export class Order {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => User, (user) => user.orders, { nullable: true })
-    user: User; //null = guest user
 
     @Column({ type: 'varchar', length: 150, nullable: true })
     guest_email: string;
 
-    @ManyToOne(() => Coupon, { nullable: true })
-    coupon: Coupon;
 
     @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
     status: OrderStatus;
@@ -33,7 +29,7 @@ export class Order {
     payment_status: string;
 
     @Column({ type: 'varchar', length: 200, nullable: true })
-    shippping_full_name: string;
+    shipping_full_name: string;
 
     @Column({ type: 'varchar', length: 50 })
     shipping_phone: string;
@@ -61,6 +57,14 @@ export class Order {
 
     @CreateDateColumn()
     created_at: Date;
+
+    //relations
+
+    @ManyToOne(() => User, (user) => user.orders, { nullable: true })
+    user: User; //null = guest user
+
+    @ManyToOne(() => Coupon, { nullable: true })
+    coupon: Coupon;
 
     @OneToMany(() => OrderItem, (item) => item.order)
     items: OrderItem[];

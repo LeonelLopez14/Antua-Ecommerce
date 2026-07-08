@@ -1,0 +1,239 @@
+ANTOJARTE (alias "Antua") — CONTEXTO DE PROYECTO PARA CONTINUAR EN OTRO CHAT
+================================================================================
+Generado a partir de una conversación de planificación + desarrollo inicial.
+Este archivo resume DECISIONES y CÓDIGO YA ESCRITO, no es el código fuente real
+(Claude no tiene acceso al repositorio en disco del usuario).
+
+--------------------------------------------------------------------------------
+1. QUÉ ES EL PROYECTO
+--------------------------------------------------------------------------------
+E-commerce de práctica para una marca ficticia de cookies caseras artesanales
+("Antojarte" / "Antua"), con líneas sin gluten, veganas y sin azúcar.
+Lema: "Hechas para darte un gustito."
+Las cookies son GRANDES: se venden por unidad, en variantes fijas de x1, x6 o
+x12 unidades (no packs cerrados de distintos productos).
+
+El usuario NO tenía experiencia previa en TypeScript antes de este proyecto;
+lo está aprendiendo sobre la marcha a través de Nest.js. El frontend se
+mantiene en JSX (no TSX) a propósito, para no duplicar la curva de aprendizaje
+de TS en los dos lados a la vez.
+
+--------------------------------------------------------------------------------
+2. STACK TÉCNICO
+--------------------------------------------------------------------------------
+Monorepo con pnpm workspace, carpeta raíz "Antojarte/" o "Antua/" con dos
+paquetes hermanos:
+
+  antua-web/   → Frontend: React (JSX) + Vite + Tailwind CSS v4 + GSAP +
+                 Three.js (@react-three/fiber, @react-three/drei) + Zustand +
+                 Axios + Lucide (íconos)
+
+  antua-api/   → Backend: Nest.js + TypeORM + MySQL (driver mysql2) + JWT
+                 (@nestjs/jwt, passport-jwt) + bcrypt + class-validator +
+                 class-transformer + @nestjs/swagger + @nestjs/config
+
+Gestor de paquetes: pnpm (elegido en vez de npm por instalación estricta de
+dependencias — sin phantom dependencies — y ahorro de espacio en disco vía
+store compartido). Se usó "pnpm approve-builds" para permitir el script de
+compilación nativa de bcrypt.
+
+Base de datos: MySQL corriendo en Docker.
+  Nombre real del contenedor: antua-mysql
+  Nombre real de la base:     antua_db
+  (Nota: en la guía inicial se usó "antojarte-mysql"/"antojarte" como
+  placeholders de ejemplo; el proyecto real usa antua-mysql / antua_db.)
+
+Workspace de VS Code: archivo .code-workspace en la raíz con ambas carpetas
+(antua-api, antua-web) abiertas juntas. pnpm-workspace.yaml + script "dev" en
+el package.json raíz para levantar backend y frontend juntos con un solo
+comando (pnpm run dev, usando pnpm --parallel -r run dev).
+
+--------------------------------------------------------------------------------
+3. DECISIONES DE UX/PRODUCTO YA CERRADAS (afectan al modelo de datos)
+--------------------------------------------------------------------------------
+- Carrito: drawer lateral (no página completa), con overlay oscuro.
+- Login/Registro: modal con tabs (Iniciar sesión / Registrarme), no páginas.
+- Hero de Home: modelo 3D de una galleta/paquete rotando con el scroll
+  (Three.js + GSAP ScrollTrigger, con "pin" de sección); al continuar el
+  scroll, transiciona a texto + mini carrusel 3D de paquetes. El 3D se usa
+  EXCLUSIVAMENTE en esta sección.
+- Ficha de producto: usa fotos reales o ilustraciones, NO el modelo 3D.
+- Ficha de producto: dos CTA de compra — "Agregar al carrito" y "Comprar
+  ahora" (ambos, no uno solo).
+- Ingredientes / info nutricional / reviews: siempre visibles en la ficha de
+  producto, sin tabs.
+- Checkout: página en 4 pasos (Dirección → Envío → Pago → Confirmación), con
+  resumen de pedido fijo al costado (no cambia entre pasos).
+- Guest checkout: SÍ, habilitado. El usuario puede comprar sin crear cuenta.
+- Cupones de descuento: SÍ, se aplican en el carrito y se copian a la orden.
+- Método de envío: ÚNICO y FIJO (no hay selector de opciones de envío).
+- Variantes de producto: por unidad — x1, x6, x12 (no packs de sabores
+  distintos).
+
+--------------------------------------------------------------------------------
+4. MODELO DE DATOS (DER) — 14 ENTIDADES PLANEADAS
+--------------------------------------------------------------------------------
+Dominio Usuarios:      USERS, ADDRESSES, REVIEWS
+Dominio Catálogo:       PRODUCTS, PRODUCT_VARIANTS, PRODUCT_IMAGES, TAGS,
+                        PRODUCT_TAGS (tabla puente N:N)
+Dominio Carrito:        CARTS, CART_ITEMS, COUPONS
+Dominio Órdenes:        ORDERS, ORDER_ITEMS, PAYMENTS
+
+Decisiones clave del modelo:
+- ORDERS.user_id es NULLABLE → si es NULL, el pedido se identifica por
+  ORDERS.guest_email. Habilita el guest checkout.
+- Los datos de envío (shipping_full_name, shipping_street, shipping_city,
+  shipping_postal_code, shipping_phone) se guardan DIRECTAMENTE en ORDERS,
+  no como referencia a ADDRESSES — así un pedido no cambia si el usuario
+  después edita/borra una dirección guardada.
+- ADDRESSES es solo para usuarios registrados (autocompletar checkouts
+  futuros), nunca obligatorio para comprar.
+- PRODUCTS vs PRODUCT_VARIANTS separados: cada variante (x1/x6/x12) tiene su
+  propio precio, stock y SKU. El precio en PRODUCTS es solo informativo de
+  catálogo.
+- TAGS + PRODUCT_TAGS es relación N:N (no una columna category fija), porque
+  los filtros de Tienda son checkboxes múltiples (ej: sin gluten Y vegana a
+  la vez).
+- COUPONS se relaciona con CARTS (coupon_id, se valida/aplica ahí) y con
+  ORDERS (el descuento se copia a discount_amount al confirmar la compra,
+  para que quede fijo históricamente).
+- CART_ITEMS y ORDER_ITEMS tienen unit_price_snapshot: el precio se congela
+  al momento de agregar/comprar, no es una referencia viva al precio actual.
+- PAYMENTS es tabla separada de ORDERS: permite estado de pago (pendiente/
+  aprobado/rechazado) independiente del estado logístico (orders.status vs
+  orders.payment_status).
+- Envío: no hay tabla de métodos de envío; shipping_amount es un valor fijo
+  constante en el backend (SHIPPING_FLAT_RATE).
+
+--------------------------------------------------------------------------------
+5. DISEÑO DE LA API (Nest.js) — MÓDULOS Y ENDPOINTS PLANEADOS
+--------------------------------------------------------------------------------
+Módulos: auth, users, addresses, products, tags, reviews, cart, coupons,
+orders, payments. (coupons NO tiene controller propio, solo expone su
+service para que lo consuman cart y orders).
+
+Endpoints principales diseñados (ver PDF "Antojarte_API_NestJS.pdf" para el
+detalle completo con auth requerida por endpoint):
+- POST /auth/register, POST /auth/login, GET /auth/me
+- GET/PATCH /users/me
+- CRUD /addresses (+ PATCH /addresses/:id/default)
+- GET /products (con filtros ?tags=&sort=&page=&limit=), GET /products/:slug
+- GET /tags
+- GET/POST /products/:slug/reviews
+- GET/POST/PATCH/DELETE /cart, /cart/items, POST /cart/coupon,
+  DELETE /cart/coupon, POST /cart/merge (fusiona carrito de invitado al
+  loguearse)
+- POST /orders (checkout — recalcula TODO en el backend dentro de una
+  transacción MySQL, nunca confía en totales del frontend), GET /orders,
+  GET /orders/:id, GET /orders/guest/:id?email=
+- POST/GET /orders/:id/payment
+
+Guards: JwtAuthGuard (estricto) para rutas de usuario logueado.
+OptionalJwtAuthGuard (CUSTOM, hay que construirlo) para /cart y POST /orders,
+donde debe funcionar tanto para invitados (vía header X-Guest-Token) como
+para usuarios logueados. El guest_token es un UUID generado en el primer
+GET /cart sin JWT.
+
+--------------------------------------------------------------------------------
+6. ESTADO ACTUAL DEL CÓDIGO (backend) — QUÉ YA ESTÁ ESCRITO
+--------------------------------------------------------------------------------
+CONFIGURACIÓN BASE — YA FUNCIONANDO:
+- app.module.ts con TypeOrmModule.forRootAsync() leyendo .env vía
+  ConfigService (DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_DATABASE),
+  autoLoadEntities: true, synchronize: true, logging: true.
+- main.ts con app.useGlobalInterceptors(new ClassSerializerInterceptor(...))
+  para que @Exclude() de class-transformer funcione (usado en
+  User.password_hash).
+- Los 10 módulos generados con el CLI de Nest y registrados en AppModule.
+- CONEXIÓN A MYSQL CONFIRMADA FUNCIONANDO. Tablas creándose vía synchronize.
+
+PATRÓN APRENDIDO (recurrente, importante para nuevas entidades):
+Toda clase con @Entity() necesita TypeOrmModule.forFeature([EntidadX]) en su
+módulo correspondiente, SIN EXCEPCIÓN — si falta, tira en runtime:
+"TypeORMError: Entity metadata for X#relacion was not found" (no es un error
+de compilación de TypeScript, aparece recién al levantar Nest).
+
+ENTIDADES COMPLETAS (con todas las columnas del diccionario de datos):
+- User (src/users/entities/user.entity.ts) — id, full_name, email (unique),
+  password_hash (@Exclude), phone, created_at + relaciones OneToMany hacia
+  Address/Review/Order y OneToOne hacia Cart.
+- Address (src/addresses/entities/address.entity.ts) — id, user (ManyToOne),
+  label, street, city, postal_code, country, is_default.
+- Review (src/reviews/entities/review.entity.ts) — id, product (ManyToOne),
+  user (ManyToOne), rating, comment, created_at.
+- Cart (src/cart/entities/cart.entity.ts) — id, user (OneToOne, nullable,
+  @JoinColumn), guest_token (unique, nullable), coupon (ManyToOne, nullable),
+  items (OneToMany hacia CartItem).
+- CartItem (src/cart/entities/cart-item.entity.ts) — id, cart (ManyToOne),
+  variant (ManyToOne hacia ProductVariant), quantity, unit_price_snapshot.
+- Order (src/orders/entities/order.entity.ts) — id, user (ManyToOne,
+  nullable = guest), guest_email, coupon (ManyToOne nullable), status (ENUM:
+  pending/preparing/shipped/delivered), payment_status (varchar), campos de
+  shipping_* completos, subtotal, discount_amount, shipping_amount, total,
+  created_at, items (OneToMany), payment (OneToOne nullable).
+- OrderItem (src/orders/entities/order-item.entity.ts) — id, order
+  (ManyToOne), variant (ManyToOne), product_name_snapshot,
+  unit_price_snapshot, quantity.
+
+TODAS LAS DE ARRIBA YA FUERON GENERADAS/CONFIRMADAS POR EL USUARIO COMO
+TERMINADAS (verificado por chat, aunque no por lectura directa del repo).
+
+ENTIDADES SOLO COMO STUB MÍNIMO (existen para no romper imports, les falta
+la mayoría de las columnas del DER):
+- Product (src/products/entities/product.entity.ts) — SOLO tiene id, name.
+  FALTA: slug (unique), description, ingredients, allergens, base_price,
+  is_active, y relaciones OneToMany hacia ProductVariant/ProductImage/Review,
+  y hacia ProductTag (para el N:N con Tag).
+- ProductVariant (src/products/entities/product-variant.entity.ts) — SOLO
+  tiene id, name, price. FALTA: product (ManyToOne hacia Product, clave para
+  que exista la relación x1/x6/x12 por producto), sku (unique), stock,
+  is_active.
+- Coupon (src/coupons/entities/coupon.entity.ts) — SOLO tiene id, code.
+  FALTA: discount_type, discount_value, min_order_amount, usage_limit,
+  times_used, valid_from, valid_until, is_active.
+- Payment (src/payments/entities/payment.entity.ts) — SOLO tiene id, status.
+  FALTA: order (relación hacia Order — probablemente OneToOne desde este
+  lado con @JoinColumn), method, transaction_ref, paid_at.
+
+ENTIDADES QUE TODAVÍA NO EXISTEN NI COMO ARCHIVO:
+- ProductImage — id, product (ManyToOne), url, alt_text, sort_order.
+- Tag — id, name, slug (unique).
+- ProductTag — tabla puente N:N entre Product y Tag. Clave primaria
+  compuesta (product_id, tag_id), ambos también FK.
+
+--------------------------------------------------------------------------------
+7. PRÓXIMOS PASOS INMEDIATOS (donde se cortó la conversación)
+--------------------------------------------------------------------------------
+1. Completar Product y ProductVariant con todas sus columnas + relaciones
+   (esto destraba a ProductImage, Tag y ProductTag, que dependen de Product).
+2. Crear ProductImage, Tag y ProductTag desde cero.
+3. Completar Coupon con sus columnas de descuento.
+4. Completar Payment con la relación hacia Order.
+5. Una vez que todas las entidades compilen y synchronize las cree en MySQL,
+   pasar a escribir los primeros services/controllers reales (se sugirió
+   empezar por ProductsModule o CartModule).
+6. Pendiente de diseño (no resuelto aún en el chat): wireframe de Tienda ya
+   hecho, pero el detalle de implementación de filtros multi-tag en el
+   backend (query params, cómo se traduce a SQL/TypeORM QueryBuilder) no se
+   desarrolló todavía.
+7. Pendiente: construir el OptionalJwtAuthGuard custom mencionado en el
+   diseño de la API (todavía no se escribió código para esto).
+
+--------------------------------------------------------------------------------
+8. ARCHIVOS DE REFERENCIA YA GENERADOS (PDFs, en poder del usuario)
+--------------------------------------------------------------------------------
+- Antojarte_Plan_Proyecto.pdf — branding, paleta, tipografía, spacing, radios,
+  sitemap, wireframe de Home, decisiones UX iniciales.
+- Antojarte_Wireframes.pdf — wireframes de Home, Tienda, Ficha de producto,
+  Carrito (drawer), Checkout.
+- Antojarte_Wireframe_Modal.pdf — wireframe del modal de login/registro.
+- Antojarte_DER_MySQL.pdf — diagrama entidad-relación detallado (con campos
+  y PK/FK) + diccionario de las 14 entidades + decisiones del modelo.
+- Antojarte_API_NestJS.pdf — diagrama de módulos + endpoints detallados por
+  módulo + decisiones transversales (guards, DTOs, estructura de carpetas).
+- Antojarte_Guia_Inicializacion.pdf — estructura de carpetas completa +
+  guía paso a paso de instalación (actualizada a pnpm).
+
+================================================================================
+FIN DEL RESUMEN
+================================================================================
