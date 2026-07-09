@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Review } from '../../reviews/entities/review.entity';
 import { ProductVariant } from './product-variant.entity';
-import { Image } from './product-image.entity';
+import { ProductImage } from './product-image.entity';
 import { ProductTag } from './product-tag.entity';
 
 @Entity('products')
@@ -38,8 +38,8 @@ export class Product {
     @OneToMany(() => Review, (review) => review.product)
     reviews: Review[];
 
-    @OneToMany(() => Image, (image) => image.product)
-    images: Image[];
+    @OneToMany(() => ProductImage, (image) => image.product)
+    images: ProductImage[];
 
     @OneToMany(() => ProductTag, (productTag) => productTag.product)
     productTags: ProductTag[];
