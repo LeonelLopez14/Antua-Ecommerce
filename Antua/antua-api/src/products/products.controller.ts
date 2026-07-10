@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { ProductsService } from './products.service';
 
 @Controller('products')
@@ -9,5 +9,15 @@ export class ProductsController {
     @Get()
     findAll() {
         return this.productSerivice.findAll();
+    }
+
+    @Get('tags')
+    findAllTags() {
+        return this.productSerivice.findAllTags();
+    }
+
+    @Get(':slug')
+    findOne(@Param('slug') slug: string) {
+        return this.productSerivice.findOne(slug);
     }
 }
