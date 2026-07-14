@@ -1,77 +1,68 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Tag } from './entities/tag.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm/repository/Repository.js';
+import { Repository } from 'typeorm';
 import { CreateTagDto } from './dto/tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 
 @Injectable()
 export class TagsService {
+  constructor(
+    @InjectRepository(Tag)
+    private readonly tagRepository: Repository<Tag>,
+  ) {}
 
-    constructor(
-        @InjectRepository(Tag)
-        private readonly tagRepository: Repository<Tag>,
-    ) {}
+  //Metodo para obtener todos los tags para un filtro
+  async findAll() {
+    return this.tagRepository.find({
+      order: { name: 'ASC' },
+    });
+  }
 
+  //metodo para buscar un tag mediante id
+  async findOne(id: number) {
+    const tag = await this.tagRepository.findOne({
+      where: { id },
+    });
 
-    //Metodo para obtener todos los tags para un filtro
-    async findAll() {
-        return this.tagRepository.find({
-            order: { name: 'ASC' },
-        });
+    if (!tag) {
+      throw new NotFoundException('tag no encontrado.');
     }
 
-    //metodo para buscar un tag mediante id
-    async findOne(id: number) {
+    return tag;
+  }
 
-        const tag = await this.tagRepository.findOne({
-            where: { id },
-        });
+  //metodo para crear un tag
+  async create(dto: CreateTagDto) {
+    const newTag = this.tagRepository.create(dto);
+    return await this.tagRepository.save(newTag);
+  }
 
-        if (!tag) {
-            throw new NotFoundException('tag no encontrado.');
-        }
+  //Metodo para actualizar un tag mediante id
+  async update(id: number, dto: UpdateTagDto) {
+    const tag = await this.tagRepository.findOne({
+      where: { id },
+    });
 
-        return tag;
+    if (!tag) {
+      throw new NotFoundException('Tag no encontrado');
     }
 
-    //metodo para crear un tag
-    async create(dto: CreateTagDto) {
+    Object.assign(tag, dto);
 
-        const newTag = this.tagRepository.create(dto);
+    return this.tagRepository.save(tag);
+  }
 
-        if (!newTag) {
-            throw new NotFoundException('No se pudo crear el tag');
-        }
+  //metodo para eliminar un tag mediante id
+  async remove(id: number) {
+    const tag = await this.tagRepository.delete(id);
 
-        return await this.tagRepository.save(dto);
+    if (tag.affected === 0) {
+      throw new NotFoundException('No se encontro el tag');
     }
 
-    //Metodo para actualizar un tag mediante id
-    async update(id: number, dto: UpdateTagDto) {
-        const tag = await this.tagRepository.findOne({
-            where: { id },
-        });
-
-        if (!tag) {
-            throw new NotFoundException('Tag no encontrado');
-        }
-
-        Object.assign(tag, dto);
-
-        return this.tagRepository.save(tag);
-    }
-
-    //metodo para eliminar un tag mediante id
-    async remove(id: number) {
-        const tag = await this.tagRepository.delete(id);
-
-        if (tag.affected === 0) {
-            throw new NotFoundException('No se encontro el tag');
-        }
-
-        return {
-            message: 'Tag eliminado',
-        }
-    }
+    return {
+      message: 'Tag eliminado',
+    };
+  }
 }

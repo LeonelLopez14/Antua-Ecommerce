@@ -8,8 +8,15 @@ import { ProductImage } from './entities/product-image.entity';
 import { ProductTag } from './entities/product-tag.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product, ProductVariant, ProductImage, ProductTag])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Product,
+      ProductVariant,
+      ProductImage,
+      ProductTag,
+    ]),
+  ],
   controllers: [ProductsController],
-  providers: [ProductsService]
+  providers: [ProductsService],
 })
 export class ProductsModule {}

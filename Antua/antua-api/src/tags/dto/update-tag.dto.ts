@@ -1,13 +1,4 @@
-import { IsString, IsOptional } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateTagDto } from './tag.dto';
 
-export class UpdateTagDto {
-
-    @IsString()
-    @IsOptional()
-    name: string;
-
-    @IsString()
-    @IsOptional()
-    slug: string;
-
-}
+export class UpdateTagDto extends PartialType(CreateTagDto) {}

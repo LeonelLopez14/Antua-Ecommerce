@@ -1,74 +1,80 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, OneToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  CreateDateColumn,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Coupon } from '../../coupons/entities/coupon.entity';
 import { OrderItem } from './order-item.entity';
 import { Payment } from '../../payments/entities/payment.entity';
 
 export enum OrderStatus {
-    PENDING = 'pending',
-    PREPARING = 'preparing',
-    SHIPPED = 'shipped',
-    DELIVERED = 'delivered',
-    CANCELED = 'canceled',
+  PENDING = 'pending',
+  PREPARING = 'preparing',
+  SHIPPED = 'shipped',
+  DELIVERED = 'delivered',
+  CANCELED = 'canceled',
 }
 
 @Entity('orders')
 export class Order {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  guest_email: string;
 
-    @Column({ type: 'varchar', length: 150, nullable: true })
-    guest_email: string;
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
+  status: OrderStatus;
 
+  @Column({ type: 'varchar', length: 50, default: 'pending' })
+  payment_status: string;
 
-    @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
-    status: OrderStatus;
+  @Column({ type: 'varchar', length: 200 })
+  shipping_full_name: string;
 
-    @Column({ type: 'varchar', length: 50, default: 'pending' })
-    payment_status: string;
+  @Column({ type: 'varchar', length: 50 })
+  shipping_phone: string;
 
-    @Column({ type: 'varchar', length: 200 })
-    shipping_full_name: string;
+  @Column({ type: 'varchar', length: 200 })
+  shipping_street: string;
 
-    @Column({ type: 'varchar', length: 50 })
-    shipping_phone: string;
+  @Column({ type: 'varchar', length: 100 })
+  shipping_city: string;
 
-    @Column({ type: 'varchar', length: 200 })
-    shipping_street: string;
+  @Column({ type: 'varchar', length: 20 })
+  shipping_postal_code: string;
 
-    @Column({ type: 'varchar', length: 100 })
-    shipping_city: string;
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  subtotal: number;
 
-    @Column({ type: 'varchar', length: 20 })
-    shipping_postal_code: string;
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  discount_amount: number;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
-    subtotal: number;
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  shipping_amount: number;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-    discount_amount: number;
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  total: number;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
-    shipping_amount: number;
+  @CreateDateColumn()
+  created_at: Date;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
-    total: number;
+  //relations
 
-    @CreateDateColumn()
-    created_at: Date;
+  @ManyToOne(() => User, (user) => user.orders, { nullable: true })
+  user: User; //null = guest user
 
-    //relations
+  @ManyToOne(() => Coupon, { nullable: true })
+  coupon: Coupon;
 
-    @ManyToOne(() => User, (user) => user.orders, { nullable: true })
-    user: User; //null = guest user
+  @OneToMany(() => OrderItem, (item) => item.order)
+  items: OrderItem[];
 
-    @ManyToOne(() => Coupon, { nullable: true })
-    coupon: Coupon;
-
-    @OneToMany(() => OrderItem, (item) => item.order)
-    items: OrderItem[];
-
-    @OneToOne(() => Payment, (payment) => payment.order, { nullable: true })
-    payment: Payment;
+  @OneToOne(() => Payment, (payment) => payment.order, { nullable: true })
+  payment: Payment;
 }

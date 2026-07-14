@@ -29,13 +29,21 @@ import { AuthModule } from './auth/auth.module';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_DATABASE'),
         autoLoadEntities: true, // toma automáticamente las entidades registradas via forFeature()
-        synchronize: true,      // SOLO en desarrollo, nunca en producción
-        logging: true,          // para que veas los queries SQL en consola (útil para depurar esto mismo)
+        synchronize: true, // SOLO en desarrollo, nunca en producción
+        logging: true, // para que veas los queries SQL en consola (útil para depurar esto mismo)
       }),
     }),
 
-    ProductsModule, TagsModule, CartModule, CouponsModule, OrdersModule,
-    PaymentsModule, ReviewsModule, UsersModule, AddressesModule, AuthModule,
+    ProductsModule,
+    TagsModule,
+    CartModule,
+    CouponsModule,
+    OrdersModule,
+    PaymentsModule,
+    ReviewsModule,
+    UsersModule,
+    AddressesModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

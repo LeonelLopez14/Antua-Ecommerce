@@ -27,9 +27,6 @@ export class ProductsService {
             },
         });
 
-        if (!products) {
-            throw new NotFoundException('No se encontraron productos activos');
-        }
         return products;
     }
 
@@ -57,11 +54,6 @@ export class ProductsService {
     // metodo para crear un producto
     async create(dto: CreateProductDto) {
         const newProduct = this.productRepository.create(dto);
-
-        if (!newProduct) {
-            throw new NotFoundException('No se pudo crear el producto');
-        }
-
         return await this.productRepository.save(newProduct);
     }
 

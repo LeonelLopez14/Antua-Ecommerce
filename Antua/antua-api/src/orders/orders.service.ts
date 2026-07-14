@@ -5,16 +5,12 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class OrdersService {
+  constructor(
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+  ) {}
 
-    constructor(
-        @InjectRepository(Order)
-        private readonly orderRepository: Repository<Order>,
-    ) {}
-
-    async findAll() {
-        return this.orderRepository.find({
-            
-        })
-    }
-
+  async findAll() {
+    return this.orderRepository.find({});
+  }
 }
