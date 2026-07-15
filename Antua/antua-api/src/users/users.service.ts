@@ -24,4 +24,12 @@ export class UsersService {
 
     return this.userRepository.save(user);
   }
+
+  async findById(id: number) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+    });
+
+    return user;
+  }
 }
