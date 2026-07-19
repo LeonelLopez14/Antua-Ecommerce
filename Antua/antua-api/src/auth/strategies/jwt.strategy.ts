@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UsersService } from 'src/users/users.service';
@@ -6,11 +7,14 @@ import { UsersService } from 'src/users/users.service';
 //validar un JWT y devolver el usuario autenticado
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly usersService: UsersService) {
+  constructor(
+    private readonly usersService: UsersService,
+    configService: ConfigService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET!,
+      secretOrKey: configService.get<string>('JWT_SECRET')!,
     });
   }
 

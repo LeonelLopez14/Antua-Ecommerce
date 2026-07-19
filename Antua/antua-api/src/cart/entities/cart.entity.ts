@@ -18,7 +18,7 @@ export class Cart {
 
   @OneToOne(() => User, (user) => user.cart, { nullable: true })
   @JoinColumn()
-  user: User;
+  user: User | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   guest_token: string;

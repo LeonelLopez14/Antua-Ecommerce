@@ -28,7 +28,7 @@ export class AuthService {
       full_name: dto.full_name,
       email: dto.email,
       password_hash,
-      phone: '',
+      phone: undefined,
     });
 
     const token = this.jwtService.sign({
