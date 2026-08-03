@@ -11,6 +11,7 @@ import { CartItem } from './entities/cart-item.entity';
 import { ProductVariant } from 'src/products/entities/product-variant.entity';
 import { CreateCartItemDto } from './dto/cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { Coupon } from 'src/coupons/entities/coupon.entity';
 
 @Injectable()
 export class CartService {
@@ -21,6 +22,8 @@ export class CartService {
     private readonly cartItemRepository: Repository<CartItem>,
     @InjectRepository(ProductVariant)
     private readonly productVariantRepository: Repository<ProductVariant>,
+    @InjectRepository(Coupon)
+private readonly couponRepository: Repository<Coupon>;
   ) {}
   //Obtener o crear un carrito
   async getOrCreateCart(userId?: number, guestToken?: string) {
@@ -128,7 +131,21 @@ export class CartService {
 
       await this.cartItemRepository.save(existingItem);
 
-      return this.findCartWithItems(cart.id);
+      const cartId = cart.id;
+      if (cartId == null) {
+        throw new NotFoundException('Carrito no encontrado.');
+      }
+
+      const updatedCart = await this.findCartWithItems(cartId);
+
+      if (!updatedCart) {
+        throw new NotFoundException('Carrito no encontrado.');
+      }
+
+      return {
+        cart: updatedCart,
+        summary: this.getSummary(updatedCart),
+      };
     }
 
     //si no existe, crea uno nuevo.
@@ -161,10 +178,6 @@ export class CartService {
     if (!item) {
       throw new NotFoundException('No se encontro el item');
     }
-    //validar cantidad
-    if (dto.quantity < 1) {
-      throw new BadRequestException('Cantidad inválida.');
-    }
 
     //validar stock
     if (dto.quantity > item.variant.stock) {
@@ -176,10 +189,93 @@ export class CartService {
 
     await this.cartItemRepository.save(item);
     //devolver carrito
-    return this.findCartWithItems(cartId);
+    const updatedCart = await this.findCartWithItems(cartId);
+
+    if (!updatedCart) {
+      throw new NotFoundException('Carrito no encontrado.');
+    }
+
+    return {
+      cart: updatedCart,
+      summary: this.getSummary(updatedCart),
+    };
+  }
+  //Eliminar item del carrito
+  async removeItem(cartId: number, itemId: number) {
+    const item = await this.cartItemRepository.findOne({
+      where: {
+        id: itemId,
+        cart: {
+          id: cartId,
+        },
+      },
+      relations: {
+        variant: true,
+      },
+    });
+
+    if (!item) {
+      throw new NotFoundException('Este producto no exise en tu carrito.');
+    }
+
+    await this.cartItemRepository.delete(item.id);
+
+    const updatedCart = await this.findCartWithItems(cartId);
+
+    if (!updatedCart) {
+      throw new NotFoundException('Carrito no encontrado.');
+    }
+
+    return {
+      cart: updatedCart,
+      summary: this.getSummary(updatedCart),
+    };
   }
 
-  //metodos privados
+//metodo aplicar cupon
+  async applyCoupon(cartId: number, couponCode: string) {
+    const coupon = await this.couponRepository.findOne({
+      where: {
+        code: couponCode,
+        is_active: true,
+      },
+    });
+
+    if (!coupon) {
+      throw new NotFoundException('El cupon no es valido o no existe.');
+    }
+
+    const now = new Date();
+    if (coupon.valid_from > now || coupon.valid_until < now) {
+      throw new NotFoundException('El cupon ha expirado o aun no vigente.');
+    }
+
+    if (coupon.usage_limit !== 0 && coupon.times_used >= coupon.usage_limit) {
+      throw new BadRequestException('El cupon ha alcanzado su limite de uso.');
+    }
+
+    const cart = await this.findCartWithItems(cartId);
+    if (!cart) {
+      throw new NotFoundException('Carrito no encontrado.');
+    }
+
+    const summary = this.getSummary(cart);
+
+    if (summary.subtotal < Number(coupon.min_order_amount)) {
+      throw new BadRequestException(
+        `El cupon requiere un monto minimo de ${coupon.min_order_amount}.`,
+      );
+    }
+
+    cart.coupon = coupon;
+    await this.cartRepository.save(cart);
+
+    return {
+      cart,
+      summary: this.getSummary(cart),
+    };
+  }
+  //metodos privados / helpers
   private async findCartWithItems(cartId: number) {
     return this.cartRepository.findOne({
       where: {
@@ -189,7 +285,34 @@ export class CartService {
         items: {
           variant: true,
         },
+        coupon: true,
       },
     });
+  }
+  //Calcular descuento cupon
+  private getSummary(cart: Cart) {
+    let subtotal = 0;
+
+    for (const item of cart.items) {
+      subtotal += item.quantity * Number(item.unit_price_snapshot);
+    }
+
+    let discount = 0;
+
+    if (cart.coupon) {
+      if (cart.coupon.discount_type === 'percentage') {
+        discount = subtotal * (Number(cart.coupon.discount_value) / 100);
+      } else if (cart.coupon.discount_type === 'fixed') {
+        discount = Number(cart.coupon.discount_value);
+      }
+    }
+
+    const total = Math.max(subtotal - discount, 0);
+
+    return {
+      subtotal,
+      discount,
+      total,
+    };
   }
 }
