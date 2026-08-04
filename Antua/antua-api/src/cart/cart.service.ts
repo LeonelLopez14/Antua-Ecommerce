@@ -23,7 +23,7 @@ export class CartService {
     @InjectRepository(ProductVariant)
     private readonly productVariantRepository: Repository<ProductVariant>,
     @InjectRepository(Coupon)
-private readonly couponRepository: Repository<Coupon>;
+    private readonly couponRepository: Repository<Coupon>,
   ) {}
   //Obtener o crear un carrito
   async getOrCreateCart(userId?: number, guestToken?: string) {
@@ -254,12 +254,12 @@ private readonly couponRepository: Repository<Coupon>;
       throw new BadRequestException('El cupon ha alcanzado su limite de uso.');
     }
 
-    const cart = await this.findCartWithItems(cartId);
-    if (!cart) {
+    const updatedCart = await this.findCartWithItems(cartId);
+    if (!updatedCart) {
       throw new NotFoundException('Carrito no encontrado.');
     }
 
-    const summary = this.getSummary(cart);
+    const summary = this.getSummary(updatedCart);
 
     if (summary.subtotal < Number(coupon.min_order_amount)) {
       throw new BadRequestException(
@@ -267,15 +267,111 @@ private readonly couponRepository: Repository<Coupon>;
       );
     }
 
-    cart.coupon = coupon;
-    await this.cartRepository.save(cart);
+    updatedCart.coupon = coupon;
+    await this.cartRepository.save(updatedCart);
 
     return {
-      cart,
-      summary: this.getSummary(cart),
+      cart: updatedCart,
+      summary: this.getSummary(updatedCart),
+    };
+  }
+  //metodo remover cupon
+  async removeCoupon(cartId: number) {
+    const cart = await this.cartRepository.findOne({
+      where: {
+        id: cartId,
+      },
+      relations: {
+        items: {
+          variant: true,
+        },
+        coupon: true,
+      },
+    });
+    
+    if (!cart) {
+      throw new NotFoundException('Carrito no encontrado.');
+    }
+
+    cart.coupon = null;
+    
+    await this.cartRepository.save(cart);
+
+    const updatedCart = await this.findCartWithItems(cartId);
+
+    if (!updatedCart) {
+      throw new NotFoundException('Carrito no encontrado.');
+    }
+
+    return {
+      cart: updatedCart,
+      summary: this.getSummary(updatedCart),
+    };
+  }
+  //metodo juntar carritos de invitado y usuario autenticado
+  async mergeCarts(userId: number, guestToken: string) {
+
+    const guestCart = await this.cartRepository.findOne({
+      where: {
+        guest_token: guestToken,
+      },
+      relations: {
+        items: {
+          variant: true,
+        },
+        coupon: true,
+        },
+    });
+
+    if (!guestCart) {
+      return this.getOrCreateCart(userId);
+    }
+
+    const userCart = await this.getOrCreateCart(userId);
+
+    const fullUserCart = await this.findCartWithItems(userCart.id);
+
+    if (!fullUserCart) {
+      throw new NotFoundException('Carrito no encontrado.');
+    }
+
+    for (const guestItem of guestCart.items) {
+      const existingItem = fullUserCart.items.find (
+        (item) => item.variant.id === guestItem.variant.id,
+      );
+      if (existingItem) {
+        const totalQuantity = existingItem.quantity + guestItem.quantity;
+        if (totalQuantity > guestItem.variant.stock) {
+          throw new BadRequestException(
+            `Stock insuficiente para el producto ${guestItem.variant.name}.`,
+          );
+        }
+        existingItem.quantity = totalQuantity;
+        await this.cartItemRepository.save(existingItem);
+        await this.cartItemRepository.delete(guestItem.id);
+      } else {
+        guestItem.cart = fullUserCart;
+        await this.cartItemRepository.save(guestItem);
+      }
+    }
+    if (!fullUserCart.coupon && guestCart.coupon) {
+      fullUserCart.coupon = guestCart.coupon;
+      await this.cartRepository.save(fullUserCart);
+    }
+    await this.cartRepository.delete(guestCart.id);
+    const updatedCart = await this.findCartWithItems(fullUserCart.id);
+
+    if (!updatedCart) {
+      throw new NotFoundException('Carrito no encontrado.');
+    }
+
+    return {
+      cart: updatedCart,
+      summary: this.getSummary(updatedCart),
     };
   }
   //metodos privados / helpers
+  //encontrar carrito con iterms y cupon
   private async findCartWithItems(cartId: number) {
     return this.cartRepository.findOne({
       where: {

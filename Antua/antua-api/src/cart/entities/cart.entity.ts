@@ -24,7 +24,7 @@ export class Cart {
   guest_token: string;
 
   @ManyToOne(() => Coupon, { nullable: true })
-  coupon: Coupon;
+  coupon: Coupon | null;
 
   @OneToMany(() => CartItem, (item) => item.cart)
   items: CartItem[];
