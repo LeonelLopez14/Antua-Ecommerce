@@ -104,9 +104,9 @@ export class CartController {
   @UseGuards(JwtAuthGuard)
   async merge(
     @Req() req: Request & { user: { id: number } },
-    @Headers('x-guest-token') guestToken: string,
+    @Headers('x-guest-token') guestToken: string | undefined,
   ) {
-    return this.cartService.mergeCarts(req.user.id, guestToken);
+    return this.cartService.mergeCarts(req.user.id, guestToken ?? '');
   }
   //metodos privados
   private async resolveCart(

@@ -232,7 +232,7 @@ export class CartService {
     };
   }
 
-//metodo aplicar cupon
+  //metodo aplicar cupon
   async applyCoupon(cartId: number, couponCode: string) {
     const coupon = await this.couponRepository.findOne({
       where: {
@@ -247,9 +247,9 @@ export class CartService {
 
     const now = new Date();
     if (coupon.valid_from > now || coupon.valid_until < now) {
-      throw new NotFoundException('El cupon ha expirado o aun no vigente.');
+      throw new BadRequestException('El cupon ha expirado o aun no vigente.');
     }
-
+    //0 = sin limite de uso
     if (coupon.usage_limit !== 0 && coupon.times_used >= coupon.usage_limit) {
       throw new BadRequestException('El cupon ha alcanzado su limite de uso.');
     }
@@ -288,13 +288,13 @@ export class CartService {
         coupon: true,
       },
     });
-    
+
     if (!cart) {
       throw new NotFoundException('Carrito no encontrado.');
     }
 
     cart.coupon = null;
-    
+
     await this.cartRepository.save(cart);
 
     const updatedCart = await this.findCartWithItems(cartId);
@@ -310,6 +310,9 @@ export class CartService {
   }
   //metodo juntar carritos de invitado y usuario autenticado
   async mergeCarts(userId: number, guestToken: string) {
+    if (!guestToken) {
+      return this.getOrCreateCart(userId);
+    }
 
     const guestCart = await this.cartRepository.findOne({
       where: {
@@ -320,7 +323,7 @@ export class CartService {
           variant: true,
         },
         coupon: true,
-        },
+      },
     });
 
     if (!guestCart) {
@@ -336,7 +339,7 @@ export class CartService {
     }
 
     for (const guestItem of guestCart.items) {
-      const existingItem = fullUserCart.items.find (
+      const existingItem = fullUserCart.items.find(
         (item) => item.variant.id === guestItem.variant.id,
       );
       if (existingItem) {
