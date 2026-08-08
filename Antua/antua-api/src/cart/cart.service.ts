@@ -414,4 +414,7 @@ export class CartService {
       total,
     };
   }
+  async getCartWithItems(cartId: number) {
+    return this.findCartWithItems(cartId);
+  }
 }

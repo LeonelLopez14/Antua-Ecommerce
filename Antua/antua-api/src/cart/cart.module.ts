@@ -11,5 +11,6 @@ import { ProductVariant } from 'src/products/entities/product-variant.entity';
   imports: [TypeOrmModule.forFeature([Cart, CartItem, ProductVariant, Coupon])],
   controllers: [CartController],
   providers: [CartService],
+  exports: [CartService],
 })
 export class CartModule {}
