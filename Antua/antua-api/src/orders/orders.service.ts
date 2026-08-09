@@ -1,5 +1,4 @@
 import {
-  BadGatewayException,
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -104,10 +103,56 @@ export class OrdersService {
           },
         });
 
-      if (!coupon) {
-        throw new BadRequestException('El cupon no es valido.');
+        if (!coupon) {
+          throw new BadRequestException('El cupon no es valido.');
+        }
+
+        const now = new Date();
+        if (coupon.valid_from > now || coupon.valid_until < now) {
+          throw new BadRequestException(
+            'El cupon ha expirado o aun no esta vigente.',
+          );
+        }
+
+        if (
+          coupon.usage_limit !== null &&
+          coupon.times_used >= coupon.usage_limit
+        ) {
+          throw new BadRequestException(
+            'El cupon ha llegado a su limite de uso',
+          );
+        }
+
+        if (
+          coupon.min_order_amount &&
+          subtotal < Number(coupon.min_order_amount)
+        ) {
+          throw new BadRequestException(
+            'El pedido no alncanza el minimo requerido para usar el coupon',
+          );
+        }
+
+        if (coupon.discount_type === 'percentage') {
+          discount = subtotal * (Number(coupon.discount_value) / 100);
+        }
+
+        if (coupon.discount_type === 'fixed') {
+          discount = Number(coupon.discount_value);
+        }
+
+        discount = Math.min(discount, subtotal);
+
+        coupon.times_used += 1;
+
+        await couponRepo.save(coupon);
       }
-      }
+
+      const shippingAmount = 
+        Number(
+          this.configService.get<number>(
+            'SHIPPING_FLAT_RATE',
+      ),
+    );
     });
   }
 }
