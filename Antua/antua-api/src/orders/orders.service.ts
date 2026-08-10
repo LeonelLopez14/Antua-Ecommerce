@@ -4,9 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Order } from './entities/order.entity';
-import { Not, Repository } from 'typeorm';
-import { DataSource } from 'typeorm';
+import { Order, OrderStatus } from './entities/order.entity';
+import { DataSource, Repository } from 'typeorm';
 import { CartService } from 'src/cart/cart.service';
 import { ConfigService } from '@nestjs/config';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -14,6 +13,7 @@ import { ProductVariant } from 'src/products/entities/product-variant.entity';
 import { CartItem } from 'src/cart/entities/cart-item.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Coupon } from 'src/coupons/entities/coupon.entity';
+import { Cart } from 'src/cart/entities/cart.entity';
 
 @Injectable()
 export class OrdersService {
@@ -147,12 +147,60 @@ export class OrdersService {
         await couponRepo.save(coupon);
       }
 
-      const shippingAmount = 
-        Number(
-          this.configService.get<number>(
-            'SHIPPING_FLAT_RATE',
-      ),
-    );
+      const shippingAmount = Number(
+        this.configService.get<number>('SHIPPING_FLAT_RATE'),
+      );
+
+      const total = Math.max(subtotal - discount + shippingAmount, 0);
+
+      //creacion dela order
+      const order = orderRepo.create({
+        user: userId ? { id: userId } : null,
+        guest_email: userId ? null : dto.guest_email,
+        coupon: fullCart.coupon ?? null,
+        status: OrderStatus.PENDING,
+        payment_status: 'pending',
+        shipping_full_name: dto.shipping_full_name,
+        shipping_phone: dto.shipping_phone,
+        shipping_street: dto.shipping_street,
+        shipping_city: dto.shipping_city,
+        shipping_postal_code: dto.shipping_postal_code,
+        subtotal,
+        discount_amount: discount,
+        shipping_amount: shippingAmount,
+        total,
+      });
+
+      await orderRepo.save(order);
+
+      const orderItems = orderItemsData.map((item) =>
+        orderItemRepo.create({
+          order,
+          variant: item.variant,
+          product_name_snapshot: item.variant.product.name,
+          unit_price_snapshot: item.unitPrice,
+          quantity: item.quantity,
+        }),
+      );
+
+      await orderItemRepo.save(orderItems);
+
+      await cartItemRepo.delete({
+        cart: {
+          id: fullCart.id,
+        },
+      });
+
+      const cartRepo = manager.getRepository(Cart);
+
+      fullCart.coupon = null;
+
+      await cartRepo.save(fullCart);
+
+      return {
+        order,
+        items: orderItems,
+      };
     });
   }
 }
