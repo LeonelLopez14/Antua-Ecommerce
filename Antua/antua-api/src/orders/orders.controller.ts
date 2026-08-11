@@ -22,6 +22,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  //metodo crear order
   @Post()
   @UseGuards(OptionalJwtAuthGuard)
   async createOrder(
@@ -30,5 +31,29 @@ export class OrdersController {
     @Headers('x-guest-token') guestToken: string | undefined,
   ) {
     return this.ordersService.createOrder(req.user?.id, guestToken, dto);
+  }
+
+  //Metodo encontrar
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async findAllByUser(@Req() req: Request & { user: { id: number } }) {
+    return this.ordersService.findAllByUser(req.user.id);
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  async findOne(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Req() req: Request & { user: { id: number } },
+  ) {
+    return this.ordersService.findOne(orderId, req.user.id);
+  }
+
+  @Get('guest/:id')
+  async findGuestOrder(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Query('email') email: string,
+  ) {
+    return this.ordersService.findGuestOrder(orderId, email);
   }
 }

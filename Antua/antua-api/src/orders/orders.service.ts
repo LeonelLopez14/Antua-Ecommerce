@@ -203,4 +203,67 @@ export class OrdersService {
       };
     });
   }
+
+  async findAllByUser(userId: number) {
+    return this.orderRepository.find({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: {
+        items: {
+          variant: true,
+        },
+        coupon: true,
+      },
+      order: {
+        created_at: 'DESC',
+      },
+    });
+  }
+
+  async findOne(orderId: number, userId: number) {
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId,
+        user: {
+          id: userId,
+        },
+      },
+      relations: {
+        items: {
+          variant: true,
+        },
+        coupon: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Orden no encontrada.');
+    }
+
+    return order;
+  }
+
+  async findGuestOrder(orderId: number, email: string) {
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId,
+        guest_email: email,
+      },
+      relations: {
+        items: {
+          variant: true,
+        },
+        coupon: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Orden no encontrada');
+    }
+
+    return order;
+  }
 }
