@@ -65,6 +65,9 @@ export class OrdersService {
           where: {
             id: cartItem.variant.id,
           },
+          relations: {
+            product: true,
+          },
           lock: { mode: 'pessimistic_write' },
         });
 
@@ -101,6 +104,7 @@ export class OrdersService {
             id: fullCart.coupon.id,
             is_active: true,
           },
+          lock: { mode: 'pessimistic_write' },
         });
 
         if (!coupon) {

@@ -9,7 +9,9 @@ import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem, CartModule, ConfigModule]),
+    TypeOrmModule.forFeature([Order, OrderItem]),
+    CartModule,
+    ConfigModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

@@ -26,7 +26,7 @@ export class Order {
   id: number;
 
   @Column({ type: 'varchar', length: 150, nullable: true })
-  guest_email: string;
+  guest_email: string | null;
 
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;
@@ -67,14 +67,14 @@ export class Order {
   //relations
 
   @ManyToOne(() => User, (user) => user.orders, { nullable: true })
-  user: User; //null = guest user
+  user: User | null; //null = guest user
 
   @ManyToOne(() => Coupon, { nullable: true })
-  coupon: Coupon;
+  coupon: Coupon | null;
 
   @OneToMany(() => OrderItem, (item) => item.order)
   items: OrderItem[];
 
   @OneToOne(() => Payment, (payment) => payment.order, { nullable: true })
-  payment: Payment;
+  payment: Payment | null;
 }

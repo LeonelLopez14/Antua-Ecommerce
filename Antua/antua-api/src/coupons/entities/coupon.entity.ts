@@ -19,8 +19,8 @@ export class Coupon {
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   min_order_amount: number;
 
-  @Column({ type: 'int' })
-  usage_limit: number;
+  @Column({ type: 'int', nullable: true })
+  usage_limit: number | null;
 
   @Column({ type: 'timestamp' })
   valid_until: Date;
