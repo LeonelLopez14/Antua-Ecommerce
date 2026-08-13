@@ -249,8 +249,10 @@ export class CartService {
     if (coupon.valid_from > now || coupon.valid_until < now) {
       throw new BadRequestException('El cupon ha expirado o aun no vigente.');
     }
-    //0 = sin limite de uso
-    if (coupon.usage_limit !== 0 && coupon.times_used >= coupon.usage_limit) {
+    if (
+      coupon.usage_limit !== null &&
+      coupon.times_used >= coupon.usage_limit
+    ) {
       throw new BadRequestException('El cupon ha alcanzado su limite de uso.');
     }
 
