@@ -33,9 +33,6 @@ export class AddressesService {
           id: userId,
         },
       },
-      relations: {
-        user: true,
-      },
     });
 
     if (!address) {
@@ -46,17 +43,17 @@ export class AddressesService {
   }
 
   async create(dto: CreateAddressDto, userId: number) {
-    const address = await this.addressesRepository.findOne({
+    const addressCount = await this.addressesRepository.count({
       where: {
-        id: userId,
+        user: {
+          id: userId,
+        },
       },
     });
 
-    if (!address) {
-      throw new NotFoundException('Direccion no encontrada');
-    }
+    const isFirstAddress = addressCount === 0;
 
-    if (dto.is_default === true) {
+    if (dto.is_default) {
       await this.addressesRepository.update(
         {
           user: {
@@ -69,8 +66,14 @@ export class AddressesService {
       );
     }
 
-    const newAddress = this.addressesRepository.create(dto);
-    newAddress.is_default = dto.is_default ?? false;
+    const newAddress = this.addressesRepository.create({
+      ...dto,
+      user: {
+        id: userId,
+      },
+      is_default: isFirstAddress || dto.is_default,
+    });
+
     return await this.addressesRepository.save(newAddress);
   }
 
@@ -98,14 +101,14 @@ export class AddressesService {
     return this.addressesRepository.save(address);
   }
 
-  async delete(addressId: number, userId: number) {
+  async remove(addressId: number, userId: number) {
     const address = await this.findOne(addressId, userId);
 
     if (!address) {
       throw new NotFoundException('Direccion no encontrada');
     }
 
-    return this.addressesRepository.delete(address);
+    return this.addressesRepository.remove(address);
   }
 
   async setDefault(addressId: number, userId: number) {
@@ -115,6 +118,19 @@ export class AddressesService {
       throw new NotFoundException('Direccion no encontrada');
     }
 
-    return (address.is_default = true);
+    await this.addressesRepository.update(
+      {
+        user: {
+          id: userId,
+        },
+      },
+      {
+        is_default: false,
+      },
+    );
+
+    address.is_default = true;
+
+    return this.addressesRepository.save(address);
   }
 }

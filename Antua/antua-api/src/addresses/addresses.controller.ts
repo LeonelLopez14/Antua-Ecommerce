@@ -50,7 +50,7 @@ export class AddressesController {
     @Body() dto: UpdateAddressDto,
     @Req() req: Request & { user: { id: number } },
   ) {
-    return this.addressesService.update(addressId, dto, req);
+    return this.addressesService.update(addressId, dto, req.user.id);
   }
 
   @Patch(':id/default')
@@ -59,15 +59,15 @@ export class AddressesController {
     @Param('id', ParseIntPipe) addressId: number,
     @Req() req: Request & { user: { id: number } },
   ) {
-    return this.addressesService.setDefault(addressId, req);
+    return this.addressesService.setDefault(addressId, req.user.id);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  async delete(
+  async remove(
     @Param('id', ParseIntPipe) addressId: number,
     @Req() req: Request & { user: { id: number } },
   ) {
-    return this.addressesService.delete(addressId, req);
+    return this.addressesService.remove(addressId, req.user.id);
   }
 }
