@@ -80,10 +80,6 @@ export class AddressesService {
   async update(addressId: number, userId: number, dto: UpdateAddressDto) {
     const address = await this.findOne(addressId, userId);
 
-    if (!address) {
-      throw new NotFoundException('Direccion no encontrada');
-    }
-
     if (dto.is_default === true) {
       await this.addressesRepository.update(
         {
@@ -104,19 +100,11 @@ export class AddressesService {
   async remove(addressId: number, userId: number) {
     const address = await this.findOne(addressId, userId);
 
-    if (!address) {
-      throw new NotFoundException('Direccion no encontrada');
-    }
-
     return this.addressesRepository.remove(address);
   }
 
   async setDefault(addressId: number, userId: number) {
     const address = await this.findOne(addressId, userId);
-
-    if (!address) {
-      throw new NotFoundException('Direccion no encontrada');
-    }
 
     await this.addressesRepository.update(
       {

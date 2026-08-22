@@ -22,7 +22,7 @@ export class AddressesController {
   @Get()
   @UseGuards(JwtAuthGuard)
   async findAllByUser(@Req() req: Request & { user: { id: number } }) {
-    return this.addressesService.findAllByUser(req);
+    return this.addressesService.findAllByUser(req.user.id);
   }
 
   @Get(':id')
@@ -50,7 +50,7 @@ export class AddressesController {
     @Body() dto: UpdateAddressDto,
     @Req() req: Request & { user: { id: number } },
   ) {
-    return this.addressesService.update(addressId, dto, req.user.id);
+    return this.addressesService.update(addressId, req.user.id, dto);
   }
 
   @Patch(':id/default')

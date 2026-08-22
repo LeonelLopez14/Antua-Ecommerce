@@ -4,11 +4,13 @@ import {
   Column,
   ManyToOne,
   CreateDateColumn,
+  Unique,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Product } from '../../products/entities/product.entity';
 
 @Entity('reviews')
+@Unique(['product', 'user'])
 export class Review {
   @PrimaryGeneratedColumn()
   id: number;
