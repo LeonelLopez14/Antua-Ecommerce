@@ -31,7 +31,7 @@ export class ReviewsService {
       .innerJoin('item.order', 'order')
       .innerJoin('item.variant', 'variant')
       .where('order.user = :userId', { userId })
-      .andWhere('varant.product = :productId', { productId })
+      .andWhere('variant.product = :productId', { productId })
       .andWhere('order.status = :status', {
         status: OrderStatus.DELIVERED,
       })
@@ -71,7 +71,7 @@ export class ReviewsService {
       },
     });
 
-    if (!existingReview) {
+    if (existingReview) {
       throw new ConflictException('Ya resenhaste este producto.');
     }
 
@@ -86,7 +86,7 @@ export class ReviewsService {
     return this.reviewRepository.save(review);
   }
 
-  async findAllByProdcutSlug(slug: string) {
+  async findAllByProductSlug(slug: string) {
     const product = await this.productRepository.findOne({
       where: {
         slug,

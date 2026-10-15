@@ -17,7 +17,7 @@ export class ReviewsController {
 
   @Get()
   findAll(@Param('slug') slug: string) {
-    return this.reviewsService.findAllByProdcutSlug(slug);
+    return this.reviewsService.findAllByProductSlug(slug);
   }
 
   @Post()
