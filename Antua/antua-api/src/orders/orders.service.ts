@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -151,11 +152,17 @@ export class OrdersService {
         await couponRepo.save(coupon);
       }
 
-      const shippingAmount = Number(
-        this.configService.get<number>('SHIPPING_FLAT_RATE'),
-      );
+      // Validada al arrancar (src/config/env.validation.ts): siempre es un número.
+      const shippingAmount =
+        this.configService.getOrThrow<number>('SHIPPING_FLAT_RATE');
 
       const total = Math.max(subtotal - discount + shippingAmount, 0);
+
+      if (![subtotal, discount, shippingAmount, total].every(Number.isFinite)) {
+        throw new InternalServerErrorException(
+          'No se pudo calcular el total del pedido.',
+        );
+      }
 
       //creacion dela order
       const order = orderRepo.create({

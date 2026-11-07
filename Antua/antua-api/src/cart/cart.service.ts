@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Cart } from './entities/cart.entity';
@@ -12,6 +13,7 @@ import { ProductVariant } from 'src/products/entities/product-variant.entity';
 import { CreateCartItemDto } from './dto/cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { Coupon } from 'src/coupons/entities/coupon.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CartService {
@@ -24,6 +26,7 @@ export class CartService {
     private readonly productVariantRepository: Repository<ProductVariant>,
     @InjectRepository(Coupon)
     private readonly couponRepository: Repository<Coupon>,
+    private readonly configService: ConfigService,
   ) {}
   //Obtener o crear un carrito
   async getOrCreateCart(userId?: number, guestToken?: string) {
@@ -89,6 +92,9 @@ export class CartService {
       where: {
         id: dto.variantId,
         is_active: true,
+        product: {
+          is_active: true,
+        },
       },
     });
 
@@ -131,21 +137,7 @@ export class CartService {
 
       await this.cartItemRepository.save(existingItem);
 
-      const cartId = cart.id;
-      if (cartId == null) {
-        throw new NotFoundException('Carrito no encontrado.');
-      }
-
-      const updatedCart = await this.findCartWithItems(cartId);
-
-      if (!updatedCart) {
-        throw new NotFoundException('Carrito no encontrado.');
-      }
-
-      return {
-        cart: updatedCart,
-        summary: this.getSummary(updatedCart),
-      };
+      return this.getCartResponse(cart.id);
     }
 
     //si no existe, crea uno nuevo.
@@ -158,7 +150,7 @@ export class CartService {
 
     await this.cartItemRepository.save(item);
 
-    return this.findCartWithItems(cart.id);
+    return this.getCartResponse(cart.id);
   }
   //actualizar cantidad de un item del carrito
   async updateItem(cartId: number, itemId: number, dto: UpdateCartItemDto) {
@@ -171,12 +163,22 @@ export class CartService {
         },
       },
       relations: {
-        variant: true,
+        variant: {
+          product: true,
+        },
       },
     });
 
     if (!item) {
       throw new NotFoundException('No se encontro el item');
+    }
+
+    //no se puede sumar unidades de algo que ya no se vende (bajar o quitar, sí)
+    const isActive = item.variant.is_active && item.variant.product.is_active;
+    if (!isActive && dto.quantity > item.quantity) {
+      throw new BadRequestException(
+        'Este producto ya no esta a la venta. Podes quitarlo del carrito.',
+      );
     }
 
     //validar stock
@@ -188,48 +190,23 @@ export class CartService {
     item.quantity = dto.quantity;
 
     await this.cartItemRepository.save(item);
-    //devolver carrito
-    const updatedCart = await this.findCartWithItems(cartId);
 
-    if (!updatedCart) {
-      throw new NotFoundException('Carrito no encontrado.');
-    }
-
-    return {
-      cart: updatedCart,
-      summary: this.getSummary(updatedCart),
-    };
+    return this.getCartResponse(cartId);
   }
   //Eliminar item del carrito
   async removeItem(cartId: number, itemId: number) {
-    const item = await this.cartItemRepository.findOne({
-      where: {
-        id: itemId,
-        cart: {
-          id: cartId,
-        },
-      },
-      relations: {
-        variant: true,
+    const result = await this.cartItemRepository.delete({
+      id: itemId,
+      cart: {
+        id: cartId,
       },
     });
 
-    if (!item) {
-      throw new NotFoundException('Este producto no exise en tu carrito.');
+    if (result.affected === 0) {
+      throw new NotFoundException('Este producto no existe en tu carrito.');
     }
 
-    await this.cartItemRepository.delete(item.id);
-
-    const updatedCart = await this.findCartWithItems(cartId);
-
-    if (!updatedCart) {
-      throw new NotFoundException('Carrito no encontrado.');
-    }
-
-    return {
-      cart: updatedCart,
-      summary: this.getSummary(updatedCart),
-    };
+    return this.getCartResponse(cartId);
   }
 
   //metodo aplicar cupon
@@ -256,64 +233,38 @@ export class CartService {
       throw new BadRequestException('El cupon ha alcanzado su limite de uso.');
     }
 
-    const updatedCart = await this.findCartWithItems(cartId);
-    if (!updatedCart) {
+    const cart = await this.findCartWithItems(cartId);
+    if (!cart) {
       throw new NotFoundException('Carrito no encontrado.');
     }
 
-    const summary = this.getSummary(updatedCart);
-
-    if (summary.subtotal < Number(coupon.min_order_amount)) {
+    if (!this.meetsCouponMinimum(cart, coupon)) {
       throw new BadRequestException(
         `El cupon requiere un monto minimo de ${coupon.min_order_amount}.`,
       );
     }
 
-    updatedCart.coupon = coupon;
-    await this.cartRepository.save(updatedCart);
+    // update() escribe solo la columna del cupón: save() con el carrito
+    // entero también compararía la lista de ítems (ver mergeCarts).
+    await this.cartRepository.update(cartId, { coupon: { id: coupon.id } });
 
-    return {
-      cart: updatedCart,
-      summary: this.getSummary(updatedCart),
-    };
+    return this.getCartResponse(cartId);
   }
   //metodo remover cupon
   async removeCoupon(cartId: number) {
-    const cart = await this.cartRepository.findOne({
-      where: {
-        id: cartId,
-      },
-      relations: {
-        items: {
-          variant: true,
-        },
-        coupon: true,
-      },
-    });
+    const result = await this.cartRepository.update(cartId, { coupon: null });
 
-    if (!cart) {
+    if (result.affected === 0) {
       throw new NotFoundException('Carrito no encontrado.');
     }
 
-    cart.coupon = null;
-
-    await this.cartRepository.save(cart);
-
-    const updatedCart = await this.findCartWithItems(cartId);
-
-    if (!updatedCart) {
-      throw new NotFoundException('Carrito no encontrado.');
-    }
-
-    return {
-      cart: updatedCart,
-      summary: this.getSummary(updatedCart),
-    };
+    return this.getCartResponse(cartId);
   }
   //metodo juntar carritos de invitado y usuario autenticado
   async mergeCarts(userId: number, guestToken: string) {
     if (!guestToken) {
-      return this.getOrCreateCart(userId);
+      const cart = await this.getOrCreateCart(userId);
+      return this.getCartResponse(cart.id);
     }
 
     const guestCart = await this.cartRepository.findOne({
@@ -329,51 +280,60 @@ export class CartService {
     });
 
     if (!guestCart) {
-      return this.getOrCreateCart(userId);
+      const cart = await this.getOrCreateCart(userId);
+      return this.getCartResponse(cart.id);
     }
 
     const userCart = await this.getOrCreateCart(userId);
 
-    const fullUserCart = await this.findCartWithItems(userCart.id);
+    // Todo o nada: si algo falla a mitad (por ejemplo, falta stock), la base
+    // vuelve a como estaba y el invitado conserva su carrito.
+    await this.cartRepository.manager.transaction(async (manager) => {
+      const cartRepo = manager.getRepository(Cart);
+      const itemRepo = manager.getRepository(CartItem);
 
-    if (!fullUserCart) {
-      throw new NotFoundException('Carrito no encontrado.');
-    }
+      const fullUserCart = await cartRepo.findOne({
+        where: { id: userCart.id },
+        relations: { items: { variant: true }, coupon: true },
+      });
 
-    for (const guestItem of guestCart.items) {
-      const existingItem = fullUserCart.items.find(
-        (item) => item.variant.id === guestItem.variant.id,
-      );
-      if (existingItem) {
-        const totalQuantity = existingItem.quantity + guestItem.quantity;
-        if (totalQuantity > guestItem.variant.stock) {
-          throw new BadRequestException(
-            `Stock insuficiente para el producto ${guestItem.variant.name}.`,
-          );
-        }
-        existingItem.quantity = totalQuantity;
-        await this.cartItemRepository.save(existingItem);
-        await this.cartItemRepository.delete(guestItem.id);
-      } else {
-        guestItem.cart = fullUserCart;
-        await this.cartItemRepository.save(guestItem);
+      if (!fullUserCart) {
+        throw new NotFoundException('Carrito no encontrado.');
       }
-    }
-    if (!fullUserCart.coupon && guestCart.coupon) {
-      fullUserCart.coupon = guestCart.coupon;
-      await this.cartRepository.save(fullUserCart);
-    }
-    await this.cartRepository.delete(guestCart.id);
-    const updatedCart = await this.findCartWithItems(fullUserCart.id);
 
-    if (!updatedCart) {
-      throw new NotFoundException('Carrito no encontrado.');
-    }
+      for (const guestItem of guestCart.items) {
+        const existingItem = fullUserCart.items.find(
+          (item) => item.variant.id === guestItem.variant.id,
+        );
+        if (existingItem) {
+          const totalQuantity = existingItem.quantity + guestItem.quantity;
+          if (totalQuantity > guestItem.variant.stock) {
+            throw new BadRequestException(
+              `Stock insuficiente para el producto ${guestItem.variant.name}.`,
+            );
+          }
+          await itemRepo.update(existingItem.id, { quantity: totalQuantity });
+          await itemRepo.delete(guestItem.id);
+        } else {
+          await itemRepo.update(guestItem.id, {
+            cart: { id: fullUserCart.id },
+          });
+        }
+      }
 
-    return {
-      cart: updatedCart,
-      summary: this.getSummary(updatedCart),
-    };
+      // Antes: save(fullUserCart) con su lista de ítems vieja. TypeORM veía
+      // que los ítems recién movidos "no estaban" y les ponía cartId = NULL.
+      // update() toca solo la columna del cupón.
+      if (!fullUserCart.coupon && guestCart.coupon) {
+        await cartRepo.update(fullUserCart.id, {
+          coupon: { id: guestCart.coupon.id },
+        });
+      }
+
+      await cartRepo.delete(guestCart.id);
+    });
+
+    return this.getCartResponse(userCart.id);
   }
   //metodos privados / helpers
   //encontrar carrito con iterms y cupon
@@ -384,19 +344,43 @@ export class CartService {
       },
       relations: {
         items: {
-          variant: true,
+          variant: {
+            product: {
+              images: true,
+            },
+          },
         },
         coupon: true,
       },
     });
   }
-  //Calcular descuento cupon
-  private getSummary(cart: Cart) {
+
+  private getSubtotal(cart: Cart) {
     let subtotal = 0;
 
     for (const item of cart.items) {
       subtotal += item.quantity * Number(item.unit_price_snapshot);
     }
+
+    return subtotal;
+  }
+
+  private meetsCouponMinimum(cart: Cart, coupon: Coupon) {
+    return this.getSubtotal(cart) >= Number(coupon.min_order_amount ?? 0);
+  }
+
+  // Si al cambiar el carrito el subtotal queda por debajo del mínimo del
+  // cupón, el cupón se quita (el mismo control que hace POST /orders).
+  private async syncCoupon(cart: Cart) {
+    if (cart.coupon && !this.meetsCouponMinimum(cart, cart.coupon)) {
+      await this.cartRepository.update(cart.id, { coupon: null });
+      cart.coupon = null;
+    }
+  }
+
+  //Calcular descuento cupon
+  private getSummary(cart: Cart) {
+    const subtotal = this.getSubtotal(cart);
 
     let discount = 0;
 
@@ -408,14 +392,44 @@ export class CartService {
       }
     }
 
-    const total = Math.max(subtotal - discount, 0);
+    // Mismo criterio que orders.service.ts: el descuento nunca supera al subtotal.
+    discount = Math.min(discount, subtotal);
+
+    // Envío fijo (SHIPPING_FLAT_RATE, validada al arrancar). Carrito vacío: 0.
+    const shipping =
+      cart.items.length === 0
+        ? 0
+        : this.configService.getOrThrow<number>('SHIPPING_FLAT_RATE');
+
+    const total = Math.max(subtotal - discount + shipping, 0);
+
+    if (![subtotal, discount, shipping, total].every(Number.isFinite)) {
+      throw new InternalServerErrorException(
+        'No se pudo calcular el total del carrito.',
+      );
+    }
 
     return {
       subtotal,
       discount,
+      shipping,
       total,
     };
   }
+
+  //devuelve siempre la misma forma: { cart (con items y producto), summary }
+  async getCartResponse(cartId: number) {
+    const cart = await this.findCartWithItems(cartId);
+    if (!cart) {
+      throw new NotFoundException('Carrito no encontrado.');
+    }
+    await this.syncCoupon(cart);
+    return {
+      cart,
+      summary: this.getSummary(cart),
+    };
+  }
+
   async getCartWithItems(cartId: number) {
     return this.findCartWithItems(cartId);
   }

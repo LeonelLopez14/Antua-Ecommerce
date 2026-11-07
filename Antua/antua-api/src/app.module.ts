@@ -13,10 +13,11 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { UsersModule } from './users/users.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { AuthModule } from './auth/auth.module';
+import { validateEnv } from './config/env.validation';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), // lee el .env, disponible en toda la app
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }), // lee y valida el .env, disponible en toda la app
 
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
