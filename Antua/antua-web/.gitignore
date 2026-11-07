@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Capturas de los checks y artefactos de Playwright (pesados, se regeneran)
+docs/checks/
+.playwright/
+.playwright-cli/
+test-results/
+playwright-report/
