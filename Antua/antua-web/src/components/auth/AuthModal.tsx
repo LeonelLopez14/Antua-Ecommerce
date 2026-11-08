@@ -9,7 +9,7 @@ import { useCartStore } from '../../stores/cartStore'
 import type { AuthResponse } from '../../types/auth'
 import { Dialog } from '../ui/Dialog'
 import { Button } from '../ui/Button'
-import { AuthField } from './AuthField'
+import { FormField } from '../ui/FormField'
 
 const TABS: { id: AuthTab; label: string }[] = [
   { id: 'login', label: 'Iniciar sesión' },
@@ -213,7 +213,7 @@ export function AuthModal() {
 
         {tab === 'login' ? (
           <form onSubmit={(e) => void submitLogin(e)} noValidate className="flex flex-col gap-4">
-            <AuthField
+            <FormField
               id={id('email')}
               label="Email"
               name="email"
@@ -224,7 +224,7 @@ export function AuthModal() {
               placeholder="nombre@mail.com…"
               error={errors.fields.email}
             />
-            <AuthField
+            <FormField
               id={id('password')}
               label="Contraseña"
               name="password"
@@ -265,7 +265,7 @@ export function AuthModal() {
           </form>
         ) : (
           <form onSubmit={(e) => void submitRegister(e)} noValidate className="flex flex-col gap-4">
-            <AuthField
+            <FormField
               id={id('name')}
               label="Nombre completo"
               name="name"
@@ -274,7 +274,7 @@ export function AuthModal() {
               placeholder="Ej.: Lucía Pérez…"
               error={errors.fields.fullName}
             />
-            <AuthField
+            <FormField
               id={id('email')}
               label="Email"
               name="email"
@@ -285,7 +285,7 @@ export function AuthModal() {
               placeholder="nombre@mail.com…"
               error={errors.fields.email}
             />
-            <AuthField
+            <FormField
               id={id('password')}
               label="Contraseña"
               name="new-password"
@@ -295,7 +295,7 @@ export function AuthModal() {
               error={errors.fields.password}
               hint={`Al menos ${PASSWORD_MIN} caracteres.`}
             />
-            <AuthField
+            <FormField
               id={id('confirm-password')}
               label="Confirmar contraseña"
               name="confirm-password"

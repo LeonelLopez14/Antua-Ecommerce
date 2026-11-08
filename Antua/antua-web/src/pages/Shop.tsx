@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { SlidersHorizontal } from 'lucide-react'
 import { useShopData } from '../hooks/useShopData'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -18,6 +19,10 @@ import { skeletonBar } from '../components/ui/skeleton'
 
 const GRID = 'grid gap-6 sm:grid-cols-2 xl:grid-cols-3'
 
+/** Aviso que otra página manda al redirigir acá (ej.: checkout con el carrito vacío). */
+const noticeFrom = (state: unknown): string | null =>
+  typeof state === 'object' && state !== null && 'notice' in state && typeof state.notice === 'string' ? state.notice : null
+
 const galletas = (n: number): string => `${n} ${n === 1 ? 'galleta' : 'galletas'}`
 
 function priceBoundsOf(products: Product[]): { min: number; max: number } | null {
@@ -29,6 +34,7 @@ export default function Shop() {
   const { data, retry } = useShopData()
   const { query, toggleCategory, setPriceRange, setSort, clearFilters, pageHref } = useShopParams()
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const notice = noticeFrom(useLocation().state)
 
   useDocumentTitle('Tienda')
 
@@ -74,6 +80,12 @@ export default function Shop() {
           Horneadas en tandas chicas. Filtrá por lo que se te antoje.
         </p>
       </header>
+
+      {notice && (
+        <p role="status" className="mt-6 max-w-2xl rounded-xl bg-accent-secondary px-4 py-3 font-bold text-text-main dark:bg-dark-card dark:text-dark-text-main">
+          {notice}
+        </p>
+      )}
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
         {/* Sidebar (escritorio) */}

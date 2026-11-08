@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Cookie, Menu, ShoppingBag, X } from 'lucide-react'
+import { Menu, ShoppingBag, X } from 'lucide-react'
+import { Logo } from './Logo'
 import { categoryHref, homeCategories } from '../../data/categories'
 import { selectItemCount, useCartStore } from '../../stores/cartStore'
 import { AccountMenu } from '../auth/AccountMenu'
@@ -23,14 +24,7 @@ export function Navbar() {
   return (
     <header className="relative z-20 bg-surface shadow-soft dark:bg-dark-surface dark:shadow-none">
       <nav aria-label="Principal" className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
-        <Link
-          to="/"
-          translate="no"
-          className="flex items-center gap-2 rounded-full font-display text-2xl font-bold text-text-main dark:text-dark-text-main"
-        >
-          <Cookie aria-hidden="true" className="size-7 text-accent-main dark:text-dark-accent-main" />
-          Antua
-        </Link>
+        <Logo />
 
         <ul className="ml-6 hidden items-center gap-1 md:flex">
           {homeCategories.map(({ slug, label }) => (

@@ -60,3 +60,108 @@ Resultado: **20 de 20 suites pasan.** Son pruebas mínimas: no cubren la lógica
 1. **`POST /orders` cobra el precio actual de la variante, no `unit_price_snapshot`** (`orders.service.ts:90`). Si un precio cambia entre agregar y pagar, el carrito y el pedido muestran montos distintos. Es una decisión de negocio: hay que definir qué precio manda.
 2. **El cupón se quita en silencio** cuando el subtotal baja del mínimo. El front simplemente deja de mostrarlo. Si se quiere avisar ("Quitamos SEED10 porque el pedido no llega a $5000"), hay que agregar un campo a la respuesta.
 3. **`seed.sql` y `seed-cleanup.sql` ya no están en el scratchpad.** Los datos sembrados siguen en la base. Si se necesitan otra vez, hay que regenerarlos y guardarlos en `antua-api/seed/`.
+
+## 07/11/2026: Paso 0 de las Fases 5 a 8 (`docs/prompt-fases-5-8.md`)
+
+- **Rama:** `feat/fases-5-8`, creada desde `main` (`f338c48d`).
+- **Commits previos en la rama** (trabajo de las tandas anteriores que estaba sin commitear):
+  - `e7f8219f` fix(api): carrito, merge y validación del envío.
+  - `e313b8d4` feat(web): Fases 0 a 4 del front.
+- **Push: falló.** `git push -u origin feat/fases-5-8` responde `fatal: could not read Username for 'https://github.com': No such device or address`. En esta máquina no hay credenciales HTTPS, no está instalado `gh` y la clave SSH no está registrada en GitHub (`Permission denied (publickey)`). No se forzó nada: los commits quedan locales hasta que haya credenciales.
+- **Servicios:** MySQL 8 (`antua-mysql`) en `127.0.0.1:3307`; el 3306 es un MariaDB del sistema y no se toca. API en `:3000` y front en `:5173` (`pnpm dev`). `GET /products` y `GET /cart` responden 200.
+- **`SHIPPING_FLAT_RATE=1500`:** sigue el valor provisorio. **Decisión abierta:** definir el costo real.
+- **Checks:** front typecheck, lint y build OK (aviso conocido: el chunk de Cookie3D pesa 960 kB y se resuelve en la Fase 8). Back: build OK y Jest 20 de 20.
+- **Fases anteriores:** sin errores pendientes; el último recorrido de playwright-cli pasó en 375 y 1280 px, claro y oscuro.
+- **`.gitignore` del front:** se excluyen `docs/checks/` (capturas) y los artefactos de Playwright. `.agents/`, `.claude/`, `skills-lock.json` y `antua-api/.vscode/` quedan sin versionar (herramientas locales).
+- **Sitemap:** está en `Design/Antojarte_Plan_Proyecto.pdf` §4. Las páginas de la Fase 7 salen de ahí: Nosotros, FAQ, Contacto, Legales (términos y privacidad) y la vista por categoría `/tienda/sin-gluten`.
+
+### Lo que el backend ofrece (leído en `antua-api/src`)
+
+- **`POST /orders`** (invitado o JWT): body `guest_email` (obligatorio sin JWT), `shipping_full_name`, `shipping_phone`, `shipping_street`, `shipping_city` y `shipping_postal_code`. Usa el cupón del carrito, vacía el carrito y responde `{ order, items }`. Una segunda llamada responde 400 "El carrito está vacío".
+- **Consultas de pedidos:**
+  - `GET /orders` y `GET /orders/:id`: requieren JWT y no paginan.
+  - `GET /orders/guest/:id?email=`: pedido de invitado.
+  - Los ítems traen `product_name_snapshot`, `unit_price_snapshot` y `variant`, sin `product` (no hay slug).
+- **Estados de pedido:** `pending`, `preparing`, `shipped`, `delivered` y `canceled`. `payment_status` es texto libre (hoy siempre `pending`).
+- **Payments:** controller y service vacíos. No hay métodos de pago ni endpoints.
+- **Direcciones:** `GET/POST /addresses`, `GET/PATCH/DELETE /addresses/:id` y `PATCH /addresses/:id/default`. Campos: `label?`, `street`, `city`, `postal_code`, `country` e `is_default?`. Sin nombre ni teléfono.
+- **Reseñas:** `GET/POST /products/:slug/reviews`. Para publicar hay que haber recibido un pedido con ese producto (si no, 403); el backend admite una sola por producto (409). **No hay editar ni borrar.**
+- **Usuarios:** `UsersController` vacío. No hay `PATCH /users/me` (el perfil no se puede editar).
+- **Plazo de envío:** el backend no lo informa. El checkout muestra solo el costo.
+- **Newsletter:** no hay endpoint.
+
+### Plan
+
+1. **F5, datos:** `api/orders.ts` y `api/addresses.ts` con tipos y normalización de montos; ruta `/checkout?paso=1..4` y layout con la Navbar mínima.
+2. **F5, pasos:**
+   - Dirección: el invitado carga email, nombre, teléfono y dirección; con sesión se eligen las direcciones guardadas o "usar otra".
+   - Envío: costo fijo.
+   - Pago: solo el aviso, con un único TODO para Payments.
+   - Confirmación.
+3. **F5, pedido:**
+   - `POST /orders` con el botón bloqueado durante la request.
+   - `{id, email}` en `sessionStorage`: una recarga muestra el pedido sin duplicarlo.
+   - Aviso al salir con datos sin guardar y errores con camino de vuelta al carrito.
+4. **F6, cuenta:** rutas protegidas `/cuenta/*` (abren el AuthModal y, al iniciar sesión, vuelven a la ruta pedida) y links en el menú de cuenta.
+5. **F6, contenido:**
+   - Mis pedidos: lista y detalle con precios snapshot.
+   - Direcciones: alta, edición, borrado con confirmación y predeterminada.
+6. **F7, reseñas:** formulario en la Ficha con radios accesibles, rechazo 403 y 409 traducidos, y recarga del listado y del promedio.
+7. **F7, páginas:** las páginas institucionales provisorias, `/tienda/:categoria`, la 404 y la newsletter deshabilitada.
+8. **F8, rendimiento y tema:** lazy por ruta, ErrorBoundary, título y meta por página, toggle de tema sin parpadeo y Three solo en la Home.
+9. **F8, tests:** Vitest + Testing Library (stores, ProductCard, stepper, AuthModal) y un spec de Playwright del flujo de invitado.
+10. **Cierre de cada fase:** checks, commit, `progreso.md` y push cuando haya credenciales.
+
+## Fase 5: Checkout (`/checkout`)
+
+**Hecho**
+- **Rutas:** `createBrowserRouter`, necesario para `useBlocker`.
+  - `RootLayout` carga la sesión y el carrito, y monta el carrito y el AuthModal.
+  - `MainLayout` es el sitio con Navbar y footer.
+  - `CheckoutLayout` tiene una navbar mínima con solo el logo.
+- **Pasos:** Dirección → Envío → Pago → Confirmación, con el paso en la URL (`?paso=2`); Atrás y Adelante del navegador funcionan. Sin los datos del paso 1, `?paso>1` vuelve al paso 1.
+- **Invitado:** carga email, nombre y apellido, teléfono, calle, ciudad y código postal, con un link discreto "¿Ya tenés cuenta? Iniciá sesión" (no se fuerza el modal).
+- **Con sesión:**
+  - El nombre y el teléfono salen de la cuenta.
+  - Las direcciones guardadas son radios, con la predeterminada elegida, más "Usar otra dirección".
+  - Al iniciar sesión desde el checkout se hace el merge del carrito y el formulario pasa a modo cuenta.
+- **Resumen:** en `accent-secondary`, idéntico en los 4 pasos. Muestra los montos del carrito (backend) y, después de confirmar, los del pedido; en mobile es colapsable arriba del formulario. Las líneas muestran "cantidad × precio unitario", sin multiplicar en el cliente.
+- **Envío:** método único con el costo de `summary.shipping`.
+- **Pago:** aviso de que el pago online llega pronto, con un único `TODO(payments)` en `components/checkout/PaymentStep.tsx`.
+- **Confirmación:** `POST /orders` y, como resultado, número de pedido, dirección, próximos pasos y "Crear cuenta" (abre el AuthModal en Registrarme) si es invitado.
+- **Sin pedidos duplicados:**
+  - Doble clic: un ref, más el botón en estado `loading`.
+  - Recarga: `{id, email}` va a `sessionStorage` y se lee con `GET /orders/:id` o `/orders/guest/:id?email=`.
+  - El backend además rechaza un segundo pedido con el carrito vacío.
+- **Formulario:**
+  - Validación en línea con foco en el primer error.
+  - `autocomplete` email, name, tel, street-address, address-level2 y postal-code; `inputmode` email y tel.
+  - El pegado no se bloquea.
+  - Aviso al salir con datos sin guardar: diálogo propio con `useBlocker`, más `beforeunload`.
+- **Errores del backend:** stock, cupón, carrito vacío o producto inactivo se traducen y ofrecen "Revisar el carrito", que abre el drawer.
+- **Estados:**
+  - Carrito vacío: redirige a `/tienda` con un aviso.
+  - Mientras carga, skeleton; si falla, error con reintento.
+- **Componentes compartidos nuevos:**
+  - `FormField` (antes `AuthField`, ahora lo usan el AuthModal y el checkout).
+  - `Logo` y `SkipLink` ("Saltar al contenido principal").
+  - `useResource`: carga con estados, reintento y cancelación.
+
+**Verificación**
+- typecheck, lint y build OK.
+- playwright-cli en 375/1280 × claro/oscuro: validación (6 errores, foco en email), paso en la URL, confirmación y recarga. Pedidos #4 a #7, sin scroll horizontal.
+- Pruebas a mano:
+  - Doble clic en "Confirmar": un solo pedido en la base.
+  - Login desde el checkout con 2 direcciones guardadas.
+  - Error de stock: se bajó el stock a 0 y se restauró después.
+- Capturas: `docs/checks/f5-*.png` (no se versionan).
+
+**Decisiones tomadas**
+- **Autocomplete `name` en vez de `given-name`:** el backend guarda un solo campo `shipping_full_name`.
+- **Texto de la confirmación:** dice que se revisan "los precios del momento", porque `POST /orders` cobra el precio actual de la variante, no el snapshot del carrito.
+
+**Pendientes y backend (sin tocar)**
+- **Plazo de entrega:** el backend no lo informa, así que no se muestra.
+- **Payments:** no existe; el pedido queda con `payment_status: "pending"`.
+- **Pedidos de invitado:** no se asocian a la cuenta que se cree después (el backend no lo soporta).
+- **Precio cobrado:** ver "Hallazgos sin tocar" (precio actual en vez de snapshot).

@@ -1,6 +1,6 @@
 import type { InputHTMLAttributes, ReactNode, Ref } from 'react'
 
-interface AuthFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
+interface FormFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
   id: string
   label: string
   error?: string
@@ -11,8 +11,9 @@ interface AuthFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id
   ref?: Ref<HTMLInputElement>
 }
 
-/** Campo de formulario (DESIGN.md §4: inputs de 12 px de radio sobre bg). Error en línea, ligado con aria-describedby. */
-export function AuthField({ id, label, error, aside, hint, ref, className = '', ...props }: AuthFieldProps) {
+/** Campo de formulario (DESIGN.md §4: inputs de 12 px de radio sobre bg). Error en línea, ligado con aria-describedby.
+ *  Lo usan el AuthModal, el checkout y las direcciones. */
+export function FormField({ id, label, error, aside, hint, ref, className = '', ...props }: FormFieldProps) {
   const errorId = `${id}-error`
   const hintId = `${id}-hint`
   const describedBy = error ? errorId : hint ? hintId : undefined
