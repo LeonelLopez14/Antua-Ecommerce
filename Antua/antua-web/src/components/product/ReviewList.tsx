@@ -29,7 +29,7 @@ export function ReviewList({ state }: ReviewListProps) {
       : null
 
   return (
-    <section aria-labelledby="reviews-title">
+    <section id="resenas" aria-labelledby="reviews-title" className="scroll-mt-6">
       <h2 id="reviews-title" className="font-display text-3xl font-semibold">
         Reseñas
       </h2>

@@ -1,8 +1,12 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { LogOut, UserRound } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { LogOut, MapPin, Package, UserRound } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { useAuthModalStore } from '../../stores/authModalStore'
 import { useCartStore } from '../../stores/cartStore'
+
+const MENU_ITEM =
+  'flex min-h-11 w-full items-center gap-2 rounded-full px-3 font-bold transition-[background-color] duration-200 ease-out hover:bg-accent-secondary dark:hover:bg-dark-bg'
 
 interface AccountMenuProps {
   buttonClassName: string
@@ -20,6 +24,8 @@ export function AccountMenu({ buttonClassName }: AccountMenuProps) {
   const openAuth = useAuthModalStore((s) => s.open)
   const resetCart = useCartStore((s) => s.reset)
   const [open, setOpen] = useState(false)
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
   const panelId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -47,6 +53,8 @@ export function AccountMenu({ buttonClassName }: AccountMenuProps) {
   const logout = () => {
     setOpen(false)
     clearSession()
+    // Las páginas de la cuenta dejan de tener sentido sin sesión.
+    if (pathname.startsWith('/cuenta')) navigate('/')
     // Sin sesión, el carrito vuelve a ser de invitado (uno nuevo): se recarga desde el backend.
     void resetCart()
     buttonRef.current?.focus()
@@ -79,11 +87,21 @@ export function AccountMenu({ buttonClassName }: AccountMenuProps) {
               {user.email}
             </p>
           )}
-          <button
-            type="button"
-            onClick={logout}
-            className="mt-4 flex min-h-11 w-full items-center gap-2 rounded-full px-3 font-bold transition-[background-color] duration-200 ease-out hover:bg-accent-secondary dark:hover:bg-dark-bg"
-          >
+          <ul className="mt-4 flex flex-col gap-1 border-t border-text-main/10 pt-3 dark:border-dark-text-main/10">
+            <li>
+              <Link to="/cuenta/pedidos" onClick={() => setOpen(false)} className={MENU_ITEM}>
+                <Package aria-hidden="true" className="size-4" />
+                Mis pedidos
+              </Link>
+            </li>
+            <li>
+              <Link to="/cuenta/direcciones" onClick={() => setOpen(false)} className={MENU_ITEM}>
+                <MapPin aria-hidden="true" className="size-4" />
+                Direcciones
+              </Link>
+            </li>
+          </ul>
+          <button type="button" onClick={logout} className={`mt-1 ${MENU_ITEM}`}>
             <LogOut aria-hidden="true" className="size-4" />
             Cerrar sesión
           </button>

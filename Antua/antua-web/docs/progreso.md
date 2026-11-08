@@ -112,7 +112,7 @@ Resultado: **20 de 20 suites pasan.** Son pruebas mínimas: no cubren la lógica
 9. **F8, tests:** Vitest + Testing Library (stores, ProductCard, stepper, AuthModal) y un spec de Playwright del flujo de invitado.
 10. **Cierre de cada fase:** checks, commit, `progreso.md` y push cuando haya credenciales.
 
-## Fase 5: Checkout (`/checkout`)
+## Fase 5: Checkout (`/checkout`): commit `00b24b3d`
 
 **Hecho**
 - **Rutas:** `createBrowserRouter`, necesario para `useBlocker`.
@@ -165,3 +165,38 @@ Resultado: **20 de 20 suites pasan.** Son pruebas mínimas: no cubren la lógica
 - **Payments:** no existe; el pedido queda con `payment_status: "pending"`.
 - **Pedidos de invitado:** no se asocian a la cuenta que se cree después (el backend no lo soporta).
 - **Precio cobrado:** ver "Hallazgos sin tocar" (precio actual en vez de snapshot).
+
+## Fase 6: Cuenta (Mis pedidos y Direcciones)
+
+**Hecho**
+- **Rutas protegidas** `/cuenta/pedidos`, `/cuenta/pedidos/:id` y `/cuenta/direcciones` (`/cuenta` redirige a pedidos).
+  - Sin sesión, `AccountLayout` abre el AuthModal y muestra "Iniciá sesión para ver tu cuenta". Al iniciar sesión se ve la misma ruta que se pidió: la URL no cambia, no hay redirección.
+  - Si cerrás sesión estando en `/cuenta`, vas a la Home sin que se reabra el modal.
+- **Menú de cuenta** (ícono de la Navbar): "Mis pedidos", "Direcciones" y "Cerrar sesión".
+- **Mis pedidos:** número, fecha (`Intl.DateTimeFormat`), cantidad de galletas, total (`Intl.NumberFormat`) y badge de estado con ícono y texto (no depende solo del color). Tiene estados de carga, vacío y error con reintento. El backend no pagina.
+- **Detalle del pedido:** ítems con el precio snapshot, cupón, totales del backend y dirección de envío.
+  - Si el pedido está entregado: links "Reseñar …" a `/producto/:slug#resenas`.
+  - Los ítems de `GET /orders/:id` no traen el producto, solo la variante; el slug se busca en `GET /products` por id de variante, sin inventar datos. Si el producto ya no está activo, se avisa.
+- **Direcciones:**
+  - Listado, alta y edición en un diálogo, con validación en línea y foco en el primer error.
+  - Borrado con confirmación y "Hacer predeterminada".
+  - Cambios anunciados con `aria-live`.
+  - Una dirección que ya es predeterminada no se puede desmarcar desde el formulario: el backend no permite quedarse sin predeterminada a mano.
+- **Componentes:** `ConfirmDialog` genérico (también lo usa el aviso de salida del checkout), `OrderStatusBadge` y `lib/orderSummary.ts` (lo comparten la confirmación del checkout y el detalle).
+
+**Verificación**
+- typecheck, lint y build OK.
+- playwright-cli:
+  - Ruta protegida sin sesión: abre el modal; al iniciar sesión, la lista.
+  - Detalle del pedido #3, marcado como `delivered` en la base de desarrollo para probar las reseñas.
+  - Direcciones: alta con validación (3 errores, foco en calle), predeterminada, edición y borrado con confirmación.
+  - Cerrar sesión desde `/cuenta`: va a la Home y no abre el modal.
+  - 375 px en oscuro sin scroll horizontal.
+
+**Errores encontrados y corregidos**
+- **El AuthModal se reabría después de iniciar sesión:** Suspense vuelve a correr los efectos al cargar la página hija. Ahora el layout recuerda si hubo sesión en la visita.
+
+**Pendientes**
+- **Paginación de pedidos:** no existe en el backend.
+- **Perfil:** "datos personales" del sitemap. No hay `PATCH /users/me` (`UsersController` vacío): no se puede editar.
+- **Pedidos de invitado:** no aparecen en la cuenta (el backend no los asocia).

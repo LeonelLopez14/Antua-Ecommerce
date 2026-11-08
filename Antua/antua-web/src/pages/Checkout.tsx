@@ -16,6 +16,7 @@ import {
 } from '../lib/checkoutForm'
 import { orderErrorFrom, type OrderError } from '../lib/orderMessages'
 import { clearPlacedOrder, readPlacedOrder, writePlacedOrder } from '../lib/placedOrder'
+import { orderSummaryLines, orderSummaryTotals } from '../lib/orderSummary'
 import type { Address } from '../types/address'
 import type { Order } from '../types/order'
 import { CheckoutSteps } from '../components/checkout/CheckoutSteps'
@@ -25,7 +26,7 @@ import { ShippingStep } from '../components/checkout/ShippingStep'
 import { PaymentStep } from '../components/checkout/PaymentStep'
 import { ConfirmStep } from '../components/checkout/ConfirmStep'
 import { OrderPlaced } from '../components/checkout/OrderPlaced'
-import { LeaveCheckoutDialog } from '../components/checkout/LeaveCheckoutDialog'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { ErrorState } from '../components/ui/ErrorState'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ButtonLink } from '../components/ui/ButtonLink'
@@ -197,15 +198,8 @@ export default function Checkout() {
   let totals: SummaryTotals | null = null
   let couponCode: string | null = null
   if (placedOrder) {
-    lines = placedOrder.items.map((item) => ({
-      key: item.id,
-      name: item.productName,
-      variantName: item.variantName,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      imageUrl: null,
-    }))
-    totals = { subtotal: placedOrder.subtotal, discount: placedOrder.discount, shipping: placedOrder.shippingAmount, total: placedOrder.total }
+    lines = orderSummaryLines(placedOrder)
+    totals = orderSummaryTotals(placedOrder)
     couponCode = placedOrder.couponCode
   } else if (cart && summary) {
     lines = cart.items.map((item) => ({
@@ -308,7 +302,18 @@ export default function Checkout() {
         {totals && <OrderSummary variant="panel" lines={lines} couponCode={couponCode} totals={totals} />}
       </div>
 
-      <LeaveCheckoutDialog open={blocker.state === 'blocked'} onStay={() => blocker.reset?.()} onLeave={() => blocker.proceed?.()} />
+      {/* Aviso antes de salir con datos sin guardar (DESIGN.md §11, Formularios). */}
+      <ConfirmDialog
+        open={blocker.state === 'blocked'}
+        title="¿Salís del checkout?"
+        confirmLabel="Salir"
+        cancelLabel="Seguir con mi pedido"
+        safeFirst
+        onConfirm={() => blocker.proceed?.()}
+        onCancel={() => blocker.reset?.()}
+      >
+        <p>Los datos que escribiste no se guardan. Tu carrito sí queda como está.</p>
+      </ConfirmDialog>
     </CheckoutShell>
   )
 }

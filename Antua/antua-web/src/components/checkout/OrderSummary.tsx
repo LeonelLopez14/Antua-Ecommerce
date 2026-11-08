@@ -46,7 +46,7 @@ export function OrderSummary({ variant, ...props }: OrderSummaryProps) {
           <span className="text-accent-main tabular-nums dark:text-dark-accent-main">{formatPrice(props.totals.total)}</span>
         </summary>
         <div className="px-5 pb-5">
-          <SummaryBody {...props} />
+          <SummaryDetails {...props} />
         </div>
       </details>
     )
@@ -61,13 +61,14 @@ export function OrderSummary({ variant, ...props }: OrderSummaryProps) {
         Resumen del pedido
       </h2>
       <div className="mt-4">
-        <SummaryBody {...props} />
+        <SummaryDetails {...props} />
       </div>
     </aside>
   )
 }
 
-function SummaryBody({ lines, couponCode, totals }: SummaryContentProps) {
+/** Líneas y totales sin el contenedor: lo reutiliza el detalle de un pedido en la cuenta. */
+export function SummaryDetails({ lines, couponCode, totals }: SummaryContentProps) {
   return (
     <>
       <ul className="flex flex-col gap-3">
