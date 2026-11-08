@@ -16,4 +16,4 @@ export const homeCategories: Category[] = [
 ]
 
 /** Link a la Tienda filtrada por categoría (los filtros viven en la URL, DESIGN.md §11). */
-export const categoryHref = (slug: string): string => `/tienda?categoria=${slug}`
+export const categoryHref = (slug: string): string => `/tienda?categoria=${encodeURIComponent(slug)}`

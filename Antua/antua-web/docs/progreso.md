@@ -166,7 +166,7 @@ Resultado: **20 de 20 suites pasan.** Son pruebas mínimas: no cubren la lógica
 - **Pedidos de invitado:** no se asocian a la cuenta que se cree después (el backend no lo soporta).
 - **Precio cobrado:** ver "Hallazgos sin tocar" (precio actual en vez de snapshot).
 
-## Fase 6: Cuenta (Mis pedidos y Direcciones)
+## Fase 6: Cuenta (Mis pedidos y Direcciones): commit `06e24b44`
 
 **Hecho**
 - **Rutas protegidas** `/cuenta/pedidos`, `/cuenta/pedidos/:id` y `/cuenta/direcciones` (`/cuenta` redirige a pedidos).
@@ -200,3 +200,31 @@ Resultado: **20 de 20 suites pasan.** Son pruebas mínimas: no cubren la lógica
 - **Paginación de pedidos:** no existe en el backend.
 - **Perfil:** "datos personales" del sitemap. No hay `PATCH /users/me` (`UsersController` vacío): no se puede editar.
 - **Pedidos de invitado:** no aparecen en la cuenta (el backend no los asocia).
+
+## Fase 7: Reseñas y páginas que faltan
+
+**Hecho**
+- **Formulario de reseñas** en la Ficha (`ReviewForm`), entre el promedio y el listado:
+  - Sin sesión: "Iniciá sesión para dejar tu reseña" (abre el AuthModal).
+  - Calificación con 5 radios nativos (flechas del teclado) y estrellas decorativas; cada opción tiene texto para lectores ("4 estrellas: Muy rica").
+  - Comentario opcional de hasta 1000 caracteres, con contador.
+  - Errores del backend: 403 → "Podés reseñar esta galleta después de recibir tu pedido."; 409 → "Ya dejaste tu reseña…"; también 404 y 401.
+  - Al publicar se recargan solo las reseñas (listado y promedio). Si el usuario ya tiene una reseña en el listado, se muestra "Ya dejaste tu reseña" en vez del formulario.
+- **Links `/producto/:slug#resenas`** (desde "Mis pedidos"): la ficha hace scroll a la sección cuando termina de cargar.
+- **Páginas del sitemap** (`Design/Antojarte_Plan_Proyecto.pdf` §4), con texto de relleno en voseo y el aviso "Texto provisorio": `/nosotros`, `/preguntas-frecuentes`, `/contacto` (sin formulario: no hay endpoint), `/terminos` y `/privacidad`. Cada una tiene su TODO de contenido o legal.
+- **`/tienda/:categoria`** (vista por categoría del sitemap) redirige a `/tienda?categoria=…`, que es la forma canónica con filtros en la URL.
+- **Enlaces:** footer con una columna "Antua" (las 5 páginas); Navbar con "Nosotros" y "Preguntas frecuentes" desde `lg` y todas en el menú mobile.
+- **404:** identidad de la marca, "Ver galletas" y "Volver al inicio".
+- **Newsletter del footer:** deshabilitada con `aria-disabled` y `readOnly`, porque no hay endpoint (`TODO(newsletter)` en `NewsletterForm.tsx`).
+- **Foco en el footer oscuro:** visible en links, input y botón.
+
+**Verificación**
+- typecheck, lint y build OK.
+- playwright-cli:
+  - Reseñas: validación sin estrellas (foco en el primer radio), flechas del teclado y 403 en un producto no comprado.
+  - Publicación en `seed-clasica-chips` (pedido #3 entregado): el promedio pasó de 4,5 (2 reseñas) a 4,7 (3) y, al recargar, aparece "Ya dejaste tu reseña".
+  - Las 5 páginas con su título, la redirección por categoría y la 404.
+  - FAQ y footer en 375 px oscuro, sin scroll horizontal.
+
+**Decisión pendiente**
+- **Editar o borrar la propia reseña:** el backend no lo permite. Solo existen `GET/POST /products/:slug/reviews`; no hay PATCH ni DELETE.

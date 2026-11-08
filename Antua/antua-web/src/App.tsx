@@ -13,6 +13,12 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const Orders = lazy(() => import('./pages/account/Orders'))
 const OrderDetail = lazy(() => import('./pages/account/OrderDetail'))
 const Addresses = lazy(() => import('./pages/account/Addresses'))
+const CategoryRedirect = lazy(() => import('./pages/CategoryRedirect'))
+const About = lazy(() => import('./pages/info/About'))
+const Faq = lazy(() => import('./pages/info/Faq'))
+const Contact = lazy(() => import('./pages/info/Contact'))
+const Terms = lazy(() => import('./pages/info/Terms'))
+const Privacy = lazy(() => import('./pages/info/Privacy'))
 
 /**
  * Rutas. Se usa un data router (createBrowserRouter) porque el checkout necesita
@@ -29,6 +35,7 @@ const router = createBrowserRouter([
         children: [
           { path: '/', element: <Home /> },
           { path: '/tienda', element: <Shop /> },
+          { path: '/tienda/:categoria', element: <CategoryRedirect /> },
           { path: '/producto/:slug', element: <ProductDetail /> },
           {
             // Rutas protegidas: sin sesión, AccountLayout abre el AuthModal en la misma URL.
@@ -41,6 +48,11 @@ const router = createBrowserRouter([
               { path: 'direcciones', element: <Addresses /> },
             ],
           },
+          { path: '/nosotros', element: <About /> },
+          { path: '/preguntas-frecuentes', element: <Faq /> },
+          { path: '/contacto', element: <Contact /> },
+          { path: '/terminos', element: <Terms /> },
+          { path: '/privacidad', element: <Privacy /> },
           { path: '*', element: <NotFound /> },
         ],
       },

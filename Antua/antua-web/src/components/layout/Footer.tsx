@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import { Cookie, Mail, MapPin } from 'lucide-react'
 import { categoryHref, homeCategories } from '../../data/categories'
+import { infoPages } from '../../data/infoPages'
+import { NewsletterForm } from './NewsletterForm'
 
 const footerLink =
   'rounded-sm text-surface/80 underline-offset-4 transition-[color] duration-200 ease-out hover:text-surface hover:underline ' +
@@ -10,8 +12,8 @@ export function Footer() {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="bg-footer text-surface dark:bg-dark-footer dark:text-dark-text-main [&_a:focus-visible]:outline-surface dark:[&_a:focus-visible]:outline-dark-accent-main">
-      <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 md:grid-cols-[2fr_1fr_1fr]">
+    <footer className="bg-footer text-surface dark:bg-dark-footer dark:text-dark-text-main [&_:focus-visible]:outline-surface dark:[&_:focus-visible]:outline-dark-accent-main">
+      <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
         <div className="max-w-sm">
           <p translate="no" className="flex items-center gap-2 font-display text-2xl font-bold">
             <Cookie aria-hidden="true" className="size-7" />
@@ -20,6 +22,7 @@ export function Footer() {
           <p className="mt-4 text-surface/80 dark:text-dark-text-secondary">
             Hechas para darte un gustito. Galletas caseras, horneadas en tandas chicas.
           </p>
+          <NewsletterForm />
         </div>
 
         <nav aria-labelledby="footer-categorias">
@@ -30,6 +33,21 @@ export function Footer() {
             {homeCategories.map(({ slug, label }) => (
               <li key={slug}>
                 <Link to={categoryHref(slug)} className={footerLink}>
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav aria-labelledby="footer-antua">
+          <h2 id="footer-antua" className="font-display text-lg font-semibold">
+            <span translate="no">Antua</span>
+          </h2>
+          <ul className="mt-4 flex flex-col gap-3">
+            {infoPages.map(({ to, label }) => (
+              <li key={to}>
+                <Link to={to} className={footerLink}>
                   {label}
                 </Link>
               </li>

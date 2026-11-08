@@ -26,26 +26,30 @@ export function useProductDetail(slug: string) {
   }
 
   const retry = useCallback(() => setAttempt((n) => n + 1), [])
+  // Después de publicar una reseña: se recargan solo las reseñas (sin skeleton, se reemplazan al llegar).
+  const [reviewsVersion, setReviewsVersion] = useState(0)
+  const reloadReviews = useCallback(() => setReviewsVersion((n) => n + 1), [])
 
   useEffect(() => {
     const controller = new AbortController()
-    const { signal } = controller
-
-    fetchProduct(slug, signal)
+    fetchProduct(slug, controller.signal)
       .then((p) => setProduct(p.isActive ? { status: 'ready', product: p } : { status: 'not-found' }))
       .catch((error: unknown) => {
-        if (signal.aborted) return
+        if (controller.signal.aborted) return
         setProduct(isNotFoundError(error) ? { status: 'not-found' } : { status: 'error', message: getApiErrorMessage(error) })
       })
-
-    fetchReviews(slug, signal)
-      .then((list) => setReviews({ status: 'ready', reviews: list }))
-      .catch(() => {
-        if (!signal.aborted) setReviews({ status: 'error' })
-      })
-
     return () => controller.abort()
   }, [slug, attempt])
 
-  return { product, reviews, retry }
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchReviews(slug, controller.signal)
+      .then((list) => setReviews({ status: 'ready', reviews: list }))
+      .catch(() => {
+        if (!controller.signal.aborted) setReviews({ status: 'error' })
+      })
+    return () => controller.abort()
+  }, [slug, attempt, reviewsVersion])
+
+  return { product, reviews, retry, reloadReviews }
 }

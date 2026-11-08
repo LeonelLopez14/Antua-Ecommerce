@@ -20,9 +20,12 @@ export default function NotFound({
         {title}
       </h1>
       <p className="mt-4 text-lg text-text-main/85 dark:text-dark-text-secondary">{message}</p>
-      <ButtonLink to="/tienda" className="mt-8">
-        Ver galletas
-      </ButtonLink>
+      <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <ButtonLink to="/tienda">Ver galletas</ButtonLink>
+        <ButtonLink to="/" variant="secondary">
+          Volver al inicio
+        </ButtonLink>
+      </div>
     </section>
   )
 }

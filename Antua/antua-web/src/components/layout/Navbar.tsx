@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Menu, ShoppingBag, X } from 'lucide-react'
 import { Logo } from './Logo'
 import { categoryHref, homeCategories } from '../../data/categories'
+import { infoPages } from '../../data/infoPages'
 import { selectItemCount, useCartStore } from '../../stores/cartStore'
 import { AccountMenu } from '../auth/AccountMenu'
 import { iconButtonClasses } from '../ui/buttonStyles'
@@ -30,6 +31,14 @@ export function Navbar() {
           {homeCategories.map(({ slug, label }) => (
             <li key={slug}>
               <Link to={categoryHref(slug)} className={navLink}>
+                {label}
+              </Link>
+            </li>
+          ))}
+          {/* Institucionales: solo desde lg, donde entran sin apretar las categorías. */}
+          {infoPages.slice(0, 2).map(({ to, label }) => (
+            <li key={to} className="hidden lg:block">
+              <Link to={to} className={navLink}>
                 {label}
               </Link>
             </li>
@@ -86,6 +95,15 @@ export function Navbar() {
                 className={`${navLink} flex min-h-11 items-center gap-3 text-base`}
               >
                 <Icon aria-hidden="true" className="size-5 text-accent-main dark:text-dark-accent-main" />
+                {label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <ul aria-label="Sobre Antua" className="mt-2 flex flex-col gap-1 border-t border-text-main/10 pt-2 dark:border-dark-text-main/10">
+          {infoPages.map(({ to, label }) => (
+            <li key={to}>
+              <Link to={to} onClick={() => setMenuOpen(false)} className={`${navLink} flex min-h-11 items-center text-base`}>
                 {label}
               </Link>
             </li>

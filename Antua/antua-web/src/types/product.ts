@@ -89,7 +89,7 @@ export interface Product {
   ingredients: string
   allergens: string
   basePrice: number
-  /** GET /products/:slug no filtra inactivos: la ficha los trata como 404. */
+  /** GET /products/:slug ya responde 404 para inactivos; el front igual los trata como 404 por si llega uno. */
   isActive: boolean
   /** Precio "desde": el menor entre el base y las variantes activas. */
   fromPrice: number
@@ -106,4 +106,6 @@ export interface Review {
   comment: string | null
   createdAt: string
   authorName: string | null
+  /** Para saber si el usuario con sesión ya dejó su reseña. */
+  authorId: number | null
 }

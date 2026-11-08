@@ -1,4 +1,5 @@
-import { Link, useParams } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { useProductDetail } from '../hooks/useProductDetail'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -6,15 +7,26 @@ import { ProductGallery } from '../components/product/ProductGallery'
 import { PurchasePanel } from '../components/product/PurchasePanel'
 import { ProductInfo } from '../components/product/ProductInfo'
 import { ReviewList } from '../components/product/ReviewList'
+import { ReviewForm } from '../components/product/ReviewForm'
+import { useAuthStore } from '../stores/authStore'
 import { ErrorState } from '../components/ui/ErrorState'
 import NotFound from './NotFound'
 import { skeletonBar } from '../components/ui/skeleton'
 
 export default function ProductDetail() {
   const { slug = '' } = useParams()
-  const { product, reviews, retry } = useProductDetail(slug)
+  const { product, reviews, retry, reloadReviews } = useProductDetail(slug)
+  const userId = useAuthStore((s) => s.user?.id ?? null)
+  const alreadyReviewed = reviews.status === 'ready' && userId !== null && reviews.reviews.some((r) => r.authorId === userId)
 
   useDocumentTitle(product.status === 'ready' ? product.product.name : null)
+
+  // Links como /producto/x#resenas (desde "Mis pedidos"): la sección existe recién con la ficha cargada.
+  const { hash } = useLocation()
+  const ready = product.status === 'ready'
+  useEffect(() => {
+    if (ready && hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
+  }, [ready, hash])
 
   if (product.status === 'not-found') {
     return (
@@ -72,7 +84,10 @@ export default function ProductDetail() {
 
           <div className="mt-16 flex flex-col gap-16">
             <ProductInfo product={product.product} />
-            <ReviewList state={reviews} />
+            <ReviewList
+              state={reviews}
+              form={<ReviewForm key={`${slug}-${userId ?? 'anon'}`} slug={slug} alreadyReviewed={alreadyReviewed} onPublished={reloadReviews} />}
+            />
           </div>
         </>
       )}

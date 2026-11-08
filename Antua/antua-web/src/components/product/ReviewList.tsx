@@ -1,9 +1,12 @@
+import type { ReactNode } from 'react'
 import { Star } from 'lucide-react'
 import { formatDate, formatRating } from '../../lib/format'
 import type { ReviewsState } from '../../hooks/useProductDetail'
 
 interface ReviewListProps {
   state: ReviewsState
+  /** Formulario para dejar una reseña (va entre el promedio y el listado). */
+  form?: ReactNode
 }
 
 function Stars({ value, className = 'size-4' }: { value: number; className?: string }) {
@@ -20,8 +23,8 @@ function Stars({ value, className = 'size-4' }: { value: number; className?: str
 
 const reseñas = (n: number): string => `${n} ${n === 1 ? 'reseña' : 'reseñas'}`
 
-/** Reseñas: promedio y listado. Sin formulario por ahora (requiere compra entregada en el backend). */
-export function ReviewList({ state }: ReviewListProps) {
+/** Reseñas: promedio, formulario y listado (siempre visibles, sin tabs: DESIGN.md §4). */
+export function ReviewList({ state, form }: ReviewListProps) {
   // El promedio de estrellas no es un monto: se puede calcular en el cliente.
   const average =
     state.status === 'ready' && state.reviews.length > 0
@@ -33,6 +36,8 @@ export function ReviewList({ state }: ReviewListProps) {
       <h2 id="reviews-title" className="font-display text-3xl font-semibold">
         Reseñas
       </h2>
+
+      {form && <div className="mt-6 max-w-2xl">{form}</div>}
 
       {state.status === 'loading' && (
         <div aria-hidden="true" className="mt-6 flex flex-col gap-4">
