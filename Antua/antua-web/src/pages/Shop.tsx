@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { SlidersHorizontal } from 'lucide-react'
 import { useShopData } from '../hooks/useShopData'
-import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { usePageMeta } from '../hooks/usePageMeta'
 import { useShopParams } from '../hooks/useShopParams'
+import { galletas } from '../lib/format'
 import { applyShopQuery, hasActiveFilters, PAGE_SIZE } from '../lib/shopQuery'
 import type { Product } from '../types/product'
 import { ProductCard } from '../components/product/ProductCard'
@@ -23,8 +24,6 @@ const GRID = 'grid gap-6 sm:grid-cols-2 xl:grid-cols-3'
 const noticeFrom = (state: unknown): string | null =>
   typeof state === 'object' && state !== null && 'notice' in state && typeof state.notice === 'string' ? state.notice : null
 
-const galletas = (n: number): string => `${n} ${n === 1 ? 'galleta' : 'galletas'}`
-
 function priceBoundsOf(products: Product[]): { min: number; max: number } | null {
   const prices = products.map((p) => p.fromPrice).filter((p) => p > 0)
   return prices.length > 0 ? { min: Math.min(...prices), max: Math.max(...prices) } : null
@@ -36,7 +35,7 @@ export default function Shop() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const notice = noticeFrom(useLocation().state)
 
-  useDocumentTitle('Tienda')
+  usePageMeta('Tienda', 'Todas las galletas de Antua: clásicas, sin gluten, veganas y sin azúcar. Filtrá por categoría y precio.')
 
   const products = data.status === 'ready' ? data.products : null
   const result = useMemo(() => (products ? applyShopQuery(products, query) : null), [products, query])

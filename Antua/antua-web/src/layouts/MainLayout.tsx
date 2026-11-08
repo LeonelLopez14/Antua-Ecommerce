@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
+import { PageSkeleton } from '../components/layout/PageSkeleton'
 import { Navbar } from '../components/layout/Navbar'
 import { Footer } from '../components/layout/Footer'
 import { SkipLink } from '../components/layout/SkipLink'
@@ -11,8 +12,8 @@ export function MainLayout() {
       <SkipLink />
       <Navbar />
       <main id="contenido">
-        {/* Las páginas se cargan en diferido; el fallback reserva alto para que el footer no salte. */}
-        <Suspense fallback={<div className="min-h-svh" />}>
+        {/* Las páginas se cargan en diferido: skeleton con alto reservado para que el footer no salte. */}
+        <Suspense fallback={<PageSkeleton />}>
           <Outlet />
         </Suspense>
       </main>

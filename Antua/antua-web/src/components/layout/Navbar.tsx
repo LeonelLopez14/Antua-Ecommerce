@@ -2,6 +2,8 @@ import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu, ShoppingBag, X } from 'lucide-react'
 import { Logo } from './Logo'
+import { galletas } from '../../lib/format'
+import { ThemeToggle } from './ThemeToggle'
 import { categoryHref, homeCategories } from '../../data/categories'
 import { infoPages } from '../../data/infoPages'
 import { selectItemCount, useCartStore } from '../../stores/cartStore'
@@ -20,7 +22,7 @@ export function Navbar() {
   const itemCount = useCartStore(selectItemCount)
   const openCart = useCartStore((s) => s.open)
   const cartLabel =
-    itemCount === 0 ? 'Carrito, vacío' : `Carrito, ${itemCount} ${itemCount === 1 ? 'galleta' : 'galletas'}`
+    itemCount === 0 ? 'Carrito, vacío' : `Carrito, ${galletas(itemCount)}`
 
   return (
     <header className="relative z-20 bg-surface shadow-soft dark:bg-dark-surface dark:shadow-none">
@@ -46,6 +48,7 @@ export function Navbar() {
         </ul>
 
         <div className="ml-auto flex items-center gap-1">
+          <ThemeToggle className={iconButton} />
           <AccountMenu buttonClassName={iconButton} />
           <button
             type="button"

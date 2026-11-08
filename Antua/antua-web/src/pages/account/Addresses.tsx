@@ -4,7 +4,7 @@ import { createAddress, deleteAddress, fetchAddresses, setDefaultAddress, update
 import { getApiErrorMessage } from '../../api/client'
 import { useAuthStore } from '../../stores/authStore'
 import { useResource } from '../../hooks/useResource'
-import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { usePageMeta } from '../../hooks/usePageMeta'
 import { addressFormToPayload, addressToForm, emptyAddressForm, type AddressForm } from '../../lib/addressForm'
 import type { Address } from '../../types/address'
 import { AddressFormDialog } from '../../components/account/AddressFormDialog'
@@ -40,7 +40,7 @@ export default function Addresses() {
   const [announcement, setAnnouncement] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
 
-  useDocumentTitle('Mis direcciones')
+  usePageMeta('Mis direcciones', 'Tus direcciones guardadas para comprar más rápido.')
 
   const addresses = state.status === 'ready' ? state.data : []
 

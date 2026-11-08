@@ -133,6 +133,7 @@ export function ReviewForm({ slug, alreadyReviewed, onPublished }: ReviewFormPro
         <textarea
           id={commentId}
           name="comment"
+          autoComplete="off"
           rows={4}
           maxLength={REVIEW_COMMENT_MAX}
           value={comment}

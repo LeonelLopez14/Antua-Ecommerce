@@ -3,22 +3,20 @@ import { ChevronRight } from 'lucide-react'
 import { fetchOrders } from '../../api/orders'
 import { useAuthStore } from '../../stores/authStore'
 import { useResource } from '../../hooks/useResource'
-import { useDocumentTitle } from '../../hooks/useDocumentTitle'
-import { formatDate, formatPrice } from '../../lib/format'
+import { usePageMeta } from '../../hooks/usePageMeta'
+import { formatDate, formatPrice, galletas } from '../../lib/format'
 import { OrderStatusBadge } from '../../components/account/OrderStatusBadge'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { ButtonLink } from '../../components/ui/ButtonLink'
 import { skeletonBar } from '../../components/ui/skeleton'
 
-const galletas = (n: number): string => `${n} ${n === 1 ? 'galleta' : 'galletas'}`
-
 /** Mis pedidos (GET /orders, el más nuevo primero). El backend no pagina: se muestran todos. */
 export default function Orders() {
   const userId = useAuthStore((s) => s.user?.id ?? null)
   const { state, retry } = useResource(`pedidos-${userId ?? ''}`, fetchOrders)
 
-  useDocumentTitle('Mis pedidos')
+  usePageMeta('Mis pedidos', 'El estado y el detalle de tus pedidos en Antua.')
 
   return (
     <section aria-labelledby="pedidos-title">

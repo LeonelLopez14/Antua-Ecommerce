@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { useProductDetail } from '../hooks/useProductDetail'
-import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { usePageMeta } from '../hooks/usePageMeta'
 import { ProductGallery } from '../components/product/ProductGallery'
 import { PurchasePanel } from '../components/product/PurchasePanel'
 import { ProductInfo } from '../components/product/ProductInfo'
@@ -19,7 +19,10 @@ export default function ProductDetail() {
   const userId = useAuthStore((s) => s.user?.id ?? null)
   const alreadyReviewed = reviews.status === 'ready' && userId !== null && reviews.reviews.some((r) => r.authorId === userId)
 
-  useDocumentTitle(product.status === 'ready' ? product.product.name : null)
+  usePageMeta(
+    product.status === 'ready' ? product.product.name : null,
+    product.status === 'ready' ? product.product.description.slice(0, 155) || undefined : undefined,
+  )
 
   // Links como /producto/x#resenas (desde "Mis pedidos"): la sección existe recién con la ficha cargada.
   const { hash } = useLocation()

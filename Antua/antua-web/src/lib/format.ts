@@ -26,3 +26,6 @@ export function variantLabel(name: string): string {
   const count = Number(match[1])
   return count === 1 ? '1 galleta' : `Caja de ${count}`
 }
+
+/** 1 → "1 galleta", 3 → "3 galletas". */
+export const galletas = (n: number): string => `${n} ${n === 1 ? 'galleta' : 'galletas'}`

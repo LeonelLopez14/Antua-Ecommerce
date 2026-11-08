@@ -4,8 +4,10 @@ import { RootLayout } from './layouts/RootLayout'
 import { MainLayout } from './layouts/MainLayout'
 import { CheckoutLayout } from './layouts/CheckoutLayout'
 import { AccountLayout } from './layouts/AccountLayout'
-import Home from './pages/Home'
+import RouteError from './pages/RouteError'
 
+// Cada página es un chunk aparte. La Home trae el hero 3D (Three/R3F en su propio chunk, solo ahí).
+const Home = lazy(() => import('./pages/Home'))
 const Shop = lazy(() => import('./pages/Shop'))
 const ProductDetail = lazy(() => import('./pages/ProductDetail'))
 const Checkout = lazy(() => import('./pages/Checkout'))
@@ -29,6 +31,8 @@ const Privacy = lazy(() => import('./pages/info/Privacy'))
 const router = createBrowserRouter([
   {
     element: <RootLayout />,
+    // ErrorBoundary global: errores de render o de carga de una página.
+    errorElement: <RouteError />,
     children: [
       {
         element: <MainLayout />,

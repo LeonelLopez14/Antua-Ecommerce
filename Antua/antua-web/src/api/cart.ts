@@ -49,7 +49,8 @@ function toCartItem(item: ApiCartItem): CartItem {
  */
 function normalize(data: unknown, endpoint: string): CartSnapshot {
   if (!isRecord(data) || !isCartWithItems(data.cart) || !isSummary(data.summary)) {
-    console.warn(`[cart] ${endpoint} devolvió una forma inesperada. Ver docs/backend-cart-fix.md.`, data)
+    // Diagnóstico solo en desarrollo: en producción el usuario ve un error amable con reintento.
+    if (import.meta.env.DEV) console.warn(`[cart] ${endpoint} devolvió una forma inesperada. Ver docs/backend-cart-fix.md.`, data)
     throw new CartContractError(endpoint)
   }
   const { cart, summary } = data

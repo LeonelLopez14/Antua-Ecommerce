@@ -9,7 +9,7 @@ export const SORT_OPTIONS = [
 
 export type SortKey = (typeof SORT_OPTIONS)[number]['value']
 
-export const DEFAULT_SORT: SortKey = 'recomendadas'
+const DEFAULT_SORT: SortKey = 'recomendadas'
 export const PAGE_SIZE = 9
 
 /** Estado de la Tienda. Vive en la URL para poder compartirlo y volver atrás. */
@@ -24,7 +24,7 @@ export interface ShopQuery {
 }
 
 /** Nombres de los query params: ?categoria=veganas&categoria=sin-gluten&min=2000&max=3000&orden=precio-asc&pagina=2 */
-export const PARAM = {
+const PARAM = {
   category: 'categoria',
   min: 'min',
   max: 'max',

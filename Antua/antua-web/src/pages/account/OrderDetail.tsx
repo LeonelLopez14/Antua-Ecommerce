@@ -4,7 +4,7 @@ import { ChevronLeft, Star } from 'lucide-react'
 import { fetchOrder } from '../../api/orders'
 import { fetchProducts } from '../../api/products'
 import { useResource } from '../../hooks/useResource'
-import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { usePageMeta } from '../../hooks/usePageMeta'
 import { formatDate, variantLabel } from '../../lib/format'
 import { orderSummaryLines, orderSummaryTotals } from '../../lib/orderSummary'
 import { OrderStatusBadge } from '../../components/account/OrderStatusBadge'
@@ -36,7 +36,7 @@ export default function OrderDetail() {
     return map
   }, [catalog.state])
 
-  useDocumentTitle(validId ? `Pedido #${orderId}` : 'Pedido')
+  usePageMeta(validId ? `Pedido #${orderId}` : 'Pedido')
 
   const back = (
     <Link to="/cuenta/pedidos" className="inline-flex min-h-11 items-center gap-1 rounded-full pr-3 font-bold underline-offset-4 hover:underline">
@@ -51,6 +51,7 @@ export default function OrderDetail() {
         {back}
         <div className="mt-4">
           <EmptyState
+            headingLevel={2}
             title="No encontramos ese pedido"
             message="Puede que el link esté mal escrito o que el pedido sea de otra cuenta."
             action={<ButtonLink to="/cuenta/pedidos">Ver mis pedidos</ButtonLink>}
@@ -66,7 +67,7 @@ export default function OrderDetail() {
 
       {state.status === 'error' && (
         <div className="mt-4">
-          <ErrorState title="No pudimos traer el pedido" message={state.message} onRetry={retry} />
+          <ErrorState headingLevel={2} title="No pudimos traer el pedido" message={state.message} onRetry={retry} />
         </div>
       )}
 

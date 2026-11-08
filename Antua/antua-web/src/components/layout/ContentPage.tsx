@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { usePageMeta } from '../../hooks/usePageMeta'
 
 interface ContentPageProps {
   title: string
@@ -12,7 +12,7 @@ interface ContentPageProps {
  * hasta que el contenido real esté escrito y revisado.
  */
 export function ContentPage({ title, intro, children }: ContentPageProps) {
-  useDocumentTitle(title)
+  usePageMeta(title, intro)
   return (
     <article className="mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-16">
       <h1 className="font-display text-[clamp(2.25rem,4vw,3rem)] leading-tight font-bold">{title}</h1>

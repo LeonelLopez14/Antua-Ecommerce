@@ -1,4 +1,4 @@
-import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { usePageMeta } from '../hooks/usePageMeta'
 import { ButtonLink } from '../components/ui/ButtonLink'
 import { CookieFallback } from '../three/cookie/CookieFallback'
 
@@ -11,7 +11,7 @@ export default function NotFound({
   title = 'No encontramos esta página',
   message = 'Puede que el link esté mal escrito o que la página ya no exista.',
 }: NotFoundProps) {
-  useDocumentTitle(title)
+  usePageMeta(title, message)
 
   return (
     <section aria-labelledby="notfound-title" className="mx-auto flex max-w-xl flex-col items-center px-4 py-24 text-center sm:px-6">

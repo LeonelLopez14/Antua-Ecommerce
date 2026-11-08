@@ -11,7 +11,7 @@ const toOrderItem = (item: ApiOrderItem): OrderItem => ({
   variantName: item.variant?.name ?? null,
 })
 
-export function toOrder(order: ApiOrder, items: ApiOrderItem[] = order.items ?? []): Order {
+function toOrder(order: ApiOrder, items: ApiOrderItem[] = order.items ?? []): Order {
   return {
     id: order.id,
     status: order.status,

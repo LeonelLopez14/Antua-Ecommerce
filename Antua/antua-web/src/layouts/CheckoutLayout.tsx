@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
+import { PageSkeleton } from '../components/layout/PageSkeleton'
 import { Logo } from '../components/layout/Logo'
 import { SkipLink } from '../components/layout/SkipLink'
 
@@ -14,7 +15,7 @@ export function CheckoutLayout() {
         </div>
       </header>
       <main id="contenido" className="min-h-[calc(100svh-4rem)]">
-        <Suspense fallback={<div className="min-h-svh" />}>
+        <Suspense fallback={<PageSkeleton />}>
           <Outlet />
         </Suspense>
       </main>

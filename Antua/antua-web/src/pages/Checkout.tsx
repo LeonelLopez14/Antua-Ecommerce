@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useBlocker, useNavigate, useSearchParams } from 'react-router-dom'
-import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { usePageMeta } from '../hooks/usePageMeta'
 import { useResource } from '../hooks/useResource'
 import { useAuthStore } from '../stores/authStore'
 import { useCartStore } from '../stores/cartStore'
@@ -191,7 +191,10 @@ export default function Checkout() {
     headingRef.current?.focus({ preventScroll: true })
   }, [viewKey])
 
-  useDocumentTitle(placedOrder ? `Pedido #${placedOrder.id} confirmado` : `Checkout: ${CHECKOUT_STEPS[step - 1] ?? ''}`)
+  usePageMeta(
+    placedOrder ? `Pedido #${placedOrder.id} confirmado` : `Checkout: ${CHECKOUT_STEPS[step - 1] ?? ''}`,
+    'Finalizá tu compra en Antua: dirección, envío y confirmación. No hace falta una cuenta.',
+  )
 
   // ---- Resumen (idéntico en los 4 pasos) ----
   let lines: SummaryLine[] = []
@@ -218,15 +221,16 @@ export default function Checkout() {
   if (placedRef && !placed) {
     if (reloaded.state.status === 'error') {
       return (
-        <CheckoutShell>
+        <CheckoutShell title="Tu pedido">
           {reloaded.state.notFound ? (
             <EmptyState
+              headingLevel={2}
               title="No encontramos ese pedido"
               message="Puede que ya hayas cerrado la confirmación. Si hiciste el pedido, te llega el detalle por email."
               action={<ButtonLink to="/tienda">Ver galletas</ButtonLink>}
             />
           ) : (
-            <ErrorState title="No pudimos mostrar tu pedido" message={reloaded.state.message} onRetry={reloaded.retry} />
+            <ErrorState headingLevel={2} title="No pudimos mostrar tu pedido" message={reloaded.state.message} onRetry={reloaded.retry} />
           )}
         </CheckoutShell>
       )
@@ -237,8 +241,8 @@ export default function Checkout() {
   if (!placedOrder) {
     if (cartStatus === 'error' && !cart) {
       return (
-        <CheckoutShell>
-          <ErrorState title="No pudimos cargar tu carrito" message={cartError ?? 'Probá de nuevo en un rato.'} onRetry={() => void loadCart()} />
+        <CheckoutShell title="Finalizar compra">
+          <ErrorState headingLevel={2} title="No pudimos cargar tu carrito" message={cartError ?? 'Probá de nuevo en un rato.'} onRetry={() => void loadCart()} />
         </CheckoutShell>
       )
     }
@@ -318,8 +322,14 @@ export default function Checkout() {
   )
 }
 
-function CheckoutShell({ children }: { children: ReactNode }) {
-  return <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-12">{children}</div>
+/** `title`: en los estados de error y carga, la página igual necesita su h1 (jerarquía de encabezados). */
+function CheckoutShell({ title, children }: { title?: string; children: ReactNode }) {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-12">
+      {title && <h1 className="mb-6 font-display text-[clamp(2rem,4vw,2.75rem)] leading-tight font-bold">{title}</h1>}
+      {children}
+    </div>
+  )
 }
 
 function CheckoutSkeleton() {

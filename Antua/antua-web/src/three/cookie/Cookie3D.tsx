@@ -1,9 +1,11 @@
-import { Suspense } from 'react'
+import { lazy, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { cookieConfig, type CookieConfig } from './cookieConfig'
 import { CookieRig, type CookieHandle } from './CookieRig'
 import { ProceduralCookie } from './ProceduralCookie'
-import { GltfCookie } from './GltfCookie'
+
+// drei y el loader de GLTF solo se bajan si hay un .glb: la galleta por defecto es procedural.
+const GltfCookie = lazy(() => import('./GltfCookie').then((m) => ({ default: m.GltfCookie })))
 
 export interface Cookie3DProps {
   /** .glb hecho en Blender. Si falta, se genera la galleta procedural. */
@@ -12,6 +14,8 @@ export interface Cookie3DProps {
   active?: boolean
   /** false = galleta estática (prefers-reduced-motion). */
   animated?: boolean
+  /** Flotación automática. false = pausada por el usuario (el giro con el scroll sigue). */
+  floating?: boolean
   config?: CookieConfig
   onReady?: (handle: CookieHandle) => void
   className?: string
@@ -25,6 +29,7 @@ export default function Cookie3D({
   modelUrl,
   active = true,
   animated = true,
+  floating = true,
   config = cookieConfig,
   onReady,
   className,
@@ -43,7 +48,7 @@ export default function Cookie3D({
         <ambientLight color={lights.ambientColor} intensity={lights.ambientIntensity} />
         <directionalLight color={lights.keyColor} intensity={lights.keyIntensity} position={lights.keyPosition} />
         <directionalLight color={lights.fillColor} intensity={lights.fillIntensity} position={lights.fillPosition} />
-        <CookieRig config={config} floating={animated && active} onReady={onReady}>
+        <CookieRig config={config} floating={animated && floating && active} onReady={onReady}>
           <Suspense fallback={null}>
             {modelUrl ? <GltfCookie url={modelUrl} /> : <ProceduralCookie config={config} />}
           </Suspense>

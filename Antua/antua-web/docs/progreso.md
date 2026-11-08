@@ -201,7 +201,7 @@ Resultado: **20 de 20 suites pasan.** Son pruebas mínimas: no cubren la lógica
 - **Perfil:** "datos personales" del sitemap. No hay `PATCH /users/me` (`UsersController` vacío): no se puede editar.
 - **Pedidos de invitado:** no aparecen en la cuenta (el backend no los asocia).
 
-## Fase 7: Reseñas y páginas que faltan
+## Fase 7: Reseñas y páginas que faltan: commit `833ec53d`
 
 **Hecho**
 - **Formulario de reseñas** en la Ficha (`ReviewForm`), entre el promedio y el listado:
@@ -228,3 +228,70 @@ Resultado: **20 de 20 suites pasan.** Son pruebas mínimas: no cubren la lógica
 
 **Decisión pendiente**
 - **Editar o borrar la propia reseña:** el backend no lo permite. Solo existen `GET/POST /products/:slug/reviews`; no hay PATCH ni DELETE.
+
+## Fase 8: Pulido, rendimiento, tests y documentación
+
+**Rendimiento**
+- Todas las páginas cargan en diferido (`React.lazy`), también la Home, con `PageSkeleton` como fallback de Suspense.
+- `GltfCookie` (drei y el loader GLTF, 73 kB) solo se baja si hay un `.glb`. ScrollTrigger pasó a `lib/scrollTrigger.ts` y viaja en el chunk de la Home.
+- Chunks:
+
+  | Chunk | Antes | Después |
+  |---|---|---|
+  | Principal | 447 kB (150 kB gzip) | 406 kB (133 kB gzip) |
+  | Three/R3F (solo en la Home) | 960 kB | 881 kB (234 kB gzip) |
+
+- `chunkSizeWarningLimit: 900` en `vite.config.ts`, con el motivo comentado: así cualquier otro chunk grande sigue avisando. El build no tiene warnings.
+
+**Estructura y meta**
+- `RouteError` como `errorElement` de la ruta raíz: ErrorBoundary global con "Reintentar". Detecta los chunks que no cargan después de un deploy.
+- `usePageMeta(title, description)` reemplaza a `useDocumentTitle` en todas las páginas: título y meta description sin librerías.
+- Favicon nuevo: una galleta con colores de la paleta, en lugar del de Vite. Se borró `public/icons.svg`, que quedaba del template.
+
+**Tema**
+- `ThemeToggle` en la Navbar (sistema → claro → oscuro) y `stores/themeStore.ts`.
+  - Clases `.dark`/`.light` en `<html>` (las usa `@custom-variant dark`).
+  - Preferencia en localStorage dentro de try/catch.
+  - `theme-color` leído de los tokens `--color-bg` y `--color-dark-bg`.
+- Un script mínimo en `index.html` aplica el tema antes del primer pintado, para que no parpadee.
+
+**Accesibilidad**
+- Botón para pausar la flotación de la galleta 3D (WCAG 2.2.2), con `aria-pressed`; el giro con el scroll sigue.
+- `EmptyState` y `ErrorState` aceptan `headingLevel`. Las pantallas de error del checkout y del detalle de pedido tienen h1 → h2, sin saltos.
+- Skip link "Saltar al contenido principal" en los dos layouts.
+- Reduced motion revisado en todas las animaciones GSAP (Hero, CookieRig, Dialog y AuthModal) y en el 3D: la galleta queda estática.
+
+**Tests**
+- Vitest + Testing Library (`pnpm test`): 23 tests en 5 archivos.
+  - `authStore`: sesión, persistencia, token vencido (401) contra un error de red.
+  - `cartStore`: reemplazo del estado, ítems pendientes, errores del backend y merge.
+  - `QuantityStepper`, `ProductCard` y `AuthModal`: tabs con teclado, validación con foco, 401 traducido, login con merge y cierre.
+- Playwright (`pnpm test:e2e`, `e2e/guest-checkout.spec.ts`): Home → Tienda → Ficha → agregar → drawer → cupón → checkout → confirmación como invitado, en desktop y mobile.
+- Se instaló Chromium para Playwright con `pnpm exec playwright install chromium` (queda en la caché del usuario, no en el repo).
+
+**Limpieza**
+- Sin `any`, `@ts-ignore` ni `console.log`. El `console.warn` del contrato del carrito queda solo en desarrollo.
+- Todos los TODO tienen etiqueta y ubicación: `payments`, `api`, `contenido`, `legal`, `auth`, `newsletter` y `blender`.
+- Sin archivos sin uso. Se quitaron 6 exports internos que nadie importaba.
+- El helper `galletas(n)`, que estaba repetido en 3 lugares, pasó a `lib/format.ts`.
+- `.env.example` (front y back) lista todas las variables que lee el código.
+
+## Check final (07/11/2026)
+
+1. **Front:** typecheck, lint y build sin errores ni warnings; 23 de 23 unit tests y 2 de 2 e2e. **Back:** build y 20 de 20 suites.
+2. **playwright-cli (`final-flow.sh`)** en 375 y 1280 px, claro y oscuro: Home → Tienda → Ficha → carrito → cupón SEEDFIJO → checkout como invitado → confirmación → registro desde la confirmación → Mis pedidos → Direcciones → reseña → compra con sesión → detalle del pedido.
+   - Todo OK en las 4 combinaciones, sin scroll horizontal. Capturas en `docs/checks/final-*.png`.
+   - "Mis pedidos" queda vacío para la cuenta nueva: el pedido de invitado no se asocia (límite del backend).
+   - La reseña responde 403 con su mensaje, porque no hay pedido entregado. La publicación exitosa se probó en la Fase 7 con un pedido entregado.
+   - El único error de consola es ese 403, que el navegador registra solo.
+   - Hay un aviso de `THREE.Clock` deprecado que viene de R3F, no del código del proyecto.
+3. **/web-interface-guidelines sobre `src/`:** 3 hallazgos, corregidos.
+   - `Faq.tsx`: comillas rectas.
+   - `AddressFormDialog.tsx`: checkbox sin `name`.
+   - `ReviewForm.tsx`: textarea sin `autocomplete="off"`.
+4. **DESIGN.md:**
+   - Hex sueltos solo en `three/cookie/cookieConfig.ts` (3D) y en el script de tema de `index.html`.
+   - Sin colores fuera de la paleta, sin `transition: all` y sin tuteo.
+   - El único `outline-none` es el del título del paso del checkout (destino del foco programático) y tiene reemplazo: el subrayado.
+   - `rounded-sm` solo en links de texto, para el contorno de foco.
+5. **Documentación:** `docs/estado-frontend.md` actualizado y `CLAUDE.md` con las convenciones (estructura, rutas, montos, errores, accesibilidad y tests).

@@ -11,12 +11,14 @@ interface HeroCookieStageProps {
   /** Hero visible: si es false, se pausa el render. */
   active: boolean
   reducedMotion: boolean
+  /** El usuario pausó la flotación (WCAG 2.2.2: movimiento de más de 5 s con pausa). */
+  paused: boolean
   onReady: (handle: CookieHandle) => void
   /** .glb opcional hecho en Blender. */
   modelUrl?: string
 }
 
-export function HeroCookieStage({ active, reducedMotion, onReady, modelUrl }: HeroCookieStageProps) {
+export function HeroCookieStage({ active, reducedMotion, paused, onReady, modelUrl }: HeroCookieStageProps) {
   const webgl = useWebGLSupport()
   const fallback = <CookieFallback className="flex size-full items-center justify-center p-8" />
 
@@ -29,6 +31,7 @@ export function HeroCookieStage({ active, reducedMotion, onReady, modelUrl }: He
           className="size-full"
           active={active}
           animated={!reducedMotion}
+          floating={!paused}
           onReady={onReady}
           modelUrl={modelUrl}
         />

@@ -45,7 +45,7 @@ export function orderErrorFrom(error: unknown): OrderError {
 }
 
 /** Nombre y tono del badge de cada estado de pedido. */
-export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'neutral' | 'progress' | 'done' | 'muted' }> = {
+const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'neutral' | 'progress' | 'done' | 'muted' }> = {
   pending: { label: 'Recibido', tone: 'neutral' },
   preparing: { label: 'En preparación', tone: 'progress' },
   shipped: { label: 'En camino', tone: 'progress' },

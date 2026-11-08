@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react'
-import { ArrowRight } from 'lucide-react'
-import { gsap, ScrollTrigger, useGSAP } from '../../lib/gsap'
+import { ArrowRight, Pause, Play } from 'lucide-react'
+import { gsap, useGSAP } from '../../lib/gsap'
+import { ScrollTrigger } from '../../lib/scrollTrigger'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { useInView } from '../../hooks/useInView'
 import { cookieConfig } from '../../three/cookie/cookieConfig'
 import type { CookieHandle } from '../../three/cookie/CookieRig'
 import { categoryHref } from '../../data/categories'
 import { ButtonLink } from '../ui/ButtonLink'
+import { iconButtonClasses } from '../ui/buttonStyles'
 import { HeroCookieStage } from './HeroCookieStage'
 import { HeroPackCarousel } from './HeroPackCarousel'
 
@@ -35,6 +37,8 @@ export function Hero() {
   // Se setea una sola vez, cuando la escena 3D está montada.
   const [cookie, setCookie] = useState<CookieHandle | null>(null)
   const inView = useInView(sectionRef)
+  // La galleta flota sin parar: WCAG 2.2.2 pide poder pausar un movimiento automático de más de 5 s.
+  const [paused, setPaused] = useState(false)
 
   // Texto + carrusel: pin y scrub sobre el DOM. No depende del 3D (funciona también sin WebGL).
   useGSAP(
@@ -158,7 +162,18 @@ export function Hero() {
 
         {/* Escena: galleta 3D y, encima, el carrusel que aparece con el scroll. */}
         <div className={`relative min-h-0 ${reduced ? 'aspect-square max-h-120 w-full' : 'h-full'}`}>
-          <HeroCookieStage active={inView} reducedMotion={reduced} onReady={setCookie} />
+          <HeroCookieStage active={inView} reducedMotion={reduced} paused={paused} onReady={setCookie} />
+          {!reduced && (
+            <button
+              type="button"
+              aria-pressed={paused}
+              aria-label={paused ? 'Reanudar la animación de la galleta' : 'Pausar la animación de la galleta'}
+              onClick={() => setPaused((p) => !p)}
+              className={`${iconButtonClasses()} absolute top-2 right-2 z-10 bg-surface/80 text-text-main dark:bg-dark-surface/80 dark:text-dark-text-main`}
+            >
+              {paused ? <Play aria-hidden="true" className="size-5" /> : <Pause aria-hidden="true" className="size-5" />}
+            </button>
+          )}
           {!reduced && (
             <div ref={carouselRef} className="invisible absolute inset-x-0 bottom-6 opacity-0 md:bottom-16">
               <HeroPackCarousel

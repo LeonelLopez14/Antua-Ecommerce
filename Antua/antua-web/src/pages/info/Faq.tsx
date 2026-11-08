@@ -25,7 +25,7 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: '¿Necesito una cuenta para comprar?',
-    a: 'No. Podés comprar como invitado. Con una cuenta guardás tus direcciones y ves tus pedidos en "Mis pedidos".',
+    a: 'No. Podés comprar como invitado. Con una cuenta guardás tus direcciones y ves tus pedidos en “Mis pedidos”.',
   },
 ]
 

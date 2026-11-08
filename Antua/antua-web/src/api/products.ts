@@ -6,7 +6,7 @@ export const toNumber = (value: ApiDecimal): number =>
 
 const toTag = (tag: ApiTag): Tag => ({ id: tag.id, name: tag.name, slug: tag.slug })
 
-export function toProduct(product: ApiProduct): Product {
+function toProduct(product: ApiProduct): Product {
   const variants = product.variants
     .filter((v) => v.is_active)
     .map((v) => ({ id: v.id, name: v.name, price: toNumber(v.price), stock: v.stock, sku: v.sku }))

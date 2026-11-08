@@ -98,6 +98,7 @@ function AddressFormBody({ initial, lockDefault, onCancel, onSubmit }: BodyProps
       <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-1 has-disabled:cursor-default">
         <input
           type="checkbox"
+          name="isDefault"
           checked={form.isDefault}
           disabled={lockDefault}
           onChange={(event) => {
