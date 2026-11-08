@@ -229,7 +229,7 @@ Resultado: **20 de 20 suites pasan.** Son pruebas mínimas: no cubren la lógica
 **Decisión pendiente**
 - **Editar o borrar la propia reseña:** el backend no lo permite. Solo existen `GET/POST /products/:slug/reviews`; no hay PATCH ni DELETE.
 
-## Fase 8: Pulido, rendimiento, tests y documentación
+## Fase 8: Pulido, rendimiento, tests y documentación: commit `dd63af3d`
 
 **Rendimiento**
 - Todas las páginas cargan en diferido (`React.lazy`), también la Home, con `PageSkeleton` como fallback de Suspense.
