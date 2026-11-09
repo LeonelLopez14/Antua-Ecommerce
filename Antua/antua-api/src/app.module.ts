@@ -30,6 +30,8 @@ import { validateEnv } from './config/env.validation';
         username: config.get<string>('DB_USERNAME'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_DATABASE'),
+        // MySQL guarda en UTC: sin esto, el driver leería las fechas como hora local y las correría.
+        timezone: 'Z',
         autoLoadEntities: true, // toma automáticamente las entidades registradas via forFeature()
         // El esquema se gestiona con migraciones (src/database/migrations), no con synchronize:
         // synchronize puede borrar columnas sin avisar si una entidad cambia.
