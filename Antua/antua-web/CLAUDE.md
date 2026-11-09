@@ -29,6 +29,18 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 - Las rutas que requieren sesión van bajo `/cuenta` (`AccountLayout` abre el AuthModal; no hay redirecciones).
 - El estado navegable vive en la URL: filtros (`?categoria=`), variante (`?variante=`) y paso del checkout (`?paso=`).
 
+### Backend (`../antua-api`)
+- El esquema se cambia solo con migraciones: `pnpm migration:generate src/database/migrations/Nombre`. Antes de tocarlo, hacer un respaldo fuera del repo. `synchronize` está apagado.
+- Lo ajeno responde 404. Todo endpoint con datos propios filtra por dueño; cada uno lleva su test de ownership en `test/*.e2e-spec.ts`.
+- Los e2e corren contra `antua_test`. Los logs llevan ids, nunca datos personales.
+
+### Pagos
+- El estado de pago lo define solo el servidor (webhook firmado o consulta al proveedor); nunca la URL de retorno ni un monto enviado por el cliente.
+- Solo credenciales de prueba. Diseño y pruebas: `docs/payments-design.md`. Las transiciones están en `payment-state.ts`.
+
+### Acceso a pedidos de invitado
+- Con el token del pedido (`X-Order-Token`, guardado en `lib/placedOrder.ts`). Nunca por email.
+
 ### Montos y formato
 - **Ningún monto se calcula en el cliente:** subtotal, descuento, envío y total salen del backend (carrito o pedido). Se muestra "cantidad × precio unitario", nunca un total por línea calculado.
 - Precios con `formatPrice` y fechas con `formatDate` (`lib/format.ts`, `Intl` es-AR). Siempre `tabular-nums` en montos.
@@ -37,6 +49,7 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 - **API:**
   - `getApiErrorMessage` (`api/client.ts`) arma un mensaje legible; los 5xx no muestran el texto técnico.
   - Los errores de cada dominio se traducen en `lib/*Messages.ts` (`cartMessages`, `authMessages`, `orderMessages`, `reviewMessages`) a mensajes accionables: qué pasó y cómo seguir.
+- **Avisos del backend sobre el carrito:** `warnings` en la respuesta, mostrados por `CartWarnings` (aria-live).
 - **Estados de carga:** cargando con skeleton y texto `role="status"` terminado en "…"; vacío con `EmptyState`; error con `ErrorState` y reintento.
 - **Formularios:**
   - Validación en línea con `FormField` (error ligado con `aria-describedby`) y foco en el primer error.

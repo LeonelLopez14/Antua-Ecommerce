@@ -33,6 +33,11 @@ describe('endurecimiento', () => {
     is_active: true,
   };
 
+  it('GET /health informa el estado de la base', async () => {
+    const res = await request(server()).get('/health').expect(200);
+    expect(res.body).toEqual({ status: 'ok', database: 'up' });
+  });
+
   it('las escrituras del catálogo exigen la clave de administración', async () => {
     await request(server()).post('/products').send(product).expect(403);
     await request(server())

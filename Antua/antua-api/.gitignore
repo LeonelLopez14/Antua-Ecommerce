@@ -54,3 +54,12 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Respaldos y volcados de base de datos
+*.sql
+*.sql.gz
+.env.*
+!.env.example
+
+# Artefactos de playwright-cli
+.playwright-cli/

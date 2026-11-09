@@ -30,3 +30,7 @@ docs/checks/
 .playwright-cli/
 test-results/
 playwright-report/
+
+# Variantes de .env (los .env.example sí se versionan)
+.env.*
+!.env.example

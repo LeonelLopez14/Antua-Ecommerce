@@ -542,3 +542,20 @@ curl -s -X POST localhost:3000/orders/$ID/payment -H "X-Order-Token: $ORDER_TOKE
 pnpm payments:simulate $ID approved
 curl -s localhost:3000/orders/$ID/payment -H "X-Order-Token: $ORDER_TOKEN"
 ```
+
+## Fase 11: Cierre
+
+**Hecho**
+- **READMEs** de la raíz, `antua-api` y `antua-web`: qué es, requisitos, cómo correr todo desde cero, tests, estructura y decisiones técnicas.
+- **`docker-compose.yml`** con `db` y `api`, y `web` opcional (`--profile web`). Puertos y credenciales salen de `.env`; MySQL por defecto en `127.0.0.1:3307`. Se probó con un proyecto aparte y puertos 3399/3099: en una base vacía las migraciones crearon todo y `/health` respondió `ok`. Ese proyecto y su volumen se eliminaron; no se tocó `antua-mysql` ni MariaDB.
+- **`GET /health`** (`src/health/health.controller.ts`): consulta la base y responde 503 si no hay conexión.
+- **Seed reproducible** (`scripts/seed.ts`, `scripts/seed-data.json`): productos, tags, cupones, usuarios y reseñas. Se puede repetir: busca por slug, sku, código o email. La contraseña es solo de desarrollo y se cambia con `SEED_PASSWORD`. Probado dos veces con los mismos conteos, en una base temporal.
+- **Limpieza** (`scripts/seed-cleanup.ts`): solo datos `seed-`/`SEED`/`seed.`, y pide `--yes` porque también borra los pedidos que los incluyan. Se probó en la base temporal; **no se corrió sobre `antua_db`**.
+- **`.gitignore`:** se agregan `*.sql`, variantes de `.env` y artefactos de playwright-cli. `git ls-files` confirma que no hay `.env`, `node_modules`, builds ni respaldos versionados (solo los `.env.example`).
+
+**Falló y se corrigió**
+- `upsert` de TypeORM con claves de relación dejaba colgado el seed: se reemplazó por buscar y guardar.
+- Los scripts no terminaban si fallaban, porque la conexión quedaba abierta: ahora se cierra siempre.
+- `@nestjs/schedule` 12 es solo ESM y Jest no lo carga: el vencimiento usa un `setInterval` con limpieza al apagar.
+
+**Qué falta redactar:** ver "Qué falta" en [`estado-frontend.md`](./estado-frontend.md).

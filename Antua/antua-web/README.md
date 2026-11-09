@@ -1,16 +1,29 @@
-# React + Vite
+# antua-web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Tienda de Antojarte: React 19, TypeScript estricto, Vite 8, Tailwind CSS v4, GSAP, Three.js (solo en el hero), Zustand, Axios y Lucide. Para correr todo desde cero, ver el [README de la raíz](../README.md).
 
-Currently, two official plugins are available:
+## Configuración
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Copiá `.env.example` a `.env`. La única variable es `VITE_API_URL` (por defecto, `http://localhost:3000`). En desarrollo el front llama a `/api` y Vite reenvía a esa URL, por lo que la API no necesita CORS.
 
-## React Compiler
+## Comandos
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Comando | Qué hace |
+|---|---|
+| `pnpm dev` | Servidor de desarrollo (`:5173`) |
+| `pnpm typecheck` / `pnpm lint` | Chequeos |
+| `pnpm build` | Build de producción en `dist/` |
+| `pnpm test` / `pnpm test:watch` | Unitarios con Vitest y Testing Library |
+| `pnpm test:e2e` | Flujo principal con Playwright. Requiere la API con los datos de prueba. La primera vez: `pnpm exec playwright install chromium` |
 
-## Expanding the ESLint configuration
+## Estructura y convenciones
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+La estructura de `src/`, las reglas de rutas, montos, errores y accesibilidad están en [`CLAUDE.md`](./CLAUDE.md). El sistema de diseño está en [`DESIGN.MD`](./DESIGN.MD).
+
+## Documentación
+
+| Archivo | Contenido |
+|---|---|
+| [`docs/estado-frontend.md`](./docs/estado-frontend.md) | Qué está hecho, qué falta y decisiones abiertas |
+| [`docs/progreso.md`](./docs/progreso.md) | Registro por fase: qué cambió y por qué |
+| [`docs/payments-design.md`](./docs/payments-design.md) | Diseño de pagos y cómo probar con Mercado Pago |

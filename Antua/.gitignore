@@ -54,3 +54,14 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Respaldos y volcados de base de datos: nunca se versionan
+*.sql
+*.sql.gz
+
+# Cualquier otra variante de .env (los .env.example sí se versionan)
+.env.*
+!.env.example
+
+# Artefactos de playwright-cli
+.playwright-cli/

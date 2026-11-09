@@ -24,7 +24,9 @@
     "migration:revert": "pnpm typeorm migration:revert -d src/database/data-source.ts",
     "migration:show": "pnpm typeorm migration:show -d src/database/data-source.ts",
     "migration:generate": "pnpm typeorm migration:generate -d src/database/data-source.ts -p",
-    "payments:simulate": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/simulate-mp-webhook.ts"
+    "payments:simulate": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/simulate-mp-webhook.ts",
+    "seed": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed.ts",
+    "seed:clean": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed-cleanup.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

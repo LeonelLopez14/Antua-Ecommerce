@@ -20,7 +20,9 @@ export function PaymentStep({ enabled, children }: PaymentStepProps) {
         <div role="note" className="flex items-start gap-4 rounded-xl bg-bg p-4 dark:bg-dark-bg">
           <ShieldCheck aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-accent-main dark:text-dark-accent-main" />
           <div>
-            <p className="font-bold">Pagás en Mercado Pago</p>
+            <p className="font-bold">
+              Pagás en <span translate="no">Mercado Pago</span>
+            </p>
             <p className="mt-1 text-text-main/85 dark:text-dark-text-secondary">
               Te llevamos a su página para pagar. Los datos de tu tarjeta nunca pasan por Antua.
             </p>

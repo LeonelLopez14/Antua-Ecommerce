@@ -63,7 +63,7 @@ function PersonalDataForm() {
       <h3 id={`${baseId}-title`} className="font-display text-xl font-semibold">
         Datos personales
       </h3>
-      <FormField id={`${baseId}-email`} label="Email" type="email" name="email" value={user?.email ?? ''} readOnly autoComplete="email" hint="Por ahora, el email no se puede cambiar." />
+      <FormField id={`${baseId}-email`} label="Email" type="email" name="email" value={user?.email ?? ''} readOnly autoComplete="email" spellCheck={false} hint="Por ahora, el email no se puede cambiar." />
       <FormField
         id={`${baseId}-name`}
         label="Nombre completo"
