@@ -4,6 +4,7 @@
 export interface ValidatedEnv extends Record<string, unknown> {
   SHIPPING_FLAT_RATE: number;
   SHIPPING_ETA_DAYS: number | null;
+  FRONTEND_URL: string;
 }
 
 export function parseShippingFlatRate(raw: unknown): number {
@@ -36,10 +37,23 @@ export function parseShippingEtaDays(raw: unknown): number | null {
   return days;
 }
 
+/** URL pública del front: arma los links de los mails. Por defecto, la de desarrollo. */
+export function parseFrontendUrl(raw: unknown): string {
+  const value =
+    typeof raw === 'string' && raw.trim()
+      ? raw.trim()
+      : 'http://localhost:5173';
+  if (!URL.canParse(value)) {
+    throw new Error(`FRONTEND_URL no es una URL válida (recibido: ${value}).`);
+  }
+  return value.replace(/\/+$/, '');
+}
+
 export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
   return {
     ...config,
     SHIPPING_FLAT_RATE: parseShippingFlatRate(config.SHIPPING_FLAT_RATE),
     SHIPPING_ETA_DAYS: parseShippingEtaDays(config.SHIPPING_ETA_DAYS),
+    FRONTEND_URL: parseFrontendUrl(config.FRONTEND_URL),
   };
 }

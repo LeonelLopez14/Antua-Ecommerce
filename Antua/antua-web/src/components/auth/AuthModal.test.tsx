@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { AxiosError, AxiosHeaders } from 'axios'
 import * as authApi from '../../api/auth'
 import { AuthModal } from './AuthModal'
@@ -24,7 +25,11 @@ const unauthorized = new AxiosError('Unauthorized', '401', undefined, undefined,
 })
 
 const openModal = (tab: 'login' | 'register' = 'login') => {
-  render(<AuthModal />)
+  render(
+    <MemoryRouter>
+      <AuthModal />
+    </MemoryRouter>,
+  )
   act(() => useAuthModalStore.getState().open(tab))
 }
 
@@ -41,6 +46,11 @@ describe('AuthModal', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true')
     expect(screen.getByRole('tab', { name: 'Iniciar sesión' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('tab', { name: 'Registrarme' })).toHaveAttribute('aria-selected', 'false')
+  })
+
+  it('enlaza a la recuperación de contraseña', () => {
+    openModal()
+    expect(screen.getByRole('link', { name: '¿Olvidaste tu contraseña?' })).toHaveAttribute('href', '/olvide-mi-contrasena')
   })
 
   it('las flechas del teclado cambian de tab', async () => {

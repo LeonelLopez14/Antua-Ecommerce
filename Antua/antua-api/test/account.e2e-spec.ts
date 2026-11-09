@@ -1,6 +1,12 @@
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { createTestApp, registerUser, resetDatabase, TestApp } from './helpers';
+import {
+  createTestApp,
+  registerUser,
+  resetDatabase,
+  sentMails,
+  TestApp,
+} from './helpers';
 
 describe('cuenta', () => {
   let app: TestApp;
@@ -105,6 +111,112 @@ describe('cuenta', () => {
         .post('/auth/login')
         .send({ email: 'a@antua.test', password: 'ClaveSegura123' })
         .expect(401);
+    });
+  });
+
+  describe('recuperación de contraseña', () => {
+    const forgot = (email: string) =>
+      request(server()).post('/auth/forgot-password').send({ email });
+    const reset = (token: string, newPassword = 'NuevaClave123') =>
+      request(server())
+        .post('/auth/reset-password')
+        .send({ token, newPassword });
+    const login = (password: string) =>
+      request(server())
+        .post('/auth/login')
+        .send({ email: 'a@antua.test', password });
+
+    /** El envío corre en segundo plano: espera a que llegue el mail. */
+    const tokenFromMail = async (expected = 1) => {
+      for (let i = 0; i < 100 && sentMails.length < expected; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      const match = /token=([\w-]+)/.exec(sentMails.at(-1)?.text ?? '');
+      if (!match) throw new Error('No llegó el mail');
+      return match[1];
+    };
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 200));
+
+    beforeEach(() => {
+      sentMails.length = 0;
+    });
+
+    it('responde exactamente igual exista o no la cuenta', async () => {
+      await registerUser(app, 'a@antua.test');
+      const exists = await forgot('a@antua.test').expect(200);
+      const missing = await forgot('nadie@antua.test').expect(200);
+      expect(missing.body).toEqual(exists.body);
+      await tokenFromMail();
+      await settle();
+      expect(sentMails.map((mail) => mail.to)).toEqual(['a@antua.test']);
+    });
+
+    it('guarda solo el hash del token', async () => {
+      await registerUser(app, 'a@antua.test');
+      await forgot('a@antua.test').expect(200);
+      const token = await tokenFromMail();
+      const rows: { token_hash: string }[] = await db.query(
+        'SELECT token_hash FROM password_reset_tokens',
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0].token_hash).not.toBe(token);
+      expect(rows[0].token_hash).toHaveLength(64);
+    });
+
+    it('restablece la contraseña y el token sirve una sola vez', async () => {
+      await registerUser(app, 'a@antua.test');
+      await forgot('a@antua.test').expect(200);
+      const token = await tokenFromMail();
+
+      await reset(token).expect(200);
+      await login('NuevaClave123').expect(201);
+      await login('ClaveSegura123').expect(401);
+      await reset(token, 'OtraClave456').expect(400);
+    });
+
+    it('rechaza un token vencido, uno inventado y una contraseña débil', async () => {
+      await registerUser(app, 'a@antua.test');
+      await forgot('a@antua.test').expect(200);
+      const token = await tokenFromMail();
+
+      await reset(token, 'debil').expect(400);
+      await reset('token-inventado').expect(400);
+      await db.query(
+        'UPDATE password_reset_tokens SET expires_at = DATE_SUB(NOW(), INTERVAL 1 HOUR)',
+      );
+      await reset(token).expect(400);
+    });
+
+    it('un link nuevo anula el anterior', async () => {
+      await registerUser(app, 'a@antua.test');
+      await forgot('a@antua.test').expect(200);
+      const first = await tokenFromMail(1);
+      await forgot('a@antua.test').expect(200);
+      const second = await tokenFromMail(2);
+
+      await reset(first).expect(400);
+      await reset(second).expect(200);
+    });
+
+    it('limita los pedidos por cuenta y por hora', async () => {
+      await registerUser(app, 'a@antua.test');
+      for (let i = 1; i <= 3; i++) {
+        await forgot('a@antua.test').expect(200);
+        await tokenFromMail(i);
+      }
+      await db.query(
+        "INSERT INTO password_reset_tokens (token_hash, expires_at, userId) SELECT REPEAT('a', 64), NOW() + INTERVAL 1 HOUR, id FROM users LIMIT 1",
+      );
+      await db.query(
+        "INSERT INTO password_reset_tokens (token_hash, expires_at, used_at, userId) SELECT REPEAT('b', 64), NOW() + INTERVAL 1 HOUR, NOW(), id FROM users LIMIT 1",
+      );
+      await db.query(
+        "INSERT INTO password_reset_tokens (token_hash, expires_at, used_at, userId) SELECT REPEAT('c', 64), NOW() + INTERVAL 1 HOUR, NOW(), id FROM users LIMIT 1",
+      );
+      const before = sentMails.length;
+      await forgot('a@antua.test').expect(200);
+      await settle();
+      expect(sentMails).toHaveLength(before);
     });
   });
 });

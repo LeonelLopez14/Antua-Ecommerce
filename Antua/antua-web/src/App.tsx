@@ -16,6 +16,8 @@ const Orders = lazy(() => import('./pages/account/Orders'))
 const OrderDetail = lazy(() => import('./pages/account/OrderDetail'))
 const Addresses = lazy(() => import('./pages/account/Addresses'))
 const Profile = lazy(() => import('./pages/account/Profile'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const CategoryRedirect = lazy(() => import('./pages/CategoryRedirect'))
 const About = lazy(() => import('./pages/info/About'))
 const Faq = lazy(() => import('./pages/info/Faq'))
@@ -54,6 +56,8 @@ const router = createBrowserRouter([
               { path: 'perfil', element: <Profile /> },
             ],
           },
+          { path: '/olvide-mi-contrasena', element: <ForgotPassword /> },
+          { path: '/restablecer-contrasena', element: <ResetPassword /> },
           { path: '/nosotros', element: <About /> },
           { path: '/preguntas-frecuentes', element: <Faq /> },
           { path: '/contacto', element: <Contact /> },

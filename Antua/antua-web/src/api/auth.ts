@@ -30,3 +30,13 @@ export async function updateProfile(fullName: string, phone: string): Promise<Us
   const { data } = await api.patch<User>('/users/me', { full_name: fullName, phone })
   return data
 }
+
+/** POST /auth/forgot-password: responde igual exista o no la cuenta. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await api.post('/auth/forgot-password', { email })
+}
+
+/** POST /auth/reset-password: 400 si el token venció, ya se usó o no existe. */
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await api.post('/auth/reset-password', { token, newPassword })
+}

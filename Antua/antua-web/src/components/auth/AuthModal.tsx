@@ -10,6 +10,7 @@ import type { AuthResponse } from '../../types/auth'
 import { Dialog } from '../ui/Dialog'
 import { Button } from '../ui/Button'
 import { FormField } from '../ui/FormField'
+import { Link } from 'react-router-dom'
 
 const TABS: { id: AuthTab; label: string }[] = [
   { id: 'login', label: 'Iniciar sesión' },
@@ -53,14 +54,12 @@ export function AuthModal() {
   const [errors, setErrors] = useState<AuthErrors>(NO_ERRORS)
   const [pending, setPending] = useState(false)
   const [mergeError, setMergeError] = useState<string | null>(null)
-  const [forgotOpen, setForgotOpen] = useState(false)
 
   const resetForms = () => {
     setFormKey((k) => k + 1)
     setErrors(NO_ERRORS)
     setPending(false)
     setMergeError(null)
-    setForgotOpen(false)
   }
 
   // Crossfade del contenido al cambiar de tab.
@@ -75,7 +74,6 @@ export function AuthModal() {
   const switchTab = (next: AuthTab, focusTab = false) => {
     if (next === tab) return
     setErrors(NO_ERRORS)
-    setForgotOpen(false)
     setTab(next)
     if (focusTab) document.getElementById(`${baseId}-tab-${next}`)?.focus()
   }
@@ -232,26 +230,15 @@ export function AuthModal() {
               autoComplete="current-password"
               error={errors.fields.password}
               aside={
-                // TODO(auth): no hay flujo de recuperación en el backend todavía; solo informa.
-                <button
-                  type="button"
-                  onClick={() => setForgotOpen((v) => !v)}
-                  aria-expanded={forgotOpen}
+                <Link
+                  to="/olvide-mi-contrasena"
+                  onClick={close}
                   className="rounded-sm text-sm text-accent-main underline-offset-4 hover:underline dark:text-dark-accent-main"
                 >
                   ¿Olvidaste tu contraseña?
-                </button>
+                </Link>
               }
             />
-            {forgotOpen && (
-              <p className="text-sm text-text-main/85 dark:text-dark-text-secondary">
-                Pronto vas a poder recuperarla desde acá. Mientras tanto, escribinos a{' '}
-                <a href="mailto:hola@antua.com.ar" className="font-bold underline underline-offset-4">
-                  hola@antua.com.ar
-                </a>
-                .
-              </p>
-            )}
             <Button type="submit" loading={pending} className="mt-2 w-full">
               {pending ? 'Iniciando sesión…' : 'Iniciar sesión'}
             </Button>

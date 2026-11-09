@@ -434,3 +434,33 @@ curl -s localhost:3000/users/me -H "Authorization: Bearer $JWT"
 curl -s -X PATCH localhost:3000/users/me -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" -d '{"full_name":"Ana","phone":"099 123 456"}'
 curl -s -X POST localhost:3000/auth/change-password -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" -d '{"currentPassword":"…","newPassword":"NuevaClave123"}'
 ```
+
+### Corrección: fechas en UTC (`5248da47`)
+
+**Qué fallaba:** MySQL guarda en UTC, pero el driver interpretaba cada fecha como hora local (UTC−3). Los pedidos y reseñas mostraban una fecha 3 horas adelantada y los vencimientos se corrían. Apareció probando el vencimiento de los tokens.
+**Qué cambió:** `timezone: 'Z'` en `src/app.module.ts` y `src/database/data-source.ts`. No hizo falta migrar datos, porque esas fechas las escribe MySQL en UTC.
+
+### 9.8 Recuperación de contraseña
+
+**Qué faltaba:** el link "¿Olvidaste tu contraseña?" solo mostraba un texto.
+
+**Qué cambió:**
+
+| Archivo | Qué hace |
+|---|---|
+| `src/auth/entities/password-reset-token.entity.ts` + migración `PasswordResetTokens` | Tabla de pedidos con el hash del token (nunca el token), vencimiento y fecha de uso. |
+| `src/auth/password-reset.service.ts` | Token de 256 bits que vence en 60 minutos y sirve una vez. Un link nuevo anula los anteriores. Máximo 3 pedidos por cuenta y por hora. |
+| `src/auth/auth.controller.ts` | `POST /auth/forgot-password` y `POST /auth/reset-password`. |
+| `src/mail/*` | `MailService` con la interfaz `MailTransport`. El transporte de desarrollo escribe el mail en el log (destinatario enmascarado) y **en producción se niega a funcionar**, para no dejar links en los logs. Para conectar un proveedor real, se implementa `MailTransport` y se registra en `mail.module.ts`. |
+| Front: `/olvide-mi-contrasena`, `/restablecer-contrasena?token=…` | Formularios con validación en línea; el link del AuthModal apunta acá. |
+
+**No revela cuentas:** `forgot-password` responde igual exista o no el email, y el trabajo corre en segundo plano, así que tampoco lo revela el tiempo de respuesta.
+**Un solo uso, también con pedidos simultáneos:** `UPDATE … WHERE used_at IS NULL` deja ganar a uno solo. Usar el link actualiza `password_changed_at`, lo que además cierra las sesiones abiertas.
+
+**Tests:** en `test/account.e2e-spec.ts` (misma respuesta, solo hash, un uso, vencido, inventado, contraseña débil, link nuevo anula, límite por hora).
+
+```bash
+curl -s -X POST localhost:3000/auth/forgot-password -H "Content-Type: application/json" -d '{"email":"a@b.test"}'
+# El link aparece en el log de la API.
+curl -i -X POST localhost:3000/auth/reset-password -H "Content-Type: application/json" -d '{"token":"…","newPassword":"NuevaClave123"}'
+```

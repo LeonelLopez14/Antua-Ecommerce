@@ -6,10 +6,14 @@ import { DataSource } from 'typeorm';
 import { AppModule } from 'src/app.module';
 import { configureApp } from 'src/app.setup';
 import { Coupon } from 'src/coupons/entities/coupon.entity';
+import { MAIL_TRANSPORT, MailMessage } from 'src/mail/mail.types';
 import { Product } from 'src/products/entities/product.entity';
 import { ProductVariant } from 'src/products/entities/product-variant.entity';
 
 export type TestApp = INestApplication<App>;
+
+/** Mails capturados en los e2e, en lugar de escribirlos en el log. */
+export const sentMails: MailMessage[] = [];
 
 export async function createTestApp(): Promise<{
   app: TestApp;
@@ -17,7 +21,15 @@ export async function createTestApp(): Promise<{
 }> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  })
+    .overrideProvider(MAIL_TRANSPORT)
+    .useValue({
+      send: (message: MailMessage) => {
+        sentMails.push(message);
+        return Promise.resolve();
+      },
+    })
+    .compile();
   const app: TestApp = moduleRef.createNestApplication();
   configureApp(app);
   await app.init();
