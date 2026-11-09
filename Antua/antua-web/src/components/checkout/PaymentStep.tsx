@@ -1,15 +1,36 @@
-import { Info } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { Info, ShieldCheck } from 'lucide-react'
 import { ButtonLink } from '../ui/ButtonLink'
 
+interface PaymentStepProps {
+  /** Con pagos activos, el backend devuelve la URL de Mercado Pago. Si no, se coordina el pago. */
+  enabled: boolean
+  /** Repaso y botón de pagar (solo con pagos activos). */
+  children: ReactNode
+}
+
 /**
- * Paso 3. antua-api todavía no tiene módulo de pagos (PaymentsController y PaymentsService
- * están vacíos), así que este paso no pide tarjeta ni simula un cobro.
- *
- * TODO(payments): cuando exista POST /orders/:id/payment (ver Documentation/Antojarte_API_NestJS.pdf §10),
- * este es el único lugar a conectar: elegir el método acá y, en la confirmación, llamar a la API
- * de pagos después de POST /orders. Hasta entonces el pedido queda con payment_status "pending".
+ * Paso 3. Con Mercado Pago Checkout Pro se paga en su página: acá no hay ni puede haber
+ * campos de tarjeta. Sin pagos activos, el pedido se registra y se coordina el pago.
  */
-export function PaymentStep() {
+export function PaymentStep({ enabled, children }: PaymentStepProps) {
+  if (enabled) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div role="note" className="flex items-start gap-4 rounded-xl bg-bg p-4 dark:bg-dark-bg">
+          <ShieldCheck aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-accent-main dark:text-dark-accent-main" />
+          <div>
+            <p className="font-bold">Pagás en Mercado Pago</p>
+            <p className="mt-1 text-text-main/85 dark:text-dark-text-secondary">
+              Te llevamos a su página para pagar. Los datos de tu tarjeta nunca pasan por Antua.
+            </p>
+          </div>
+        </div>
+        {children}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <div role="note" className="flex items-start gap-4 rounded-xl bg-bg p-4 dark:bg-dark-bg">

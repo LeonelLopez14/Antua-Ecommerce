@@ -1,6 +1,7 @@
 import { CircleCheck, UserPlus } from 'lucide-react'
 import type { Order } from '../../types/order'
 import { useAuthModalStore } from '../../stores/authModalStore'
+import { RetryPaymentButton } from './RetryPaymentButton'
 import { Button } from '../ui/Button'
 import { ButtonLink } from '../ui/ButtonLink'
 
@@ -10,10 +11,12 @@ interface OrderPlacedProps {
   isGuest: boolean
   /** Resultado de vincular el pedido a la cuenta recién creada. */
   claimNotice: string
+  /** Pagos activos pero no se pudo abrir el checkout: se ofrece reintentar. */
+  paymentRetry: { message: string; accessToken: string | null } | null
 }
 
 /** Paso 4 (pedido creado): número, dirección y próximos pasos. El resumen sigue a la derecha. */
-export function OrderPlaced({ order, isGuest, claimNotice }: OrderPlacedProps) {
+export function OrderPlaced({ order, isGuest, claimNotice, paymentRetry }: OrderPlacedProps) {
   const openAuth = useAuthModalStore((s) => s.open)
   const email = order.guestEmail
 
@@ -33,6 +36,14 @@ export function OrderPlaced({ order, isGuest, claimNotice }: OrderPlacedProps) {
         </div>
       </div>
 
+      {paymentRetry && (
+        <div role="alert" className="rounded-xl border-2 border-accent-main bg-bg p-4 dark:border-dark-accent-main dark:bg-dark-bg">
+          <p className="font-bold">Tu pedido está registrado, pero falta el pago</p>
+          <p className="mb-3">{paymentRetry.message}</p>
+          <RetryPaymentButton orderId={order.id} accessToken={paymentRetry.accessToken} />
+        </div>
+      )}
+
       <section aria-labelledby="entrega-title" className="rounded-xl bg-bg p-4 dark:bg-dark-bg">
         <h3 id="entrega-title" className="font-bold">
           Lo enviamos a
@@ -50,8 +61,13 @@ export function OrderPlaced({ order, isGuest, claimNotice }: OrderPlacedProps) {
         </h3>
         <ol className="mt-3 flex list-decimal flex-col gap-2 pl-5 marker:font-bold">
           <li>
-            Te contactamos {email ? <>a <span translate="no">{email}</span></> : 'por email'} para coordinar el pago: el pago online
-            llega pronto.
+            {paymentRetry || order.paymentStatus === 'paid' ? (
+              <>Te avisamos {email ? <>a <span translate="no">{email}</span></> : 'por email'} cuando confirmemos el pago.</>
+            ) : (
+              <>
+                Te contactamos {email ? <>a <span translate="no">{email}</span></> : 'por email'} para coordinar el pago.
+              </>
+            )}
           </li>
           <li>Horneamos tus galletas en la próxima tanda.</li>
           <li>Coordinamos con vos el día de entrega.</li>

@@ -16,6 +16,7 @@ const Orders = lazy(() => import('./pages/account/Orders'))
 const OrderDetail = lazy(() => import('./pages/account/OrderDetail'))
 const Addresses = lazy(() => import('./pages/account/Addresses'))
 const Profile = lazy(() => import('./pages/account/Profile'))
+const PaymentResult = lazy(() => import('./pages/PaymentResult'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const CategoryRedirect = lazy(() => import('./pages/CategoryRedirect'))
@@ -68,7 +69,12 @@ const router = createBrowserRouter([
       },
       {
         element: <CheckoutLayout />,
-        children: [{ path: '/checkout', element: <Checkout /> }],
+        children: [
+          { path: '/checkout', element: <Checkout /> },
+          { path: '/pago/exitoso', element: <PaymentResult kind="exitoso" /> },
+          { path: '/pago/pendiente', element: <PaymentResult kind="pendiente" /> },
+          { path: '/pago/fallido', element: <PaymentResult kind="fallido" /> },
+        ],
       },
     ],
   },

@@ -78,6 +78,18 @@ const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'neutral' | 'prog
   canceled: { label: 'Cancelado', tone: 'muted' },
 }
 
+/** Texto del estado de pago (orders.payment_status). Un estado nuevo se muestra tal cual. */
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  pending: 'Pago pendiente',
+  paid: 'Pagado',
+  failed: 'Pago rechazado',
+  canceled: 'Pago vencido',
+  refunded: 'Pago devuelto',
+  paid_after_cancel: 'Pago en revisión',
+}
+
+export const paymentStatusLabel = (status: string): string => PAYMENT_STATUS_LABEL[status] ?? status
+
 const isOrderStatus = (status: string): status is OrderStatus => Object.hasOwn(ORDER_STATUS, status)
 
 /** Estado conocido → su badge; estado nuevo del backend → se muestra tal cual, en tono neutro. */

@@ -6,6 +6,8 @@ import { useAuthStore } from '../stores/authStore'
 import { useCartStore } from '../stores/cartStore'
 import { fetchAddresses } from '../api/addresses'
 import { claimGuestOrder, createOrder, fetchGuestOrder, fetchOrder } from '../api/orders'
+import { fetchPaymentsConfig, startPayment } from '../api/payments'
+import { getApiErrorMessage } from '../api/client'
 import {
   CHECKOUT_STEPS,
   EMPTY_CHECKOUT_FORM,
@@ -136,12 +138,17 @@ export default function Checkout() {
     if (!inPlacedFlow && cartEmpty) navigate('/tienda', { replace: true, state: { notice: EMPTY_CART_NOTICE } })
   }, [inPlacedFlow, cartEmpty, navigate])
 
+  // Al redirigir a Mercado Pago no hay que preguntar si se quiere salir.
+  const leavingToPaymentRef = useRef(false)
+
   // ---- Aviso antes de salir con datos sin guardar ----
   const guardLeave = dirty && !inPlacedFlow && !cartEmpty
   const blocker = useBlocker(({ currentLocation, nextLocation }) => guardLeave && currentLocation.pathname !== nextLocation.pathname)
   useEffect(() => {
     if (!guardLeave) return
-    const onBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault()
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!leavingToPaymentRef.current) event.preventDefault()
+    }
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [guardLeave])
@@ -150,6 +157,9 @@ export default function Checkout() {
   const placingRef = useRef(false)
   const [placing, setPlacing] = useState(false)
   const [orderError, setOrderError] = useState<OrderError | null>(null)
+  const [paymentRetry, setPaymentRetry] = useState<{ message: string; accessToken: string | null } | null>(null)
+  const paymentsConfig = useResource('pagos-config', fetchPaymentsConfig)
+  const paymentsEnabled = paymentsConfig.state.status === 'ready' && paymentsConfig.state.data.enabled
 
   const place = async () => {
     // Doble clic: la segunda llamada se ignora mientras la primera está en curso.
@@ -157,6 +167,7 @@ export default function Checkout() {
     placingRef.current = true
     setPlacing(true)
     setOrderError(null)
+    let redirecting = false
     try {
       const { order, accessToken: token } = await createOrder({
         guest_email: isGuest ? form.email.trim() : undefined,
@@ -168,6 +179,23 @@ export default function Checkout() {
       })
       writePlacedOrder({ id: order.id, accessToken: token })
       setAccessToken(token)
+
+      if (paymentsEnabled) {
+        try {
+          // El servidor define el monto: acá no se manda ninguno.
+          const redirectUrl = await startPayment(order.id, token)
+          redirecting = true
+          leavingToPaymentRef.current = true
+          window.location.assign(redirectUrl)
+          return
+        } catch (paymentError) {
+          // El pedido ya existe: se muestra la confirmación con la opción de reintentar.
+          setPaymentRetry({
+            message: getApiErrorMessage(paymentError, 'No pudimos conectar con el medio de pago. Probá de nuevo en un rato.'),
+            accessToken: token,
+          })
+        }
+      }
       setPlaced(order)
       // El backend vació el carrito: se refleja en la Navbar.
       void loadCart()
@@ -177,8 +205,11 @@ export default function Checkout() {
       // Stock o cupón: el carrito cambió en el backend, se trae de nuevo para que el resumen sea real.
       if (translated.reviewCart) void loadCart()
     } finally {
-      placingRef.current = false
-      setPlacing(false)
+      // Si se está yendo a Mercado Pago, el botón sigue bloqueado hasta que cambie la página.
+      if (!redirecting) {
+        placingRef.current = false
+        setPlacing(false)
+      }
     }
   }
 
@@ -275,6 +306,18 @@ export default function Checkout() {
   const stepLabel = CHECKOUT_STEPS[step - 1] ?? ''
   const email = isGuest ? form.email.trim() || null : (user?.email ?? null)
 
+  const confirmStep = (payOnline: boolean) => (
+    <ConfirmStep
+      form={form}
+      email={email}
+      shipping={summary?.shipping ?? null}
+      placing={placing}
+      error={orderError}
+      onPlace={() => void place()}
+      payOnline={payOnline}
+    />
+  )
+
   return (
     <CheckoutShell>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
@@ -300,7 +343,7 @@ export default function Checkout() {
             </h2>
 
             {placedOrder ? (
-              <OrderPlaced order={placedOrder} isGuest={placedOrder.guestEmail !== null} claimNotice={claimNotice} />
+              <OrderPlaced order={placedOrder} isGuest={placedOrder.guestEmail !== null} claimNotice={claimNotice} paymentRetry={paymentRetry} />
             ) : step === 1 ? (
               <AddressStep
                 form={form}
@@ -314,16 +357,9 @@ export default function Checkout() {
             ) : step === 2 ? (
               <ShippingStep shipping={summary?.shipping ?? null} etaDays={summary?.shippingEtaDays ?? null} />
             ) : step === 3 ? (
-              <PaymentStep />
+              <PaymentStep enabled={paymentsEnabled}>{confirmStep(true)}</PaymentStep>
             ) : (
-              <ConfirmStep
-                form={form}
-                email={email}
-                shipping={summary?.shipping ?? null}
-                placing={placing}
-                error={orderError}
-                onPlace={() => void place()}
-              />
+              confirmStep(false)
             )}
           </section>
         </div>

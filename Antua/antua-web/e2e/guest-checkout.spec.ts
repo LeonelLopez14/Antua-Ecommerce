@@ -42,9 +42,23 @@ test('un invitado compra con cupón y ve la confirmación', async ({ page }) => 
 
   await expect(page).toHaveURL(/paso=2/)
   await page.getByRole('link', { name: 'Continuar al pago' }).click()
+
+  // El camino depende de si la API tiene pagos activos (por ejemplo, PAYMENTS_SIMULATED=true).
+  const payments = await page.request.get('/api/payments/config')
+  const { enabled } = (await payments.json()) as { enabled: boolean }
+
+  if (enabled) {
+    await expect(page.getByText('Pagás en Mercado Pago')).toBeVisible()
+    await page.getByRole('button', { name: 'Pagar con Mercado Pago' }).click()
+    // Retorno del proveedor simulado: el estado lo informa el servidor, no la URL.
+    await expect(page).toHaveURL(/\/pago\/pendiente/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Estamos esperando la confirmación' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Crear cuenta y guardar el pedido' })).toBeVisible()
+    return
+  }
+
   await expect(page.getByText('El pago online llega pronto')).toBeVisible()
   await page.getByRole('link', { name: 'Revisar y confirmar' }).click()
-
   await page.getByRole('button', { name: 'Confirmar pedido' }).click()
 
   // Confirmación con número de pedido y el cupón aplicado en el resumen

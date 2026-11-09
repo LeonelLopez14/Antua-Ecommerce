@@ -3,6 +3,9 @@ import { Link, useParams } from 'react-router-dom'
 import { ChevronLeft, Star } from 'lucide-react'
 import { fetchOrder } from '../../api/orders'
 import { fetchProducts } from '../../api/products'
+import { fetchPaymentState } from '../../api/payments'
+import { paymentStatusLabel } from '../../lib/orderMessages'
+import { RetryPaymentButton } from '../../components/checkout/RetryPaymentButton'
 import { useResource } from '../../hooks/useResource'
 import { usePageMeta } from '../../hooks/usePageMeta'
 import { formatDate, variantLabel } from '../../lib/format'
@@ -25,6 +28,7 @@ export default function OrderDetail() {
   const { state, retry } = useResource(validId ? `pedido-${orderId}` : null, (signal) => fetchOrder(orderId, signal))
   const order = state.status === 'ready' ? state.data : null
   const delivered = order?.status === 'delivered'
+  const payment = useResource(order ? `pago-pedido-${order.id}` : null, (signal) => fetchPaymentState(orderId, null, undefined, signal))
 
   // Los ítems del pedido no traen el producto (solo la variante): el slug se busca en el catálogo.
   const catalog = useResource(delivered ? 'catalogo' : null, fetchProducts)
@@ -85,6 +89,9 @@ export default function OrderDetail() {
               Pedido #{order.id}
             </h2>
             <OrderStatusBadge status={order.status} />
+            <span className="inline-flex items-center rounded-full bg-accent-secondary px-3 py-1 text-xs font-bold text-text-main dark:bg-dark-bg dark:text-dark-accent-main">
+              {paymentStatusLabel(order.paymentStatus)}
+            </span>
             <p className="w-full text-text-main/80 dark:text-dark-text-secondary">
               Hecho el {formatDate(order.createdAt) ?? 'fecha no disponible'}
             </p>
@@ -99,6 +106,11 @@ export default function OrderDetail() {
                 <SummaryDetails lines={orderSummaryLines(order)} couponCode={order.couponCode} totals={orderSummaryTotals(order)} />
               </div>
               <p className="mt-4 text-sm text-text-main/75 dark:text-dark-text-secondary">Precios al momento de la compra.</p>
+              {payment.state.status === 'ready' && payment.state.data.canPay && (
+                <div className="mt-6">
+                  <RetryPaymentButton orderId={order.id} accessToken={null} />
+                </div>
+              )}
             </section>
 
             <div className="flex flex-col gap-6">

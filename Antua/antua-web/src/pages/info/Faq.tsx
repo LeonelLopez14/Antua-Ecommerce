@@ -13,7 +13,7 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: '¿Cómo pago?',
-    a: 'El pago online llega pronto. Por ahora registrás el pedido en la web y te contactamos para coordinar el pago.',
+    a: 'Cuando el pago online está disponible, pagás en la página de Mercado Pago: tus datos de tarjeta no pasan por Antua. Si no, registrás el pedido y te contactamos para coordinar el pago.',
   },
   {
     q: '¿Las galletas tienen alérgenos?',

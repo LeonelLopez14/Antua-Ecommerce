@@ -503,3 +503,42 @@ curl -s -X POST localhost:3000/newsletter/subscribe -H "Content-Type: applicatio
 curl -i -X POST localhost:3000/tags -H "Content-Type: application/json" -d '{"name":"x","slug":"x"}'   # 403
 curl -I localhost:3000/products | grep -i x-content-type-options
 ```
+
+## Fase 10: Pagos con Mercado Pago (Checkout Pro)
+
+El diseño, lo verificado y cómo probar de punta a punta están en [`payments-design.md`](./payments-design.md). **No se abrió ningún túnel ni se usaron credenciales.**
+
+**Qué faltaba:** `PaymentsController` y `PaymentsService` estaban vacíos.
+
+**Cambios de backend, en simple:**
+
+| Archivo | Qué hace |
+|---|---|
+| `src/payments/payment-state.ts` | Una función pura decide cómo cambia el estado de pago. Al ser pura, cada transición se prueba sin base de datos. |
+| `src/payments/payment-provider.ts` | Interfaz del proveedor: crear checkout y consultar un pago. Permite cambiar Mercado Pago por uno simulado. |
+| `src/payments/mercadopago.provider.ts` | Usa el SDK oficial. Manda una sola línea con el total del pedido y solo acepta la URL de pruebas (`sandbox_init_point`). |
+| `src/payments/webhook-signature.ts` | Verifica la firma con el validador del SDK oficial, en lugar de una copia propia. |
+| `src/payments/payments.service.ts` | `startPayment` toma el monto del pedido, nunca del cliente. `syncPayment` consulta el pago real, bloquea la fila del pedido, valida monto y moneda, y es idempotente. |
+| `src/payments/payment-expiration.service.ts` | Cada 10 minutos cancela los pedidos vencidos y devuelve stock y cupón, en una transacción. |
+| `src/payments/payments.controller.ts` | `GET /payments/config`, `POST /orders/:id/payment`, `POST /orders/:id/payment/retry`, `GET /orders/:id/payment` y `POST /payments/webhook`. |
+| `src/payments/entities/payment.entity.ts` + migración `PaymentsModule` | Una fila por pago (id del proveedor único, estado, monto, moneda). Un pedido admite varios intentos. No se borró ninguna columna. |
+| `src/orders/*` | `payment_expires_at`: hasta cuándo se reserva el stock. |
+| `src/config/env.validation.ts` | Sin credenciales: deshabilitado con aviso. Credenciales incompletas o URLs no públicas: no arranca. En producción: no arranca. |
+| `scripts/simulate-mp-webhook.ts` | `pnpm payments:simulate <pedido> <estado>`: manda un evento firmado a una API en modo simulado. |
+
+**Front:**
+- `PaymentStep` real: crea el pedido, pide el checkout y redirige; no tiene ni tendrá campos de tarjeta.
+- Si el checkout no se puede abrir, el pedido queda registrado y se ofrece reintentar.
+- `/pago/exitoso`, `/pago/pendiente` y `/pago/fallido`: **el mensaje sale del estado del servidor, nunca de la URL.**
+- Estado de pago y "Reintentar el pago" en el detalle del pedido.
+- El invitado puede crear la cuenta y vincular el pedido también desde la página de retorno.
+
+**Tests:** `test/payments.e2e-spec.ts` (14: monto ignorado, ownership, firma, idempotencia también simultánea, discrepancia de monto, rechazo y reintento, retorno que no marca nada, vencimiento con stock y cupón, pago tardío), `payment-state.spec.ts`, `webhook-signature.spec.ts` y `env.validation.spec.ts`.
+
+```bash
+# API con PAYMENTS_SIMULATED=true y MP_WEBHOOK_SECRET definido:
+curl -s localhost:3000/payments/config
+curl -s -X POST localhost:3000/orders/$ID/payment -H "X-Order-Token: $ORDER_TOKEN"
+pnpm payments:simulate $ID approved
+curl -s localhost:3000/orders/$ID/payment -H "X-Order-Token: $ORDER_TOKEN"
+```
