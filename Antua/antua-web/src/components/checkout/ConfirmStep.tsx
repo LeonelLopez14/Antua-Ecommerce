@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { AlertCircle } from 'lucide-react'
 import type { CheckoutForm } from '../../lib/checkoutForm'
 import type { OrderError } from '../../lib/orderMessages'
-import { formatPrice } from '../../lib/format'
+import { formatPrice, variantLabel } from '../../lib/format'
 import { useCartStore } from '../../stores/cartStore'
 import { Button } from '../ui/Button'
 import { ButtonLink } from '../ui/ButtonLink'
@@ -54,7 +54,17 @@ export function ConfirmStep({ form, email, shipping, placing, error, onPlace }: 
         <div role="alert" className="flex items-start gap-3 rounded-xl border-2 border-accent-main bg-bg p-4 dark:border-dark-accent-main dark:bg-dark-bg">
           <AlertCircle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-accent-main dark:text-dark-accent-main" />
           <div className="min-w-0">
-            <p className="font-bold">No pudimos confirmar tu pedido</p>
+            <p className="font-bold">{error.priceChanges ? 'Cambiaron algunos precios' : 'No pudimos confirmar tu pedido'}</p>
+            {error.priceChanges && (
+              <ul className="mt-1 flex flex-col gap-1 tabular-nums">
+                {error.priceChanges.map((change) => (
+                  <li key={`${change.productName}-${change.variantName}`} className="break-words">
+                    El precio de {change.productName} ({variantLabel(change.variantName)}) cambió de {formatPrice(change.oldPrice)} a{' '}
+                    <strong>{formatPrice(change.newPrice)}</strong>.
+                  </li>
+                ))}
+              </ul>
+            )}
             <p className="mt-1">{error.message}</p>
             {error.reviewCart && (
               <Button variant="secondary" onClick={(event) => openCart(event.currentTarget)} className="mt-3">
@@ -68,7 +78,7 @@ export function ConfirmStep({ form, email, shipping, placing, error, onPlace }: 
       <div className="flex flex-wrap items-center gap-3">
         {/* El botón sigue habilitado hasta que arranca la request; durante la request, `loading` evita el doble clic. */}
         <Button onClick={onPlace} loading={placing}>
-          {placing ? 'Confirmando…' : 'Confirmar pedido'}
+          {placing ? 'Confirmando…' : error?.priceChanges ? 'Confirmar con los precios nuevos' : 'Confirmar pedido'}
         </Button>
         <ButtonLink to="?paso=3" variant="secondary">
           Volver al pago

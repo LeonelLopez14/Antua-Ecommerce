@@ -253,8 +253,8 @@ export class InitialSchema1794000000000 implements MigrationInterface {
         `);
   }
 
-  public async down(): Promise<void> {
+  public down(): Promise<void> {
     // Revertir el esquema inicial borraría todos los datos: no se hace nunca desde una migración.
-    throw new Error('La migración inicial no se revierte.');
+    return Promise.reject(new Error('La migración inicial no se revierte.'));
   }
 }

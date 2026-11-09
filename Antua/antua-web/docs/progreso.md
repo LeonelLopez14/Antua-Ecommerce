@@ -295,3 +295,44 @@ Resultado: **20 de 20 suites pasan.** Son pruebas mínimas: no cubren la lógica
    - El único `outline-none` es el del título del paso del checkout (destino del foco programático) y tiene reemplazo: el subrayado.
    - `rounded-sm` solo en links de texto, para el contorno de foco.
 5. **Documentación:** `docs/estado-frontend.md` actualizado y `CLAUDE.md` con las convenciones (estructura, rutas, montos, errores, accesibilidad y tests).
+
+## 08/11/2026: Fases 9 a 11 (`docs/prompt-fases-9-11.md`)
+
+### Paso 0: estado base
+
+- **Rama:** `feat/fases-9-11`, creada desde `feat/fases-5-8` (`1575284c`). Push por SSH funcionando.
+- **Línea base:** front typecheck, lint, build y 23 unit tests OK; back build y 20 de 20 suites OK.
+- **Servicios:** MySQL en `127.0.0.1:3307`, API en `:3000`, front en `:5173`.
+- **Respaldo previo a tocar el esquema:** `~/respaldos/antua_db_20261108_211922.sql` (fuera del repo).
+
+### Migraciones (`5d3ca0d6`)
+
+| Archivo | Qué faltaba | Qué cambió y por qué |
+|---|---|---|
+| `src/app.module.ts` | `synchronize: true` adaptaba la base sola; si una entidad perdía una columna, la borraba con sus datos. | `synchronize: false` y `migrationsRun: true`: el esquema cambia solo con migraciones versionadas, que se aplican al arrancar. |
+| `src/app.module.ts` | `logging: true` escribía cada query con sus parámetros (emails, direcciones). | Solo errores, avisos y migraciones. |
+| `src/database/data-source.ts` | El CLI de TypeORM no tenía configuración. | Da acceso a `pnpm migration:run`, `:revert` y `:show`. |
+| `src/database/migrations/1794000000000-InitialSchema.ts` | No había historial del esquema. | Esquema completo. En una base que ya tiene las tablas no hace nada (solo queda registrada) y no se puede revertir. |
+| `test/helpers.ts`, `test/setup-env.ts` | Los e2e usaban la base real. | Corren contra `antua_test`, con un candado que impide vaciar cualquier otra base. |
+
+Antes de adoptar migraciones se verificó con `schema:log` que la base coincidía con las entidades.
+
+### 9.1 Precio cobrado
+
+**Qué fallaba** (`src/orders/orders.service.ts`): `POST /orders` cobraba `variant.price` (precio de hoy) aunque el carrito hubiera mostrado otro.
+
+**Qué cambió:**
+- Dentro de la transacción se compara `cart_item.unit_price_snapshot` contra el precio actual, en centavos para evitar errores de decimales.
+- Si alguno cambió se lanza `PriceChangedError`. Lanzar un error dentro de `dataSource.transaction` deshace todo: no se crea el pedido ni se descuenta stock.
+- *Después* de la transacción, `CartService.updatePriceSnapshots` guarda los precios nuevos y se responde 409 con `code: 'PRICE_CHANGED'` y `changes`. Tiene que ser después: dentro se revertiría junto con lo demás.
+- También se rechaza un producto o variante que dejó de estar a la venta entre agregar y confirmar.
+- **Front:** `ConfirmStep` muestra "El precio de X cambió de $A a $B", el resumen se recarga y el botón pasa a "Confirmar con los precios nuevos".
+
+**Tests:** `test/orders.e2e-spec.ts` (precio igual, 409 sin pedido ni descuento de stock, confirmación con el precio nuevo, producto inactivo).
+
+```bash
+# Con $T = token de invitado y un ítem en el carrito, cambiar el precio en la base y:
+curl -i -X POST localhost:3000/orders -H "Content-Type: application/json" -H "X-Guest-Token: $T" \
+  -d '{"guest_email":"a@b.test","shipping_full_name":"Ana","shipping_phone":"1155554444","shipping_street":"Calle 1","shipping_city":"Montevideo","shipping_postal_code":"11200"}'
+# → 409 {"code":"PRICE_CHANGED","changes":[{"productName":"…","oldPrice":1000,"newPrice":1200,…}]}
+```

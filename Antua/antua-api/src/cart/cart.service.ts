@@ -430,6 +430,17 @@ export class CartService {
     };
   }
 
+  /** Actualiza el precio guardado de los ítems cuyo precio cambió (ver OrdersService). */
+  async updatePriceSnapshots(
+    changes: { cartItemId: number; newPrice: number }[],
+  ) {
+    for (const { cartItemId, newPrice } of changes) {
+      await this.cartItemRepository.update(cartItemId, {
+        unit_price_snapshot: newPrice,
+      });
+    }
+  }
+
   async getCartWithItems(cartId: number) {
     return this.findCartWithItems(cartId);
   }

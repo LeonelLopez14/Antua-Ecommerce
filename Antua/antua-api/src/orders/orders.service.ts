@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -15,6 +16,25 @@ import { CartItem } from 'src/cart/entities/cart-item.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Coupon } from 'src/coupons/entities/coupon.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
+
+/** Un ítem cuyo precio actual ya no es el que mostró el carrito. */
+export interface PriceChange {
+  cartItemId: number;
+  variantId: number;
+  productName: string;
+  variantName: string;
+  oldPrice: number;
+  newPrice: number;
+}
+
+/** Se lanza dentro de la transacción para revertirla: el pedido no se crea ni se descuenta stock. */
+class PriceChangedError extends Error {
+  constructor(readonly changes: PriceChange[]) {
+    super('Cambiaron los precios del carrito');
+  }
+}
+
+const toCents = (amount: number): number => Math.round(amount * 100);
 
 @Injectable()
 export class OrdersService {
@@ -46,6 +66,28 @@ export class OrdersService {
       );
     }
     //transaccion
+    try {
+      return await this.placeOrder(fullCart, userId, dto);
+    } catch (error) {
+      if (!(error instanceof PriceChangedError)) throw error;
+      // La transacción ya se revirtió. Recién ahora se guardan los precios nuevos,
+      // para que el carrito y la próxima confirmación usen los mismos montos.
+      await this.cartService.updatePriceSnapshots(error.changes);
+      throw new ConflictException({
+        statusCode: 409,
+        code: 'PRICE_CHANGED',
+        message:
+          'Cambió el precio de algunos productos. Revisá el total y confirmá de nuevo.',
+        changes: error.changes,
+      });
+    }
+  }
+
+  private placeOrder(
+    fullCart: Cart,
+    userId: number | undefined,
+    dto: CreateOrderDto,
+  ) {
     return this.dataSource.transaction(async (manager) => {
       const variantRepo = manager.getRepository(ProductVariant);
       const orderRepo = manager.getRepository(Order);
@@ -60,6 +102,7 @@ export class OrdersService {
         quantity: number;
         unitPrice: number;
       }[] = [];
+      const priceChanges: PriceChange[] = [];
       //crear order
       for (const cartItem of fullCart.items) {
         const variant = await variantRepo.findOne({
@@ -83,11 +126,29 @@ export class OrdersService {
             `No hay suficiente stock para la variante ${variant.name}.`,
           );
         }
+        if (!variant.is_active || !variant.product.is_active) {
+          throw new BadRequestException(
+            `La variante ${variant.name} ya no esta a la venta.`,
+          );
+        }
+
+        // El precio que vale es el que vio el cliente: si cambió, no se cobra sin avisarle.
+        const unitPrice = Number(cartItem.unit_price_snapshot);
+        const currentPrice = Number(variant.price);
+        if (toCents(unitPrice) !== toCents(currentPrice)) {
+          priceChanges.push({
+            cartItemId: cartItem.id,
+            variantId: variant.id,
+            productName: variant.product.name,
+            variantName: variant.name,
+            oldPrice: unitPrice,
+            newPrice: currentPrice,
+          });
+        }
+
         variant.stock -= cartItem.quantity;
 
         await variantRepo.save(variant);
-
-        const unitPrice = Number(variant.price);
 
         subtotal += unitPrice * cartItem.quantity;
 
@@ -97,6 +158,8 @@ export class OrdersService {
           unitPrice,
         });
       }
+      if (priceChanges.length > 0) throw new PriceChangedError(priceChanges);
+
       let discount = 0;
 
       if (fullCart.coupon) {
