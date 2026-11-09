@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { join } from 'node:path';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -30,8 +31,13 @@ import { validateEnv } from './config/env.validation';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_DATABASE'),
         autoLoadEntities: true, // toma automáticamente las entidades registradas via forFeature()
-        synchronize: true, // SOLO en desarrollo, nunca en producción
-        logging: true, // para que veas los queries SQL en consola (útil para depurar esto mismo)
+        // El esquema se gestiona con migraciones (src/database/migrations), no con synchronize:
+        // synchronize puede borrar columnas sin avisar si una entidad cambia.
+        synchronize: false,
+        migrations: [join(__dirname, 'database', 'migrations', '*.{ts,js}')],
+        migrationsRun: true, // aplica las pendientes al arrancar
+        // Sin `true`: registrar cada query dejaría datos personales (emails, direcciones) en el log.
+        logging: ['error', 'warn', 'migration'],
       }),
     }),
 
