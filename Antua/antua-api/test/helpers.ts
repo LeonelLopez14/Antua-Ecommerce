@@ -111,3 +111,25 @@ export const SHIPPING_DATA = {
   shipping_city: 'Montevideo',
   shipping_postal_code: '11200',
 };
+
+/** Compra el producto con una cuenta y marca el pedido como entregado. */
+export async function buyAndDeliver(
+  app: TestApp,
+  db: DataSource,
+  token: string,
+  variantId: number,
+) {
+  await request(app.getHttpServer())
+    .post('/cart/items')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ variantId, quantity: 1 })
+    .expect(201);
+  const res = await request(app.getHttpServer())
+    .post('/orders')
+    .set('Authorization', `Bearer ${token}`)
+    .send(SHIPPING_DATA)
+    .expect(201);
+  const { id } = (res.body as { order: { id: number } }).order;
+  await db.query("UPDATE orders SET status = 'delivered' WHERE id = ?", [id]);
+  return id;
+}

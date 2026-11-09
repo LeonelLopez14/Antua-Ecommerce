@@ -398,3 +398,20 @@ curl -s localhost:3000/cart -H "X-Guest-Token: $T" | jq '{warnings, eta: .summar
 curl -s "localhost:3000/products?tags=veganas&tags=packs&sort=price_desc&page=1&limit=9" | jq '{total, totalPages, facets}'
 curl -i "localhost:3000/products?limit=1000"   # 400
 ```
+
+### 9.6 Reseñas: editar y borrar la propia
+
+**Qué faltaba:** no se podían editar ni borrar. Además, `GET /products/:slug/reviews` devolvía el usuario completo, con email y teléfono.
+
+**Qué cambió** (`src/reviews/`):
+- `PATCH` y `DELETE /products/:slug/reviews/:id` con JWT. `findOwnReview` busca por id, producto **y** autor: para cualquier otra persona la reseña "no existe" (404).
+- Las reglas de crear no cambian: comprado y entregado (403), y una por usuario y producto (409).
+- `toPublicReview`: del autor solo se publican `id` y `full_name`.
+- **Front:** en la reseña propia aparecen "Editar" y "Borrar" (con confirmación). `ReviewsSection` coordina formulario, listado y diálogo; al guardar se recargan el listado y el promedio.
+
+**Tests:** `test/reviews.e2e-spec.ts` (sin email en el listado, reglas de creación, autora edita y borra, otra persona recibe 404, sin sesión 401).
+
+```bash
+curl -i -X PATCH  localhost:3000/products/$SLUG/reviews/$ID -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" -d '{"rating":4,"comment":"Muy rica"}'
+curl -i -X DELETE localhost:3000/products/$SLUG/reviews/$ID -H "Authorization: Bearer $JWT"   # 204; con el JWT de otra persona, 404
+```

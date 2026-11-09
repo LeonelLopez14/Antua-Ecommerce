@@ -11,6 +11,7 @@ import { Product } from 'src/products/entities/product.entity';
 import { OrderItem } from 'src/orders/entities/order-item.entity';
 import { OrderStatus } from 'src/orders/entities/order.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { UpdateReviewDto } from './dto/update-review.dto';
 
 @Injectable()
 export class ReviewsService {
@@ -98,7 +99,7 @@ export class ReviewsService {
       throw new NotFoundException('Producto no encontrado');
     }
 
-    return this.reviewRepository.find({
+    const reviews = await this.reviewRepository.find({
       where: {
         product: {
           id: product.id,
@@ -107,6 +108,56 @@ export class ReviewsService {
       relations: {
         user: true,
       },
+      order: {
+        created_at: 'DESC',
+      },
     });
+
+    return reviews.map((review) => this.toPublicReview(review));
+  }
+
+  /** Solo el autor: para cualquier otro, la reseña "no existe". */
+  async update(
+    slug: string,
+    reviewId: number,
+    userId: number,
+    dto: UpdateReviewDto,
+  ) {
+    const review = await this.findOwnReview(slug, reviewId, userId);
+    Object.assign(review, dto);
+    return this.toPublicReview(await this.reviewRepository.save(review));
+  }
+
+  async remove(slug: string, reviewId: number, userId: number) {
+    const review = await this.findOwnReview(slug, reviewId, userId);
+    await this.reviewRepository.remove(review);
+  }
+
+  private async findOwnReview(slug: string, reviewId: number, userId: number) {
+    const review = await this.reviewRepository.findOne({
+      where: {
+        id: reviewId,
+        product: { slug },
+        user: { id: userId },
+      },
+      relations: { user: true },
+    });
+
+    if (!review) {
+      throw new NotFoundException('Resenha no encontrada.');
+    }
+
+    return review;
+  }
+
+  /** Lo único público del autor es su nombre: nunca el email ni el teléfono. */
+  private toPublicReview(review: Review) {
+    return {
+      id: review.id,
+      rating: review.rating,
+      comment: review.comment,
+      created_at: review.created_at,
+      user: { id: review.user.id, full_name: review.user.full_name },
+    };
   }
 }

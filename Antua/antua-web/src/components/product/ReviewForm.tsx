@@ -1,6 +1,7 @@
-import { useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { Star } from 'lucide-react'
-import { postReview } from '../../api/products'
+import { postReview, updateReview } from '../../api/products'
+import type { Review } from '../../types/product'
 import { RATING_LABELS, REVIEW_COMMENT_MAX, reviewErrorMessage } from '../../lib/reviewMessages'
 import { useAuthStore } from '../../stores/authStore'
 import { useAuthModalStore } from '../../stores/authModalStore'
@@ -8,28 +9,38 @@ import { Button } from '../ui/Button'
 
 interface ReviewFormProps {
   slug: string
-  /** El usuario ya tiene una reseña en el listado: no se muestra el formulario. */
+  /** El usuario ya tiene una reseña en el listado: no se muestra el formulario salvo que la esté editando. */
   alreadyReviewed: boolean
-  /** Se llama al publicar, para recargar el listado y el promedio. */
-  onPublished: () => void
+  /** Reseña propia en edición. Con null, el formulario crea una nueva. */
+  editing: Review | null
+  /** Se llama al guardar, para recargar el listado y el promedio. */
+  onSaved: (mode: 'created' | 'updated') => void
+  onCancelEdit: () => void
 }
 
 /**
  * Formulario de reseña (solo con sesión). La calificación es un grupo de radios nativos
- * (teclado: flechas), con las estrellas como dibujo. El backend no permite editar ni borrar reseñas.
+ * (teclado: flechas), con las estrellas como dibujo. También edita la reseña propia.
  */
-export function ReviewForm({ slug, alreadyReviewed, onPublished }: ReviewFormProps) {
+export function ReviewForm({ slug, alreadyReviewed, editing, onSaved, onCancelEdit }: ReviewFormProps) {
   const loggedIn = useAuthStore((s) => s.token !== null)
   const openAuth = useAuthModalStore((s) => s.open)
   const baseId = useId()
-  const [rating, setRating] = useState(0)
+  const [rating, setRating] = useState(editing?.rating ?? 0)
   const [hovered, setHovered] = useState(0)
-  const [comment, setComment] = useState('')
+  const [comment, setComment] = useState(editing?.comment ?? '')
   const [ratingError, setRatingError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [published, setPublished] = useState(false)
   const firstStarRef = useRef<HTMLInputElement>(null)
+  const commentRef = useRef<HTMLTextAreaElement>(null)
+  const isEditing = editing !== null
+
+  // Al pasar a editar, el foco va al formulario, que está arriba del listado.
+  useEffect(() => {
+    if (isEditing) commentRef.current?.focus()
+  }, [isEditing])
 
   if (!loggedIn) {
     return (
@@ -43,7 +54,7 @@ export function ReviewForm({ slug, alreadyReviewed, onPublished }: ReviewFormPro
     )
   }
 
-  if (published || alreadyReviewed) {
+  if (published || (alreadyReviewed && !isEditing)) {
     return (
       <p role="status" className="rounded-card bg-accent-secondary p-6 font-bold text-text-main dark:bg-dark-card dark:text-dark-text-main">
         {published ? '¡Gracias! Publicamos tu reseña.' : 'Ya dejaste tu reseña de esta galleta. ¡Gracias!'}
@@ -62,9 +73,14 @@ export function ReviewForm({ slug, alreadyReviewed, onPublished }: ReviewFormPro
     setPending(true)
     setFormError(null)
     try {
-      await postReview(slug, rating, comment.trim())
-      setPublished(true)
-      onPublished()
+      if (editing) {
+        await updateReview(slug, editing.id, rating, comment.trim())
+        onSaved('updated')
+      } else {
+        await postReview(slug, rating, comment.trim())
+        setPublished(true)
+        onSaved('created')
+      }
     } catch (error) {
       setFormError(reviewErrorMessage(error))
     } finally {
@@ -78,7 +94,7 @@ export function ReviewForm({ slug, alreadyReviewed, onPublished }: ReviewFormPro
 
   return (
     <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-5 rounded-card bg-surface p-6 dark:bg-dark-surface">
-      <h3 className="font-display text-xl font-semibold">Dejá tu reseña</h3>
+      <h3 className="font-display text-xl font-semibold">{isEditing ? 'Editá tu reseña' : 'Dejá tu reseña'}</h3>
 
       <fieldset aria-describedby={ratingError ? ratingErrorId : undefined}>
         <legend className="text-sm font-bold">Tu calificación</legend>
@@ -131,6 +147,7 @@ export function ReviewForm({ slug, alreadyReviewed, onPublished }: ReviewFormPro
           Comentario (opcional)
         </label>
         <textarea
+          ref={commentRef}
           id={commentId}
           name="comment"
           autoComplete="off"
@@ -152,9 +169,16 @@ export function ReviewForm({ slug, alreadyReviewed, onPublished }: ReviewFormPro
         </p>
       )}
 
-      <Button type="submit" loading={pending} className="self-start">
-        Publicar reseña
-      </Button>
+      <div className="flex flex-wrap gap-3">
+        <Button type="submit" loading={pending}>
+          {isEditing ? 'Guardar cambios' : 'Publicar reseña'}
+        </Button>
+        {isEditing && (
+          <Button variant="secondary" onClick={onCancelEdit}>
+            Cancelar
+          </Button>
+        )}
+      </div>
     </form>
   )
 }

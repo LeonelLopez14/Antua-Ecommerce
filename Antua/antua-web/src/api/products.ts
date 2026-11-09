@@ -77,8 +77,17 @@ export async function fetchReviews(slug: string, signal?: AbortSignal): Promise<
 /**
  * POST /products/:slug/reviews (JWT) con `{ rating, comment? }` (create-review.dto.ts).
  * 403 si no hay un pedido entregado con este producto; 409 si ya lo reseñaste.
- * El backend no permite editar ni borrar reseñas.
  */
 export async function postReview(slug: string, rating: number, comment: string): Promise<void> {
   await api.post(`/products/${encodeURIComponent(slug)}/reviews`, comment ? { rating, comment } : { rating })
+}
+
+/** PATCH /products/:slug/reviews/:id (JWT): solo la reseña propia; 404 para cualquier otra. */
+export async function updateReview(slug: string, id: number, rating: number, comment: string): Promise<void> {
+  await api.patch(`/products/${encodeURIComponent(slug)}/reviews/${id}`, { rating, comment })
+}
+
+/** DELETE /products/:slug/reviews/:id (JWT): solo la reseña propia. */
+export async function deleteReview(slug: string, id: number): Promise<void> {
+  await api.delete(`/products/${encodeURIComponent(slug)}/reviews/${id}`)
 }

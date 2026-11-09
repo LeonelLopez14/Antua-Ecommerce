@@ -14,10 +14,12 @@ interface ConfirmDialogProps {
   pending?: boolean
   /** La acción segura va primero (ej.: "Seguir con mi pedido"); la de confirmar, como secundaria. */
   safeFirst?: boolean
+  /** Adónde vuelve el foco al cerrar, si el botón que lo abrió va a desaparecer. */
+  returnFocusTo?: HTMLElement | null
 }
 
 /** Confirmación de una acción (DESIGN.md §11: las acciones destructivas piden confirmación). */
-export function ConfirmDialog({ open, title, children, confirmLabel, cancelLabel, onConfirm, onCancel, pending = false, safeFirst = false }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, children, confirmLabel, cancelLabel, onConfirm, onCancel, pending = false, safeFirst = false, returnFocusTo }: ConfirmDialogProps) {
   const confirm = (
     <Button key="confirm" variant={safeFirst ? 'secondary' : 'primary'} loading={pending} onClick={onConfirm}>
       {confirmLabel}
@@ -29,7 +31,7 @@ export function ConfirmDialog({ open, title, children, confirmLabel, cancelLabel
     </Button>
   )
   return (
-    <Dialog open={open} onClose={onCancel} title={title} placement="center">
+    <Dialog open={open} onClose={onCancel} title={title} placement="center" returnFocusTo={returnFocusTo}>
       <div>{children}</div>
       <div className="mt-6 flex flex-wrap gap-3">{safeFirst ? [cancel, confirm] : [confirm, cancel]}</div>
     </Dialog>

@@ -6,9 +6,7 @@ import { usePageMeta } from '../hooks/usePageMeta'
 import { ProductGallery } from '../components/product/ProductGallery'
 import { PurchasePanel } from '../components/product/PurchasePanel'
 import { ProductInfo } from '../components/product/ProductInfo'
-import { ReviewList } from '../components/product/ReviewList'
-import { ReviewForm } from '../components/product/ReviewForm'
-import { useAuthStore } from '../stores/authStore'
+import { ReviewsSection } from '../components/product/ReviewsSection'
 import { ErrorState } from '../components/ui/ErrorState'
 import NotFound from './NotFound'
 import { skeletonBar } from '../components/ui/skeleton'
@@ -16,8 +14,6 @@ import { skeletonBar } from '../components/ui/skeleton'
 export default function ProductDetail() {
   const { slug = '' } = useParams()
   const { product, reviews, retry, reloadReviews } = useProductDetail(slug)
-  const userId = useAuthStore((s) => s.user?.id ?? null)
-  const alreadyReviewed = reviews.status === 'ready' && userId !== null && reviews.reviews.some((r) => r.authorId === userId)
 
   usePageMeta(
     product.status === 'ready' ? product.product.name : null,
@@ -87,10 +83,7 @@ export default function ProductDetail() {
 
           <div className="mt-16 flex flex-col gap-16">
             <ProductInfo product={product.product} />
-            <ReviewList
-              state={reviews}
-              form={<ReviewForm key={`${slug}-${userId ?? 'anon'}`} slug={slug} alreadyReviewed={alreadyReviewed} onPublished={reloadReviews} />}
-            />
+            <ReviewsSection slug={slug} reviews={reviews} onChanged={reloadReviews} />
           </div>
         </>
       )}

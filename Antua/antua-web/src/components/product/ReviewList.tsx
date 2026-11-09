@@ -1,12 +1,18 @@
 import type { ReactNode } from 'react'
-import { Star } from 'lucide-react'
+import { Pencil, Star, Trash2 } from 'lucide-react'
+import { Button } from '../ui/Button'
 import { formatDate, formatRating } from '../../lib/format'
 import type { ReviewsState } from '../../hooks/useProductDetail'
+import type { Review } from '../../types/product'
 
 interface ReviewListProps {
   state: ReviewsState
   /** Formulario para dejar una reseña (va entre el promedio y el listado). */
   form?: ReactNode
+  /** Usuario con sesión: en su reseña se ofrecen las acciones. */
+  ownerId?: number | null
+  onEdit?: (review: Review) => void
+  onDelete?: (review: Review) => void
 }
 
 function Stars({ value, className = 'size-4' }: { value: number; className?: string }) {
@@ -24,7 +30,7 @@ function Stars({ value, className = 'size-4' }: { value: number; className?: str
 const reseñas = (n: number): string => `${n} ${n === 1 ? 'reseña' : 'reseñas'}`
 
 /** Reseñas: promedio, formulario y listado (siempre visibles, sin tabs: DESIGN.md §4). */
-export function ReviewList({ state, form }: ReviewListProps) {
+export function ReviewList({ state, form, ownerId = null, onEdit, onDelete }: ReviewListProps) {
   // El promedio de estrellas no es un monto: se puede calcular en el cliente.
   const average =
     state.status === 'ready' && state.reviews.length > 0
@@ -33,7 +39,7 @@ export function ReviewList({ state, form }: ReviewListProps) {
 
   return (
     <section id="resenas" aria-labelledby="reviews-title" className="scroll-mt-6">
-      <h2 id="reviews-title" className="font-display text-3xl font-semibold">
+      <h2 id="reviews-title" tabIndex={-1} className="font-display text-3xl font-semibold">
         Reseñas
       </h2>
 
@@ -91,6 +97,18 @@ export function ReviewList({ state, form }: ReviewListProps) {
                       </time>
                     )}
                     {review.comment && <p className="mt-3 leading-relaxed wrap-break-word">{review.comment}</p>}
+                    {ownerId !== null && review.authorId === ownerId && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button variant="secondary" className="min-h-10 px-4 py-2 text-sm" onClick={() => onEdit?.(review)}>
+                          <Pencil aria-hidden="true" className="size-4" />
+                          Editar<span className="sr-only"> tu reseña</span>
+                        </Button>
+                        <Button variant="secondary" className="min-h-10 px-4 py-2 text-sm" onClick={() => onDelete?.(review)}>
+                          <Trash2 aria-hidden="true" className="size-4" />
+                          Borrar<span className="sr-only"> tu reseña</span>
+                        </Button>
+                      </div>
+                    )}
                   </article>
                 </li>
               )
