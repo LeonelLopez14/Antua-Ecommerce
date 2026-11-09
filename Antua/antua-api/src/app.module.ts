@@ -15,6 +15,7 @@ import { UsersModule } from './users/users.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env.validation';
+import { NewsletterModule } from './newsletter/newsletter.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { validateEnv } from './config/env.validation';
     UsersModule,
     AddressesModule,
     AuthModule,
+    NewsletterModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -464,3 +464,14 @@ curl -s -X POST localhost:3000/auth/forgot-password -H "Content-Type: applicatio
 # El link aparece en el log de la API.
 curl -i -X POST localhost:3000/auth/reset-password -H "Content-Type: application/json" -d '{"token":"…","newPassword":"NuevaClave123"}'
 ```
+
+### 9.9 Newsletter
+
+**Qué faltaba:** el formulario del footer estaba deshabilitado por falta de endpoint.
+**Qué cambió:** módulo `src/newsletter/` con la tabla `newsletter_subscribers` (email único; migración `NewsletterSubscribers`) y `POST /newsletter/subscribe`. Usa `INSERT IGNORE`: un email repetido no duplica ni da error, y la respuesta es la misma, así no se puede averiguar quién está suscripto. El front habilita el formulario con validación y aviso `aria-live`.
+
+**Tests:** `test/newsletter.e2e-spec.ts`.
+
+```bash
+curl -s -X POST localhost:3000/newsletter/subscribe -H "Content-Type: application/json" -d '{"email":"a@b.test"}'
+```

@@ -1,44 +1,78 @@
-import { useId, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
+import { api, getApiErrorMessage } from '../../api/client'
+import { EMAIL_PATTERN } from '../../lib/authMessages'
 
-/**
- * Newsletter del footer (wireframe de Home). antua-api no tiene un endpoint de suscripción,
- * así que queda deshabilitada: se ve, se entiende que llega pronto y no simula suscribir a nadie.
- *
- * TODO(newsletter): cuando exista el endpoint (ej.: POST /newsletter { email }), habilitar el input
- * y el botón, enviar el email y anunciar el resultado con aria-live.
- */
+/** Newsletter del footer (POST /newsletter/subscribe). La respuesta no revela si el email ya estaba. */
 export function NewsletterForm() {
   const inputId = useId()
   const hintId = useId()
-  const preventSubmit = (event: FormEvent<HTMLFormElement>) => event.preventDefault()
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (pending) return
+    const form = event.currentTarget
+    const value = new FormData(form).get('newsletter-email')
+    const email = typeof value === 'string' ? value.trim() : ''
+    setStatus('')
+    if (!EMAIL_PATTERN.test(email)) {
+      setError('Escribí un email válido, por ejemplo nombre@mail.com.')
+      document.getElementById(inputId)?.focus()
+      return
+    }
+    setError(null)
+    setPending(true)
+    try {
+      await api.post('/newsletter/subscribe', { email })
+      form.reset()
+      setStatus('¡Listo! Te vamos a avisar de las tandas nuevas.')
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'No pudimos sumarte a la lista. Probá de nuevo en un rato.'))
+    } finally {
+      setPending(false)
+    }
+  }
 
   return (
-    <form onSubmit={preventSubmit} aria-describedby={hintId} className="mt-8">
+    <form noValidate onSubmit={(event) => void submit(event)} className="mt-8">
       <label htmlFor={inputId} className="font-display text-lg font-semibold">
         Newsletter
       </label>
       <p id={hintId} className="mt-1 text-sm text-surface/80 dark:text-dark-text-secondary">
-        Muy pronto vas a poder recibir las tandas nuevas por email.
+        Recibí las tandas nuevas por email.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <input
           id={inputId}
           type="email"
           name="newsletter-email"
+          inputMode="email"
           autoComplete="email"
+          spellCheck={false}
+          maxLength={155}
           placeholder="nombre@mail.com…"
-          readOnly
-          aria-disabled="true"
-          className="min-h-11 min-w-0 flex-1 cursor-not-allowed rounded-xl border border-surface/40 bg-transparent px-3 text-surface placeholder:text-surface/60 dark:border-dark-text-secondary/60 dark:text-dark-text-main dark:placeholder:text-dark-text-secondary/70"
+          aria-describedby={hintId}
+          aria-invalid={error ? true : undefined}
+          className="min-h-11 min-w-0 flex-1 rounded-xl border border-surface/60 bg-transparent px-3 text-surface placeholder:text-surface/60 dark:border-dark-text-secondary/60 dark:text-dark-text-main dark:placeholder:text-dark-text-secondary/70"
         />
         <button
           type="submit"
-          aria-disabled="true"
-          className="min-h-11 cursor-not-allowed rounded-full border-2 border-surface/40 px-5 font-bold text-surface/80 dark:border-dark-text-secondary/60 dark:text-dark-text-secondary"
+          aria-busy={pending || undefined}
+          className="min-h-11 rounded-full border-2 border-surface/60 px-5 font-bold text-surface transition-[background-color,color] duration-200 ease-out hover:bg-surface hover:text-footer dark:border-dark-text-secondary/60 dark:text-dark-text-main dark:hover:bg-dark-card dark:hover:text-dark-text-main"
         >
-          Suscribirme
+          {pending ? 'Enviando…' : 'Suscribirme'}
         </button>
       </div>
+      {error && (
+        <p role="alert" className="mt-2 text-sm font-bold">
+          {error}
+        </p>
+      )}
+      <p aria-live="polite" className={status ? 'mt-2 text-sm font-bold' : 'sr-only'}>
+        {status}
+      </p>
     </form>
   )
 }
