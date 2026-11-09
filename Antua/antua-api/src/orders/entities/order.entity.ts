@@ -65,6 +65,10 @@ export class Order {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   shipping_amount: number;
 
+  // Plazo estimado al momento de la compra (no cambia si después cambia la configuración).
+  @Column({ type: 'int', nullable: true })
+  shipping_eta_days: number | null;
+
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   total: number;
 

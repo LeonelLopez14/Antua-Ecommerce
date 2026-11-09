@@ -256,6 +256,8 @@ export class OrdersService {
         subtotal,
         discount_amount: discount,
         shipping_amount: shippingAmount,
+        shipping_eta_days:
+          this.configService.get<number | null>('SHIPPING_ETA_DAYS') ?? null,
         total,
       });
 

@@ -15,6 +15,14 @@ import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { Coupon } from 'src/coupons/entities/coupon.entity';
 import { ConfigService } from '@nestjs/config';
 
+/** Aviso sobre algo que el backend cambió en el carrito sin que el cliente lo pidiera. */
+export interface CartWarning {
+  code: 'COUPON_REMOVED_MIN_NOT_MET';
+  message: string;
+  couponCode: string;
+  minAmount: number;
+}
+
 @Injectable()
 export class CartService {
   constructor(
@@ -370,12 +378,22 @@ export class CartService {
   }
 
   // Si al cambiar el carrito el subtotal queda por debajo del mínimo del
-  // cupón, el cupón se quita (el mismo control que hace POST /orders).
-  private async syncCoupon(cart: Cart) {
-    if (cart.coupon && !this.meetsCouponMinimum(cart, cart.coupon)) {
-      await this.cartRepository.update(cart.id, { coupon: null });
-      cart.coupon = null;
-    }
+  // cupón, el cupón se quita (el mismo control que hace POST /orders) y se avisa.
+  private async syncCoupon(cart: Cart): Promise<CartWarning[]> {
+    if (!cart.coupon || this.meetsCouponMinimum(cart, cart.coupon)) return [];
+
+    const { code, min_order_amount } = cart.coupon;
+    await this.cartRepository.update(cart.id, { coupon: null });
+    cart.coupon = null;
+
+    return [
+      {
+        code: 'COUPON_REMOVED_MIN_NOT_MET',
+        message: `Quitamos el cupon ${code} porque el carrito no llega al minimo.`,
+        couponCode: code,
+        minAmount: Number(min_order_amount),
+      },
+    ];
   }
 
   //Calcular descuento cupon
@@ -414,6 +432,8 @@ export class CartService {
       discount,
       shipping,
       total,
+      shippingEtaDays:
+        this.configService.get<number | null>('SHIPPING_ETA_DAYS') ?? null,
     };
   }
 
@@ -423,10 +443,11 @@ export class CartService {
     if (!cart) {
       throw new NotFoundException('Carrito no encontrado.');
     }
-    await this.syncCoupon(cart);
+    const warnings = await this.syncCoupon(cart);
     return {
       cart,
       summary: this.getSummary(cart),
+      warnings,
     };
   }
 

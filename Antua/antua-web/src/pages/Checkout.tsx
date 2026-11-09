@@ -20,6 +20,7 @@ import { orderSummaryLines, orderSummaryTotals } from '../lib/orderSummary'
 import type { Address } from '../types/address'
 import type { Order } from '../types/order'
 import { CheckoutSteps } from '../components/checkout/CheckoutSteps'
+import { CartWarnings } from '../components/cart/CartWarnings'
 import { OrderSummary, type SummaryLine, type SummaryTotals } from '../components/checkout/OrderSummary'
 import { AddressStep, type AddressChoice } from '../components/checkout/AddressStep'
 import { ShippingStep } from '../components/checkout/ShippingStep'
@@ -285,6 +286,8 @@ export default function Checkout() {
 
           {totals && <OrderSummary variant="collapsible" lines={lines} couponCode={couponCode} totals={totals} />}
 
+          {!placedOrder && <CartWarnings />}
+
           <section aria-labelledby="paso-title" className="rounded-card bg-surface p-6 shadow-soft sm:p-8 dark:bg-dark-surface dark:shadow-none">
             {/* Destino del foco al cambiar de paso (no es interactivo): el subrayado reemplaza al outline. */}
             <h2
@@ -309,7 +312,7 @@ export default function Checkout() {
                 onContinue={() => goTo(2)}
               />
             ) : step === 2 ? (
-              <ShippingStep shipping={summary?.shipping ?? null} />
+              <ShippingStep shipping={summary?.shipping ?? null} etaDays={summary?.shippingEtaDays ?? null} />
             ) : step === 3 ? (
               <PaymentStep />
             ) : (

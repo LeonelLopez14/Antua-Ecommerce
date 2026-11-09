@@ -1,4 +1,4 @@
-import { formatPrice } from '../../lib/format'
+import { formatPrice, shippingEtaLabel } from '../../lib/format'
 import type { CartSummary } from '../../types/cart'
 
 interface CartTotalsProps {
@@ -28,7 +28,12 @@ export function CartTotals({ summary, couponCode }: CartTotalsProps) {
         </>
       )}
 
-      <dt>Envío</dt>
+      <dt>
+        Envío
+        {summary.shippingEtaDays !== null && (
+          <span className="block text-xs text-text-main/75 dark:text-dark-text-secondary">{shippingEtaLabel(summary.shippingEtaDays)}</span>
+        )}
+      </dt>
       <dd className="text-right">
         {summary.shipping === null ? (
           <span className="text-text-main/75 dark:text-dark-text-secondary">Se calcula en el checkout</span>

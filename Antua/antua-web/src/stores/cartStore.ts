@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import * as cartApi from '../api/cart'
 import { CartContractError, type CartSnapshot } from '../api/cart'
 import { getApiErrorMessage } from '../api/client'
-import type { Cart, CartSummary } from '../types/cart'
+import type { Cart, CartSummary, CartWarning } from '../types/cart'
 import { clearGuestToken, readGuestToken } from '../lib/guestToken'
 
 type Status = 'idle' | 'loading' | 'ready' | 'error'
@@ -13,6 +13,8 @@ export type CartActionResult = { ok: true } | { ok: false; error: string }
 interface CartState {
   cart: Cart | null
   summary: CartSummary | null
+  /** Avisos del backend, por ejemplo un cupón retirado. Se reemplazan con la próxima acción sobre el carrito. */
+  warnings: CartWarning[]
   status: Status
   /** Error al cargar el carrito (no los de acciones puntuales, que se devuelven). */
   loadError: string | null
@@ -47,7 +49,7 @@ const errorMessage = (error: unknown): string =>
  */
 export const useCartStore = create<CartState>()((set, get) => {
   const replace = (snapshot: CartSnapshot) =>
-    set({ cart: snapshot.cart, summary: snapshot.summary, status: 'ready', loadError: null })
+    set({ cart: snapshot.cart, summary: snapshot.summary, warnings: snapshot.warnings, status: 'ready', loadError: null })
 
   const run = async (request: () => Promise<CartSnapshot>, itemId?: number): Promise<CartActionResult> => {
     if (itemId !== undefined) set((s) => ({ pendingItemIds: [...s.pendingItemIds, itemId] }))
@@ -64,6 +66,7 @@ export const useCartStore = create<CartState>()((set, get) => {
   return {
     cart: null,
     summary: null,
+    warnings: [],
     status: 'idle',
     loadError: null,
     pendingItemIds: [],
@@ -74,7 +77,9 @@ export const useCartStore = create<CartState>()((set, get) => {
       if (get().status === 'loading') return
       set({ status: 'loading', loadError: null })
       try {
-        replace(await cartApi.fetchCart())
+        // El backend avisa una sola vez: una recarga (ej.: al entrar al checkout) no borra el aviso pendiente.
+        const snapshot = await cartApi.fetchCart()
+        replace(snapshot.warnings.length > 0 ? snapshot : { ...snapshot, warnings: get().warnings })
       } catch (error) {
         set({ status: 'error', loadError: errorMessage(error) })
       }
@@ -97,7 +102,7 @@ export const useCartStore = create<CartState>()((set, get) => {
       return result
     },
     reset: async () => {
-      set({ cart: null, summary: null, status: 'idle', loadError: null, pendingItemIds: [] })
+      set({ cart: null, summary: null, warnings: [], status: 'idle', loadError: null, pendingItemIds: [] })
       await get().load()
     },
     open: (trigger) => set({ isOpen: true, returnFocusTo: trigger ?? null }),

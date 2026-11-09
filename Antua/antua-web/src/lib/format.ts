@@ -27,5 +27,8 @@ export function variantLabel(name: string): string {
   return count === 1 ? '1 galleta' : `Caja de ${count}`
 }
 
+/** Plazo estimado de entrega: 1 → "Llega en aproximadamente 1 día". */
+export const shippingEtaLabel = (days: number): string => `Llega en aproximadamente ${days} ${days === 1 ? 'día' : 'días'}`
+
 /** 1 → "1 galleta", 3 → "3 galletas". */
 export const galletas = (n: number): string => `${n} ${n === 1 ? 'galleta' : 'galletas'}`

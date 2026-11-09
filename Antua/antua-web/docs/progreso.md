@@ -363,3 +363,20 @@ curl -i localhost:3000/orders/guest/$ID -H "X-Order-Token: $ORDER_TOKEN"        
 curl -i localhost:3000/orders/guest/$ID                                               # 404
 curl -i -X POST localhost:3000/orders/$ID/claim -H "Authorization: Bearer $JWT" -H "X-Order-Token: $ORDER_TOKEN"  # 200 la primera vez, 404 después
 ```
+
+### 9.3 Cupón retirado y 9.4 Plazo de envío
+
+**9.3. Qué fallaba:** `syncCoupon` quitaba el cupón sin decir nada. **Qué cambió** (`src/cart/cart.service.ts`):
+- `syncCoupon` devuelve un aviso y todas las respuestas del carrito traen `warnings: [{ code, message, couponCode, minAmount }]`. Se informa una sola vez, en la respuesta que retiró el cupón.
+- **Front:** `CartWarnings` lo muestra en el drawer y en el checkout dentro de una región `aria-live="polite"` siempre montada. Una recarga del carrito no borra el aviso pendiente; la próxima acción sí.
+
+**9.4. Qué faltaba:** el backend no informaba un plazo. **Qué cambió:**
+- `SHIPPING_ETA_DAYS` (entero de 1 a 60), validada en `src/config/env.validation.ts`. Es opcional: vacía, no se muestra un plazo; inválida, la API no arranca.
+- `summary.shippingEtaDays` en el carrito y columna `orders.shipping_eta_days` (migración `OrderShippingEta`), que congela el plazo del momento de la compra.
+- **Front:** se ve en el drawer, en el resumen del checkout, en el paso Envío y en el detalle del pedido.
+
+**Tests:** `test/cart.e2e-spec.ts`, `src/config/env.validation.spec.ts` y `cartStore.test.ts`.
+
+```bash
+curl -s localhost:3000/cart -H "X-Guest-Token: $T" | jq '{warnings, eta: .summary.shippingEtaDays}'
+```

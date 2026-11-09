@@ -3,6 +3,7 @@
 
 export interface ValidatedEnv extends Record<string, unknown> {
   SHIPPING_FLAT_RATE: number;
+  SHIPPING_ETA_DAYS: number | null;
 }
 
 export function parseShippingFlatRate(raw: unknown): number {
@@ -20,9 +21,25 @@ export function parseShippingFlatRate(raw: unknown): number {
   return amount;
 }
 
+/** Opcional: sin definir, no se muestra un plazo. Definida, tiene que ser un entero de 1 a 60. */
+export function parseShippingEtaDays(raw: unknown): number | null {
+  const text = typeof raw === 'string' ? raw.trim() : '';
+  if (text === '') return null;
+  const days = Number(text);
+
+  if (!Number.isInteger(days) || days < 1 || days > 60) {
+    throw new Error(
+      `SHIPPING_ETA_DAYS tiene que ser un número entero de días, de 1 a 60 (recibido: ${JSON.stringify(raw)}). Dejala vacía si no querés mostrar un plazo.`,
+    );
+  }
+
+  return days;
+}
+
 export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
   return {
     ...config,
     SHIPPING_FLAT_RATE: parseShippingFlatRate(config.SHIPPING_FLAT_RATE),
+    SHIPPING_ETA_DAYS: parseShippingEtaDays(config.SHIPPING_ETA_DAYS),
   };
 }

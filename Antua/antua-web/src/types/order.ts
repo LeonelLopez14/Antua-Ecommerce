@@ -20,6 +20,7 @@ export interface ApiOrder {
   subtotal: ApiDecimal
   discount_amount: ApiDecimal
   shipping_amount: ApiDecimal
+  shipping_eta_days: number | null
   total: ApiDecimal
   created_at: string
   coupon: { code: string } | null
@@ -83,6 +84,7 @@ export interface Order {
   subtotal: number
   discount: number
   shippingAmount: number
+  shippingEtaDays: number | null
   total: number
   items: OrderItem[]
 }

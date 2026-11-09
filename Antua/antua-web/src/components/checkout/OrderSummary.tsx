@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react'
-import { formatPrice, variantLabel } from '../../lib/format'
+import { formatPrice, shippingEtaLabel, variantLabel } from '../../lib/format'
 import { ProductImage } from '../product/ProductImage'
 
 export interface SummaryLine {
@@ -17,6 +17,7 @@ export interface SummaryTotals {
   discount: number
   shipping: number | null
   total: number
+  shippingEtaDays: number | null
 }
 
 interface SummaryContentProps {
@@ -99,7 +100,12 @@ export function SummaryDetails({ lines, couponCode, totals }: SummaryContentProp
             <dd className="text-right">−{formatPrice(totals.discount)}</dd>
           </>
         )}
-        <dt>Envío (tarifa fija)</dt>
+        <dt>
+          Envío (tarifa fija)
+          {totals.shippingEtaDays !== null && (
+            <span className="block text-xs text-text-main/75 dark:text-dark-text-secondary">{shippingEtaLabel(totals.shippingEtaDays)}</span>
+          )}
+        </dt>
         <dd className="text-right">{totals.shipping === null ? 'A confirmar' : formatPrice(totals.shipping)}</dd>
         <dt className="mt-2 text-base font-bold">Total</dt>
         <dd className="mt-2 text-right text-lg font-bold text-accent-main dark:text-dark-accent-main">{formatPrice(totals.total)}</dd>

@@ -29,6 +29,7 @@ function toOrder(order: ApiOrder, items: ApiOrderItem[] = order.items ?? []): Or
     subtotal: toNumber(order.subtotal),
     discount: toNumber(order.discount_amount),
     shippingAmount: toNumber(order.shipping_amount),
+    shippingEtaDays: order.shipping_eta_days,
     total: toNumber(order.total),
     items: items.map(toOrderItem),
   }
