@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/*
+  Modo oscuro: sigue la preferencia del sistema por defecto.
+  Override manual: clase .dark o .light en <html> (DESIGN.md §9).
+*/
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not(.light, .light *)) {
+      @slot;
+    }
+  }
+}
+
 @theme {
   /* Modo claro (principal) */
   --color-text-main: #2E2D2C;
@@ -17,10 +32,71 @@
   --color-dark-text-secondary: #CFC8BC;
   --color-dark-accent-main: #D7A46A;
 
-  --font-display: "Playfair Display", serif;
-  --font-sans: "Lato", sans-serif;
+  /* Footer: el wireframe lo dibuja oscuro (DESIGN.md §4, decisión abierta 1) */
+  --color-footer: var(--color-text-main);
+  --color-dark-footer: var(--color-dark-surface);
 
-  /* Radios*/
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
+
+  /* Radios */
   --radius-card: 20px;
   --radius-modal: 24px;
+
+  /* Sombras (DESIGN.md §6, propuesta) */
+  --shadow-soft: 0 2px 8px rgb(46 45 44 / 0.08);
+  --shadow-lift: 0 8px 24px rgb(46 45 44 / 0.12);
+  --shadow-dark-float: 0 8px 24px rgb(0 0 0 / 0.4);
+
+  /* Animaciones: 200–300 ms ease-out */
+  --default-transition-duration: 250ms;
+  --default-transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+      color-scheme: dark;
+    }
+  }
+  :root.dark {
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg font-sans text-text-main antialiased dark:bg-dark-bg dark:text-dark-text-main;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  a,
+  button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Foco visible en todo elemento interactivo (DESIGN.md §11) */
+  :focus-visible {
+    outline: 2px solid var(--color-accent-main);
+    outline-offset: 3px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light) :focus-visible {
+      outline-color: var(--color-dark-accent-main);
+    }
+  }
+  :root.dark :focus-visible {
+    outline-color: var(--color-dark-accent-main);
+  }
 }

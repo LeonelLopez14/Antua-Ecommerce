@@ -32,7 +32,8 @@ export class CartController {
     @Headers('x-guest-token') guestToken: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.resolveCart(req, guestToken, res);
+    const cart = await this.resolveCart(req, guestToken, res);
+    return this.cartService.getCartResponse(cart.id);
   }
   //metodo agregar items a carrito
   @Post('items')

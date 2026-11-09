@@ -33,8 +33,9 @@ export class ProductsService {
     //Metodo para obtener un producto por su slug(unico) con sus relaciones
     async findOne(slug: string) {
 
+        // Solo productos a la venta: un inactivo responde 404 igual que uno inexistente.
         const product = await this.productRepository.findOne({
-            where: { slug },
+            where: { slug, is_active: true },
             relations: {
                 variants: true,
                 images: true,
