@@ -291,9 +291,8 @@ export function AuthModal() {
               name="new-password"
               type="password"
               autoComplete="new-password"
-              minLength={PASSWORD_MIN}
               error={errors.fields.password}
-              hint={`Al menos ${PASSWORD_MIN} caracteres.`}
+              hint="De 8 a 72 caracteres, con al menos una letra y un número."
             />
             <FormField
               id={id('confirm-password')}
