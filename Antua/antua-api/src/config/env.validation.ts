@@ -5,6 +5,9 @@ export interface ValidatedEnv extends Record<string, unknown> {
   SHIPPING_FLAT_RATE: number;
   SHIPPING_ETA_DAYS: number | null;
   FRONTEND_URL: string;
+  CORS_ORIGINS: string[];
+  JWT_SECRET: string;
+  JWT_EXPIRES_IN: string;
 }
 
 export function parseShippingFlatRate(raw: unknown): number {
@@ -49,11 +52,50 @@ export function parseFrontendUrl(raw: unknown): string {
   return value.replace(/\/+$/, '');
 }
 
+/** Lista separada por comas. Nunca acepta `*`: las credenciales del front irían a cualquier sitio. */
+export function parseCorsOrigins(raw: unknown): string[] {
+  const list = (typeof raw === 'string' ? raw : '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  for (const origin of list) {
+    if (origin.includes('*') || !URL.canParse(origin)) {
+      throw new Error(
+        `CORS_ORIGINS solo acepta orígenes completos, sin "*" (recibido: ${origin}).`,
+      );
+    }
+  }
+  return list;
+}
+
+export function parseJwtSecret(raw: unknown): string {
+  if (typeof raw !== 'string' || raw.length < 32) {
+    throw new Error(
+      'JWT_SECRET es obligatoria y tiene que tener al menos 32 caracteres.',
+    );
+  }
+  return raw;
+}
+
+/** Todo JWT tiene que vencer: sin esto se emitirían tokens válidos para siempre. */
+export function parseJwtExpiresIn(raw: unknown): string {
+  if (typeof raw !== 'string' || !/^\d+[smhd]$/.test(raw.trim())) {
+    throw new Error(
+      `JWT_EXPIRES_IN es obligatoria, con formato como 7d o 12h (recibido: ${JSON.stringify(raw)}).`,
+    );
+  }
+  return raw.trim();
+}
+
 export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
   return {
     ...config,
     SHIPPING_FLAT_RATE: parseShippingFlatRate(config.SHIPPING_FLAT_RATE),
     SHIPPING_ETA_DAYS: parseShippingEtaDays(config.SHIPPING_ETA_DAYS),
     FRONTEND_URL: parseFrontendUrl(config.FRONTEND_URL),
+    CORS_ORIGINS: parseCorsOrigins(config.CORS_ORIGINS),
+    JWT_SECRET: parseJwtSecret(config.JWT_SECRET),
+    JWT_EXPIRES_IN: parseJwtExpiresIn(config.JWT_EXPIRES_IN),
   };
 }

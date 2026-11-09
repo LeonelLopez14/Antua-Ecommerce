@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -25,6 +26,7 @@ export class AuthController {
   ) {}
 
   // Siempre la misma respuesta, exista o no la cuenta.
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
   @Post('forgot-password')
   @HttpCode(200)
   forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -35,6 +37,7 @@ export class AuthController {
     };
   }
 
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   @Post('reset-password')
   @HttpCode(200)
   async resetPassword(@Body() dto: ResetPasswordDto) {
@@ -42,17 +45,20 @@ export class AuthController {
     return { message: 'Contraseña actualizada.' };
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
 
   // HTTP 200 porque no crea un recurso nuevo.
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   @Post('change-password')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)

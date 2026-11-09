@@ -1,10 +1,10 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsNumber, Min } from 'class-validator';
+import { IsInt, Max, Min } from 'class-validator';
 
 export class UpdateCartItemDto {
   @Type(() => Number)
-  @IsNumber()
   @IsInt()
   @Min(1)
+  @Max(999)
   quantity: number;
 }

@@ -6,7 +6,9 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { AdminKeyGuard } from 'src/common/admin-key.guard';
 import { TagsService } from './tags.service';
 import { CreateTagDto } from './dto/tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
@@ -26,16 +28,19 @@ export class TagsController {
     return this.tagService.findOne(id);
   }
 
+  @UseGuards(AdminKeyGuard)
   @Post()
   create(@Body() dto: CreateTagDto) {
     return this.tagService.create(dto);
   }
 
+  @UseGuards(AdminKeyGuard)
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTagDto) {
     return this.tagService.update(id, dto);
   }
 
+  @UseGuards(AdminKeyGuard)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.tagService.remove(id);

@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { CartService } from './cart.service';
+import { Throttle } from '@nestjs/throttler';
 import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
 import { CreateCartItemDto } from './dto/cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
@@ -75,7 +76,8 @@ export class CartController {
 
     return this.cartService.removeItem(cart.id, itemId);
   }
-  //metodo aplicar cupon al carrito
+  //metodo aplicar cupon al carrito (con límite, para que no se puedan probar códigos a fuerza bruta)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('coupon')
   @UseGuards(OptionalJwtAuthGuard)
   async applyCoupon(

@@ -475,3 +475,31 @@ curl -i -X POST localhost:3000/auth/reset-password -H "Content-Type: application
 ```bash
 curl -s -X POST localhost:3000/newsletter/subscribe -H "Content-Type: application/json" -d '{"email":"a@b.test"}'
 ```
+
+### 9.10 Endurecimiento básico
+
+| Hallazgo | Riesgo | Corrección |
+|---|---|---|
+| `POST/PATCH/DELETE /products` y `/tags` no tenían guard | **Crítico:** cualquiera podía crear, cambiar o borrar productos | `src/common/admin-key.guard.ts`: exige `X-Admin-Key`. Sin `ADMIN_API_KEY` configurada, nadie puede usarlas. Queda hasta que exista un panel con roles. |
+| `GET /products/:slug/reviews` exponía email y teléfono del autor | Datos personales | Corregido en 9.6: solo id y nombre. |
+| `GET /orders/guest/:id?email=` | Datos personales con id consecutivo + email | Corregido en 9.2: exige el token del pedido. |
+| Sin límite de intentos | Fuerza bruta de contraseñas y cupones | `@nestjs/throttler`: 300 por minuto por IP en general, y límites propios en login, registro, recuperación, cambio de contraseña, cupones, newsletter y pedidos de invitado. |
+| Sin cabeceras de seguridad | Clickjacking, sniffing | `helmet` en `src/app.setup.ts`. |
+| Sin CORS configurable | El front en otro dominio no podría llamar a la API, y nadie debe poder ponerle `*` | `CORS_ORIGINS` (lista). La validación rechaza `*`; vacía, no se habilita CORS. |
+| Contraseñas de 8 caracteres sin más | Claves triviales | `src/common/password-policy.ts`. |
+| JWT sin validar al arrancar | Un `JWT_EXPIRES_IN` vacío emitiría tokens eternos | `src/config/env.validation.ts` exige secreto de 32+ caracteres y vencimiento con formato. |
+| `POST /cart/items` aceptaba `quantity: 1.5` | Totales con cantidades imposibles | `@IsInt`, `@Max(999)`. |
+| Textos sin largo máximo en pedidos, direcciones y cupones | Error 500 de la base | `@MaxLength` según cada columna. |
+| Log de queries con parámetros | Datos personales en logs | Corregido en el commit de migraciones. |
+| Login distinguible por tiempo | Revela qué cuentas existen | Corregido en 9.7. |
+
+**Ownership revisado:** carrito (por ítem), pedidos, direcciones y reseñas filtran siempre por dueño; todo lo ajeno responde 404. Cubierto en `test/security.e2e-spec.ts` y `test/reviews.e2e-spec.ts`.
+
+**Aceptado, sin cambiar:** `POST /auth/register` responde 409 si el email ya existe. Revela cuentas, pero evitarlo requiere verificación por email; queda como decisión.
+
+**Front:** el 429 se traduce a "Hiciste muchos intentos seguidos…".
+
+```bash
+curl -i -X POST localhost:3000/tags -H "Content-Type: application/json" -d '{"name":"x","slug":"x"}'   # 403
+curl -I localhost:3000/products | grep -i x-content-type-options
+```

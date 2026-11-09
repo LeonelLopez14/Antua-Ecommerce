@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 
+import { Throttle } from '@nestjs/throttler';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 
@@ -50,6 +51,7 @@ export class OrdersController {
   }
 
   // El token va en un header (no en la URL) para que no quede en logs ni en el historial.
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Get('guest/:id')
   async findGuestOrder(
     @Param('id', ParseIntPipe) orderId: number,
@@ -58,6 +60,7 @@ export class OrdersController {
     return this.ordersService.findGuestOrder(orderId, accessToken);
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post(':id/claim')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)

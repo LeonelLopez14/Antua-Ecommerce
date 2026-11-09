@@ -38,6 +38,7 @@ export function authErrorsFrom(error: unknown, mode: 'login' | 'register'): Auth
   const response = error.response
   if (!response) return { fields: {}, form: NETWORK }
   if (response.status >= 500) return { fields: {}, form: SERVER }
+  if (response.status === 429) return { fields: {}, form: 'Hiciste muchos intentos seguidos. Esperá un minuto y probá de nuevo.' }
 
   if (response.status === 401) {
     return { fields: { password: 'El email o la contraseña no coinciden. Revisalos y probá de nuevo.' }, form: null }

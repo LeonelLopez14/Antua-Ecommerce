@@ -1,4 +1,10 @@
-import { parseShippingEtaDays, parseShippingFlatRate } from './env.validation';
+import {
+  parseCorsOrigins,
+  parseJwtExpiresIn,
+  parseJwtSecret,
+  parseShippingEtaDays,
+  parseShippingFlatRate,
+} from './env.validation';
 
 describe('validación del entorno', () => {
   it('SHIPPING_FLAT_RATE acepta números y rechaza lo demás', () => {
@@ -7,6 +13,23 @@ describe('validación del entorno', () => {
     expect(() => parseShippingFlatRate(undefined)).toThrow(
       'SHIPPING_FLAT_RATE',
     );
+  });
+
+  it('CORS_ORIGINS nunca acepta el comodín', () => {
+    expect(parseCorsOrigins('')).toEqual([]);
+    expect(parseCorsOrigins('https://a.test, https://b.test')).toEqual([
+      'https://a.test',
+      'https://b.test',
+    ]);
+    expect(() => parseCorsOrigins('*')).toThrow('CORS_ORIGINS');
+  });
+
+  it('el JWT exige un secreto largo y siempre vence', () => {
+    expect(() => parseJwtSecret('corto')).toThrow('JWT_SECRET');
+    expect(parseJwtSecret('x'.repeat(32))).toHaveLength(32);
+    expect(parseJwtExpiresIn('7d')).toBe('7d');
+    expect(() => parseJwtExpiresIn(undefined)).toThrow('JWT_EXPIRES_IN');
+    expect(() => parseJwtExpiresIn('nunca')).toThrow('JWT_EXPIRES_IN');
   });
 
   it('SHIPPING_ETA_DAYS es opcional, pero si se define tiene que ser válida', () => {

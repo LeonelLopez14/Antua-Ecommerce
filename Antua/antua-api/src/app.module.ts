@@ -16,9 +16,16 @@ import { AddressesModule } from './addresses/addresses.module';
 import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env.validation';
 import { NewsletterModule } from './newsletter/newsletter.module';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
+    // Límite general por IP; las rutas sensibles tienen uno propio con @Throttle.
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 300 }],
+      skipIf: () => process.env.NODE_ENV === 'test',
+    }),
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }), // lee y valida el .env, disponible en toda la app
 
     TypeOrmModule.forRootAsync({
@@ -57,6 +64,6 @@ import { NewsletterModule } from './newsletter/newsletter.module';
     NewsletterModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
