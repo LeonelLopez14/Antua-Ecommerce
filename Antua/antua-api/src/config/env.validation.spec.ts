@@ -2,6 +2,7 @@ import {
   parseCorsOrigins,
   parseJwtExpiresIn,
   parseJwtSecret,
+  parsePaymentsConfig,
   parseShippingEtaDays,
   parseShippingFlatRate,
 } from './env.validation';
@@ -39,5 +40,56 @@ describe('validación del entorno', () => {
     for (const invalid of ['0', '2.5', 'tres', '61']) {
       expect(() => parseShippingEtaDays(invalid)).toThrow('SHIPPING_ETA_DAYS');
     }
+  });
+
+  describe('pagos', () => {
+    const real = {
+      MP_ACCESS_TOKEN: 'TEST-token',
+      MP_WEBHOOK_SECRET: 'secreto',
+      MP_PUBLIC_API_URL: 'https://api.ejemplo.test',
+      MP_PUBLIC_FRONTEND_URL: 'https://tienda.ejemplo.test/',
+    };
+
+    it('sin credenciales quedan deshabilitados', () => {
+      expect(parsePaymentsConfig({}).mode).toBe('disabled');
+    });
+
+    it('con credenciales completas se activan', () => {
+      expect(parsePaymentsConfig(real)).toMatchObject({
+        mode: 'mercadopago',
+        currency: 'UYU',
+        publicFrontendUrl: 'https://tienda.ejemplo.test',
+      });
+    });
+
+    it('no arranca con credenciales incompletas', () => {
+      expect(() => parsePaymentsConfig({ MP_ACCESS_TOKEN: 'x' })).toThrow(
+        'juntas',
+      );
+    });
+
+    it('exige URLs públicas HTTPS', () => {
+      expect(() =>
+        parsePaymentsConfig({
+          ...real,
+          MP_PUBLIC_API_URL: 'http://localhost:3000',
+        }),
+      ).toThrow('MP_PUBLIC_API_URL');
+    });
+
+    it('nunca se activa en producción', () => {
+      expect(() =>
+        parsePaymentsConfig({ ...real, NODE_ENV: 'production' }),
+      ).toThrow('production');
+      expect(parsePaymentsConfig({ NODE_ENV: 'production' }).mode).toBe(
+        'disabled',
+      );
+    });
+
+    it('la simulación no se combina con credenciales reales', () => {
+      expect(() =>
+        parsePaymentsConfig({ ...real, PAYMENTS_SIMULATED: 'true' }),
+      ).toThrow('PAYMENTS_SIMULATED');
+    });
   });
 });

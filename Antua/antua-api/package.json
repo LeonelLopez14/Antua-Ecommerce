@@ -23,7 +23,8 @@
     "migration:run": "pnpm typeorm migration:run -d src/database/data-source.ts",
     "migration:revert": "pnpm typeorm migration:revert -d src/database/data-source.ts",
     "migration:show": "pnpm typeorm migration:show -d src/database/data-source.ts",
-    "migration:generate": "pnpm typeorm migration:generate -d src/database/data-source.ts -p"
+    "migration:generate": "pnpm typeorm migration:generate -d src/database/data-source.ts -p",
+    "payments:simulate": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/simulate-mp-webhook.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -33,7 +34,6 @@
     "@nestjs/mapped-types": "^2.1.1",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
-    "@nestjs/schedule": "^12.0.3",
     "@nestjs/swagger": "^11.4.5",
     "@nestjs/throttler": "^6.7.1",
     "@nestjs/typeorm": "^11.0.3",
@@ -41,6 +41,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "helmet": "^8.3.0",
+    "mercadopago": "3.6.1",
     "mysql2": "^3.22.5",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

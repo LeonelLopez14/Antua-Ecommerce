@@ -1,6 +1,20 @@
 // Valida el .env al arrancar. Si algo falta o está mal, Nest no levanta y
 // muestra el motivo, en vez de fallar más tarde con un total NaN.
 
+export type PaymentsConfig = {
+  currency: string;
+  expirationHours: number;
+  webhookSecret: string | null;
+} & (
+  | { mode: 'disabled' | 'simulated' }
+  | {
+      mode: 'mercadopago';
+      accessToken: string;
+      publicApiUrl: string;
+      publicFrontendUrl: string;
+    }
+);
+
 export interface ValidatedEnv extends Record<string, unknown> {
   SHIPPING_FLAT_RATE: number;
   SHIPPING_ETA_DAYS: number | null;
@@ -8,6 +22,7 @@ export interface ValidatedEnv extends Record<string, unknown> {
   CORS_ORIGINS: string[];
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
+  PAYMENTS: PaymentsConfig;
 }
 
 export function parseShippingFlatRate(raw: unknown): number {
@@ -88,6 +103,93 @@ export function parseJwtExpiresIn(raw: unknown): string {
   return raw.trim();
 }
 
+const textOf = (value: unknown): string =>
+  typeof value === 'string' ? value.trim() : '';
+
+/** Mercado Pago exige HTTPS y no acepta dominios locales en el webhook ni en los retornos. */
+function parsePublicUrl(name: string, raw: unknown): string {
+  const value = textOf(raw).replace(/\/+$/, '');
+  const url = URL.canParse(value) ? new URL(value) : null;
+  if (
+    !url ||
+    url.protocol !== 'https:' ||
+    ['localhost', '127.0.0.1'].includes(url.hostname)
+  ) {
+    throw new Error(
+      `${name} tiene que ser una URL pública HTTPS, sin localhost (recibido: "${value}"). Ver docs/payments-design.md.`,
+    );
+  }
+  return value;
+}
+
+/**
+ * Sin credenciales, Payments queda deshabilitado con un aviso. Con credenciales incompletas no
+ * arranca, para que nadie crea que cobra. Y nunca arranca en producción: es un proyecto de práctica.
+ */
+export function parsePaymentsConfig(
+  config: Record<string, unknown>,
+): PaymentsConfig {
+  const currency = textOf(config.PAYMENT_CURRENCY) || 'UYU';
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    throw new Error(
+      `PAYMENT_CURRENCY tiene que ser un código de 3 letras (recibido: ${currency}).`,
+    );
+  }
+  const expirationText = textOf(config.PAYMENT_EXPIRATION_HOURS) || '48';
+  const expirationHours = Number(expirationText);
+  if (
+    !Number.isInteger(expirationHours) ||
+    expirationHours < 1 ||
+    expirationHours > 720
+  ) {
+    throw new Error(
+      `PAYMENT_EXPIRATION_HOURS tiene que ser un entero de 1 a 720 (recibido: ${expirationText}).`,
+    );
+  }
+
+  const accessToken = textOf(config.MP_ACCESS_TOKEN);
+  const secret = textOf(config.MP_WEBHOOK_SECRET);
+  const simulated = textOf(config.PAYMENTS_SIMULATED) === 'true';
+  const common = { currency, expirationHours };
+  const enabled = simulated || accessToken !== '';
+
+  if (enabled && config.NODE_ENV === 'production') {
+    throw new Error(
+      'Payments no puede usarse con NODE_ENV=production: este proyecto solo admite pagos de prueba.',
+    );
+  }
+  if (simulated) {
+    if (accessToken) {
+      throw new Error(
+        'PAYMENTS_SIMULATED=true no se puede combinar con MP_ACCESS_TOKEN.',
+      );
+    }
+    if (!secret) {
+      throw new Error('PAYMENTS_SIMULATED=true requiere MP_WEBHOOK_SECRET.');
+    }
+    return { ...common, mode: 'simulated', webhookSecret: secret };
+  }
+  if (!accessToken && !secret) {
+    return { ...common, mode: 'disabled', webhookSecret: null };
+  }
+  if (!accessToken || !secret) {
+    throw new Error(
+      'Para activar los pagos hacen falta MP_ACCESS_TOKEN y MP_WEBHOOK_SECRET juntas.',
+    );
+  }
+  return {
+    ...common,
+    mode: 'mercadopago',
+    accessToken,
+    webhookSecret: secret,
+    publicApiUrl: parsePublicUrl('MP_PUBLIC_API_URL', config.MP_PUBLIC_API_URL),
+    publicFrontendUrl: parsePublicUrl(
+      'MP_PUBLIC_FRONTEND_URL',
+      config.MP_PUBLIC_FRONTEND_URL,
+    ),
+  };
+}
+
 export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
   return {
     ...config,
@@ -97,5 +199,6 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     CORS_ORIGINS: parseCorsOrigins(config.CORS_ORIGINS),
     JWT_SECRET: parseJwtSecret(config.JWT_SECRET),
     JWT_EXPIRES_IN: parseJwtExpiresIn(config.JWT_EXPIRES_IN),
+    PAYMENTS: parsePaymentsConfig(config),
   };
 }

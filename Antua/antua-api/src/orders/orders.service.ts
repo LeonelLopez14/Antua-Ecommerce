@@ -16,6 +16,7 @@ import { CartItem } from 'src/cart/entities/cart-item.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Coupon } from 'src/coupons/entities/coupon.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
+import type { PaymentsConfig } from 'src/config/env.validation';
 import {
   generateToken,
   hashToken,
@@ -91,6 +92,14 @@ export class OrdersService {
         changes: error.changes,
       });
     }
+  }
+
+  /** Con Payments activo, el stock queda reservado solo hasta este momento. */
+  private paymentExpiration(): Date | null {
+    const payments = this.configService.getOrThrow<PaymentsConfig>('PAYMENTS');
+    return payments.mode === 'disabled'
+      ? null
+      : new Date(Date.now() + payments.expirationHours * 3_600_000);
   }
 
   private placeOrder(
@@ -245,6 +254,7 @@ export class OrdersService {
         user: userId ? { id: userId } : null,
         guest_email: userId ? null : dto.guest_email,
         guest_access_token_hash: accessToken ? hashToken(accessToken) : null,
+        payment_expires_at: this.paymentExpiration(),
         coupon: fullCart.coupon ?? null,
         status: OrderStatus.PENDING,
         payment_status: 'pending',

@@ -4,7 +4,6 @@ import {
   Column,
   ManyToOne,
   OneToMany,
-  OneToOne,
   CreateDateColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
@@ -38,8 +37,13 @@ export class Order {
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;
 
+  // Ver src/payments/payment-state.ts. Es independiente del estado logístico (`status`).
   @Column({ type: 'varchar', length: 50, default: 'pending' })
   payment_status: string;
+
+  // Hasta cuándo se reserva el stock esperando el pago. null: sin vencimiento.
+  @Column({ type: 'datetime', nullable: true })
+  payment_expires_at: Date | null;
 
   @Column({ type: 'varchar', length: 200 })
   shipping_full_name: string;
@@ -86,6 +90,6 @@ export class Order {
   @OneToMany(() => OrderItem, (item) => item.order)
   items: OrderItem[];
 
-  @OneToOne(() => Payment, (payment) => payment.order, { nullable: true })
-  payment: Payment | null;
+  @OneToMany(() => Payment, (payment) => payment.order)
+  payments: Payment[];
 }

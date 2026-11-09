@@ -3,5 +3,7 @@ process.env.NODE_ENV = 'test';
 process.env.DB_DATABASE = 'antua_test';
 process.env.SHIPPING_FLAT_RATE = '1500';
 process.env.SHIPPING_ETA_DAYS = '3';
+process.env.PAYMENTS_SIMULATED = 'true';
+process.env.MP_WEBHOOK_SECRET = 'secreto-de-prueba-para-los-e2e';
 process.env.ADMIN_API_KEY = 'clave-de-prueba-para-los-e2e';
 process.env.CORS_ORIGINS = 'https://tienda.ejemplo.test';
