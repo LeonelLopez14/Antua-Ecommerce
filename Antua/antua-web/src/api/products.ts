@@ -1,5 +1,6 @@
 import { api } from './client'
 import type { ApiDecimal, ApiProduct, ApiReview, ApiTag, Product, Review, Tag } from '../types/product'
+import { toProductFilterParams, type ShopFacets, type ShopQuery, type ShopResult } from '../lib/shopQuery'
 
 export const toNumber = (value: ApiDecimal): number =>
   typeof value === 'number' ? value : Number.parseFloat(value)
@@ -30,14 +31,24 @@ function toProduct(product: ApiProduct): Product {
   }
 }
 
-/**
- * GET /products devuelve todos los productos activos, sin filtros, orden ni paginación
- * (product-filter.dto.ts está vacío). Filtrar y paginar se hace en `lib/shopQuery.ts`;
- * cuando el backend acepte query params, solo cambia esta función.
- */
+/** GET /products sin parámetros: todos los productos activos (Home y búsqueda por variante). */
 export async function fetchProducts(signal?: AbortSignal): Promise<Product[]> {
   const { data } = await api.get<ApiProduct[]>('/products', { signal })
   return data.map(toProduct)
+}
+
+interface ApiProductPage {
+  items: ApiProduct[]
+  total: number
+  page: number
+  totalPages: number
+  facets: ShopFacets
+}
+
+/** GET /products con filtros, orden y paginación (todo se resuelve en el backend). */
+export async function fetchProductPage(query: ShopQuery, signal?: AbortSignal): Promise<ShopResult> {
+  const { data } = await api.get<ApiProductPage>('/products', { params: toProductFilterParams(query), signal })
+  return { items: data.items.map(toProduct), total: data.total, page: data.page, totalPages: data.totalPages, facets: data.facets }
 }
 
 export async function fetchProduct(slug: string, signal?: AbortSignal): Promise<Product> {

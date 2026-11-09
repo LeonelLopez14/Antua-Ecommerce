@@ -6,10 +6,12 @@ import {
   Body,
   Patch,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/product.dto';
 import { UpdateProductDto } from './dto/update-producto.dto';
+import { ProductFilterDto } from './dto/product-filter.dto';
 import { ParseIntPipe } from '@nestjs/common';
 
 @Controller('products')
@@ -17,8 +19,14 @@ export class ProductsController {
   constructor(private readonly productService: ProductsService) {}
 
   @Get()
-  findAll() {
-    return this.productService.findAll();
+  findAll(@Query() filter: ProductFilterDto) {
+    // Sin parámetros responde el array de siempre; con parámetros, una página con facetas.
+    const hasFilter = Object.values(filter).some(
+      (value) => value !== undefined,
+    );
+    return hasFilter
+      ? this.productService.findPage(filter)
+      : this.productService.findAll();
   }
 
   @Get(':slug')

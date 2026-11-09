@@ -380,3 +380,21 @@ curl -i -X POST localhost:3000/orders/$ID/claim -H "Authorization: Bearer $JWT" 
 ```bash
 curl -s localhost:3000/cart -H "X-Guest-Token: $T" | jq '{warnings, eta: .summary.shippingEtaDays}'
 ```
+
+### 9.5 Filtros, orden y paginación en `GET /products`
+
+**Qué faltaba:** el backend devolvía todo y el front filtraba en `lib/shopQuery.ts`.
+
+**Qué cambió:**
+- `src/products/dto/product-filter.dto.ts`: `tags` (varias, repetidas o separadas por coma), `minPrice`, `maxPrice`, `sort`, `page` y `limit` (máximo 48), validados. `sort` es una whitelist: el orden nunca se arma con texto del cliente.
+- `src/products/products.controller.ts`: **sin parámetros responde el array de siempre**; con alguno, una página.
+- `src/products/products.service.ts`, `findPage`: consulta con QueryBuilder. El precio "desde" (el menor entre el base y las variantes activas) se calcula en SQL para poder filtrar y ordenar por él. Primero se piden los ids de la página y después sus relaciones, porque paginar con joins a variantes contaría filas de más. Si se pide una página que no existe, se usa la última.
+- `facets`: conteo por categoría y rango de precios de todo el catálogo activo, que antes el front sacaba de la lista completa.
+- **Front:** `useShopData` llama al backend con la misma URL (`?categoria=…&orden=…&pagina=…`). Al filtrar se mantiene la grilla anterior hasta que llega la nueva.
+
+**Tests:** `test/products.e2e-spec.ts` (compatibilidad, paginación, varias categorías, precio, orden, facetas, parámetros inválidos → 400).
+
+```bash
+curl -s "localhost:3000/products?tags=veganas&tags=packs&sort=price_desc&page=1&limit=9" | jq '{total, totalPages, facets}'
+curl -i "localhost:3000/products?limit=1000"   # 400
+```
