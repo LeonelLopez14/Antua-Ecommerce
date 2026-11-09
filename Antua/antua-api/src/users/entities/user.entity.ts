@@ -30,6 +30,11 @@ export class User {
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string;
 
+  // Los JWT emitidos antes de esta fecha dejan de valer (ver JwtStrategy).
+  @Column({ type: 'datetime', nullable: true })
+  @Exclude()
+  password_changed_at: Date | null;
+
   @CreateDateColumn()
   created_at: Date;
 

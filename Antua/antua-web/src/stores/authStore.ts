@@ -10,6 +10,8 @@ interface AuthState {
   /** Guardar la sesión que devuelve POST /auth/login o /auth/register. */
   setSession: (session: AuthResponse) => void
   clearSession: () => void
+  /** Actualiza los datos del usuario (por ejemplo, después de editar el perfil). */
+  setUser: (user: User) => void
   /** Al iniciar la app: si el token venció (401), se descarta para no operar con una sesión muerta. */
   verifySession: () => Promise<void>
 }
@@ -25,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       setSession: ({ token, user }) => set({ token, user }),
       clearSession: () => set({ token: null, user: null }),
+      setUser: (user) => set({ user }),
       verifySession: async () => {
         if (!get().token) return
         try {

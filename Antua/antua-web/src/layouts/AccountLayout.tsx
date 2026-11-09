@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { LockKeyhole, MapPin, Package } from 'lucide-react'
+import { LockKeyhole, MapPin, Package, UserRound } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useAuthModalStore } from '../stores/authModalStore'
 import { Button } from '../components/ui/Button'
@@ -64,6 +64,12 @@ export function AccountLayout() {
             <NavLink to="/cuenta/direcciones" className={tabClass}>
               <MapPin aria-hidden="true" className="size-4" />
               Direcciones
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/cuenta/perfil" className={tabClass}>
+              <UserRound aria-hidden="true" className="size-4" />
+              Perfil
             </NavLink>
           </li>
         </ul>

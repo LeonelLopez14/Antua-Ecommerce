@@ -9,14 +9,19 @@ export interface AuthErrors {
 }
 
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-export const PASSWORD_MIN = 8
+const PASSWORD_MIN = 8
+const PASSWORD_MAX = 72
+
+/** Misma política que el backend (common/password-policy.ts): 8 a 72 caracteres, con una letra y un número. */
+export const isValidNewPassword = (password: string): boolean =>
+  password.length >= PASSWORD_MIN && password.length <= PASSWORD_MAX && /[A-Za-z]/.test(password) && /\d/.test(password)
 
 /** Mensajes de validación compartidos entre la validación del cliente y la traducción de errores del backend. */
 export const AUTH_MESSAGES = {
   fullName: 'Escribí tu nombre completo.',
   email: 'Escribí un email válido, por ejemplo nombre@mail.com.',
   password: 'Escribí tu contraseña.',
-  passwordMin: `La contraseña tiene que tener al menos ${PASSWORD_MIN} caracteres.`,
+  passwordMin: `La contraseña tiene que tener de ${PASSWORD_MIN} a ${PASSWORD_MAX} caracteres, con al menos una letra y un número.`,
   confirm: 'Las contraseñas no coinciden.',
 } as const
 
@@ -48,7 +53,7 @@ export function authErrorsFrom(error: unknown, mode: 'login' | 'register'): Auth
     if (/full_name/i.test(message)) fields.fullName = AUTH_MESSAGES.fullName
     else if (/email/i.test(message)) fields.email = AUTH_MESSAGES.email
     else if (/password/i.test(message)) {
-      fields.password = mode === 'register' && /8|longer/i.test(message) ? AUTH_MESSAGES.passwordMin : AUTH_MESSAGES.password
+      fields.password = mode === 'register' ? AUTH_MESSAGES.passwordMin : AUTH_MESSAGES.password
     }
   }
   return Object.keys(fields).length > 0 ? { fields, form: null } : { fields: {}, form: messages[0] ?? SERVER }

@@ -18,3 +18,15 @@ export async function fetchMe(): Promise<User> {
   const { data } = await api.get<User>('/auth/me')
   return data
 }
+
+/** POST /auth/change-password (JWT): 401 si la actual no coincide. Devuelve un JWT nuevo; los anteriores dejan de valer. */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>('/auth/change-password', { currentPassword, newPassword })
+  return data
+}
+
+/** PATCH /users/me (JWT): nombre y teléfono. El email no se puede cambiar. */
+export async function updateProfile(fullName: string, phone: string): Promise<User> {
+  const { data } = await api.patch<User>('/users/me', { full_name: fullName, phone })
+  return data
+}

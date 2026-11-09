@@ -15,6 +15,7 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const Orders = lazy(() => import('./pages/account/Orders'))
 const OrderDetail = lazy(() => import('./pages/account/OrderDetail'))
 const Addresses = lazy(() => import('./pages/account/Addresses'))
+const Profile = lazy(() => import('./pages/account/Profile'))
 const CategoryRedirect = lazy(() => import('./pages/CategoryRedirect'))
 const About = lazy(() => import('./pages/info/About'))
 const Faq = lazy(() => import('./pages/info/Faq'))
@@ -50,6 +51,7 @@ const router = createBrowserRouter([
               { path: 'pedidos', element: <Orders /> },
               { path: 'pedidos/:id', element: <OrderDetail /> },
               { path: 'direcciones', element: <Addresses /> },
+              { path: 'perfil', element: <Profile /> },
             ],
           },
           { path: '/nosotros', element: <About /> },

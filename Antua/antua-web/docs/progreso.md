@@ -415,3 +415,22 @@ curl -i "localhost:3000/products?limit=1000"   # 400
 curl -i -X PATCH  localhost:3000/products/$SLUG/reviews/$ID -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" -d '{"rating":4,"comment":"Muy rica"}'
 curl -i -X DELETE localhost:3000/products/$SLUG/reviews/$ID -H "Authorization: Bearer $JWT"   # 204; con el JWT de otra persona, 404
 ```
+
+### 9.7 Perfil
+
+**Qué faltaba:** `UsersController` estaba vacío.
+
+**Qué cambió:**
+- `GET` y `PATCH /users/me` (`src/users/users.controller.ts`): solo nombre y teléfono. El `ValidationPipe` con `whitelist` descarta cualquier otro campo, como `email`. El hash no sale porque `password_hash` lleva `@Exclude` y hay un interceptor global que lo aplica.
+- `POST /auth/change-password` (`src/auth/auth.service.ts`): pide la actual y aplica la política (`src/common/password-policy.ts`: 8 a 72 caracteres, una letra y un número; bcrypt ignora lo que pase de 72 bytes).
+- **Sesiones:** columna `users.password_changed_at` (migración `UserPasswordChangedAt`). `JwtStrategy` rechaza los JWT emitidos antes del cambio, así que una sesión robada deja de servir. El endpoint devuelve un JWT nuevo para la sesión actual.
+- **Login:** si el email no existe se compara igual contra un hash descartable, para que el tiempo de respuesta no revele qué cuentas existen.
+- **Front:** `/cuenta/perfil` con datos personales y cambio de contraseña, con validación en línea y foco en el primer error.
+
+**Tests:** `test/account.e2e-spec.ts` (sin datos sensibles, solo nombre y teléfono, validación, contraseña actual obligatoria, política, sesión vieja invalidada).
+
+```bash
+curl -s localhost:3000/users/me -H "Authorization: Bearer $JWT"
+curl -s -X PATCH localhost:3000/users/me -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" -d '{"full_name":"Ana","phone":"099 123 456"}'
+curl -s -X POST localhost:3000/auth/change-password -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" -d '{"currentPassword":"…","newPassword":"NuevaClave123"}'
+```

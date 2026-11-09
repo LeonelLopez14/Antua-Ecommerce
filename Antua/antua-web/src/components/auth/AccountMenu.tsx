@@ -100,6 +100,12 @@ export function AccountMenu({ buttonClassName }: AccountMenuProps) {
                 Direcciones
               </Link>
             </li>
+            <li>
+              <Link to="/cuenta/perfil" onClick={() => setOpen(false)} className={MENU_ITEM}>
+                <UserRound aria-hidden="true" className="size-4" />
+                Perfil
+              </Link>
+            </li>
           </ul>
           <button type="button" onClick={logout} className={`mt-1 ${MENU_ITEM}`}>
             <LogOut aria-hidden="true" className="size-4" />

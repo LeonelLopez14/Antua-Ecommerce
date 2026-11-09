@@ -2,7 +2,7 @@ import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'rea
 import { gsap, useGSAP } from '../../lib/gsap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { login, register } from '../../api/auth'
-import { AUTH_MESSAGES, authErrorsFrom, EMAIL_PATTERN, PASSWORD_MIN, type AuthErrors, type AuthField as FieldName } from '../../lib/authMessages'
+import { AUTH_MESSAGES, authErrorsFrom, EMAIL_PATTERN, isValidNewPassword, type AuthErrors, type AuthField as FieldName } from '../../lib/authMessages'
 import { useAuthModalStore, type AuthTab } from '../../stores/authModalStore'
 import { useAuthStore } from '../../stores/authStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -140,7 +140,7 @@ export function AuthModal() {
     const fields: AuthErrors['fields'] = {}
     if (!fullName) fields.fullName = AUTH_MESSAGES.fullName
     if (!EMAIL_PATTERN.test(email)) fields.email = AUTH_MESSAGES.email
-    if (password.length < PASSWORD_MIN) fields.password = AUTH_MESSAGES.passwordMin
+    if (!isValidNewPassword(password)) fields.password = AUTH_MESSAGES.passwordMin
     if (confirm !== password) fields.confirmPassword = AUTH_MESSAGES.confirm
     if (Object.keys(fields).length > 0) return showErrors({ fields, form: null })
 
