@@ -7,6 +7,7 @@ import {
   OneToOne,
   CreateDateColumn,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { User } from '../../users/entities/user.entity';
 import { Coupon } from '../../coupons/entities/coupon.entity';
 import { OrderItem } from './order-item.entity';
@@ -27,6 +28,12 @@ export class Order {
 
   @Column({ type: 'varchar', length: 150, nullable: true })
   guest_email: string | null;
+
+  // Hash del token que prueba que quien pregunta hizo este pedido de invitado.
+  // select: false + @Exclude: nunca sale en una respuesta.
+  @Column({ type: 'char', length: 64, nullable: true, select: false })
+  @Exclude()
+  guest_access_token_hash: string | null;
 
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;

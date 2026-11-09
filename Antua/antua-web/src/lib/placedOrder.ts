@@ -3,8 +3,8 @@ const KEY = 'antua.placedOrder'
 /** Último pedido creado en esta pestaña. Permite recargar la confirmación sin volver a crear el pedido. */
 export interface PlacedOrderRef {
   id: number
-  /** Solo para invitados: GET /orders/guest/:id pide el email. */
-  email: string | null
+  /** Solo invitados: token para volver a ver el pedido y vincularlo a una cuenta. Dura lo que la pestaña. */
+  accessToken: string | null
 }
 
 const isPlacedOrderRef = (value: unknown): value is PlacedOrderRef =>
@@ -12,8 +12,8 @@ const isPlacedOrderRef = (value: unknown): value is PlacedOrderRef =>
   value !== null &&
   'id' in value &&
   typeof value.id === 'number' &&
-  'email' in value &&
-  (value.email === null || typeof value.email === 'string')
+  'accessToken' in value &&
+  (value.accessToken === null || typeof value.accessToken === 'string')
 
 /** sessionStorage puede no existir (modo privado, storage bloqueado): nunca rompe el checkout. */
 export function readPlacedOrder(): PlacedOrderRef | null {

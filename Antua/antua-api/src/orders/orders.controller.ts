@@ -3,12 +3,12 @@ import {
   Get,
   Post,
   Param,
-  Query,
   Body,
   Req,
   UseGuards,
   ParseIntPipe,
   Headers,
+  HttpCode,
 } from '@nestjs/common';
 import { Request } from 'express';
 
@@ -49,11 +49,27 @@ export class OrdersController {
     return this.ordersService.findOne(orderId, req.user.id);
   }
 
+  // El token va en un header (no en la URL) para que no quede en logs ni en el historial.
   @Get('guest/:id')
   async findGuestOrder(
     @Param('id', ParseIntPipe) orderId: number,
-    @Query('email') email: string,
+    @Headers('x-order-token') accessToken: string | undefined,
   ) {
-    return this.ordersService.findGuestOrder(orderId, email);
+    return this.ordersService.findGuestOrder(orderId, accessToken);
+  }
+
+  @Post(':id/claim')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  async claim(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Req() req: Request & { user: { id: number } },
+    @Headers('x-order-token') accessToken: string | undefined,
+  ) {
+    return this.ordersService.claimGuestOrder(
+      orderId,
+      req.user.id,
+      accessToken,
+    );
   }
 }

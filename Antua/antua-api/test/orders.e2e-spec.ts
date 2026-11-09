@@ -6,6 +6,7 @@ import {
   createProduct,
   createTestApp,
   newGuestToken,
+  registerUser,
   resetDatabase,
   SHIPPING_DATA,
   TestApp,
@@ -126,5 +127,106 @@ describe('POST /orders', () => {
       .set('X-Guest-Token', token)
       .send(GUEST_ORDER)
       .expect(400);
+  });
+
+  describe('pedidos de invitado', () => {
+    const placeGuestOrder = async (email = 'invitado@antua.test') => {
+      const { variant } = await createProduct(db, `p-${Date.now()}`);
+      const token = await guestCartWith(variant.id, 1);
+      const res = await request(server())
+        .post('/orders')
+        .set('X-Guest-Token', token)
+        .send({ ...SHIPPING_DATA, guest_email: email })
+        .expect(201);
+      return res.body as { order: { id: number }; accessToken: string };
+    };
+
+    it('no devuelve el hash del token en ninguna respuesta', async () => {
+      const { order, accessToken } = await placeGuestOrder();
+      expect(accessToken).toEqual(expect.any(String));
+      expect(JSON.stringify(order)).not.toContain('guest_access_token_hash');
+
+      const res = await request(server())
+        .get(`/orders/guest/${order.id}`)
+        .set('X-Order-Token', accessToken)
+        .expect(200);
+      expect(JSON.stringify(res.body)).not.toContain('guest_access_token_hash');
+    });
+
+    it('no deja ver el pedido sabiendo solo el email', async () => {
+      const { order } = await placeGuestOrder();
+      await request(server())
+        .get(`/orders/guest/${order.id}?email=invitado@antua.test`)
+        .expect(404);
+    });
+
+    it('registrarse con el mismo email NO da acceso al pedido', async () => {
+      const { order } = await placeGuestOrder('victima@antua.test');
+      const attacker = await registerUser(app, 'victima@antua.test');
+
+      await request(server())
+        .get(`/orders/${order.id}`)
+        .set('Authorization', `Bearer ${attacker.token}`)
+        .expect(404);
+      await request(server())
+        .post(`/orders/${order.id}/claim`)
+        .set('Authorization', `Bearer ${attacker.token}`)
+        .expect(404);
+    });
+
+    it('otro usuario no puede reclamarlo con un token equivocado', async () => {
+      const { order } = await placeGuestOrder();
+      const other = await registerUser(app, 'otro@antua.test');
+
+      await request(server())
+        .post(`/orders/${order.id}/claim`)
+        .set('Authorization', `Bearer ${other.token}`)
+        .set('X-Order-Token', 'token-inventado')
+        .expect(404);
+    });
+
+    it('con el token, lo vincula a la cuenta una sola vez', async () => {
+      const { order, accessToken } = await placeGuestOrder();
+      const user = await registerUser(app, 'duena@antua.test');
+      const other = await registerUser(app, 'otra@antua.test');
+
+      await request(server())
+        .post(`/orders/${order.id}/claim`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .set('X-Order-Token', accessToken)
+        .expect(200);
+
+      const list = await request(server())
+        .get('/orders')
+        .set('Authorization', `Bearer ${user.token}`)
+        .expect(200);
+      expect(list.body).toHaveLength(1);
+
+      // El token ya no sirve: ni para otro usuario ni para verlo como invitado.
+      await request(server())
+        .post(`/orders/${order.id}/claim`)
+        .set('Authorization', `Bearer ${other.token}`)
+        .set('X-Order-Token', accessToken)
+        .expect(404);
+      await request(server())
+        .get(`/orders/guest/${order.id}`)
+        .set('X-Order-Token', accessToken)
+        .expect(404);
+    });
+
+    it('no se puede reclamar pasado el plazo', async () => {
+      const { order, accessToken } = await placeGuestOrder();
+      const user = await registerUser(app, 'tarde@antua.test');
+      await db.query(
+        'UPDATE orders SET created_at = DATE_SUB(NOW(), INTERVAL 2 DAY) WHERE id = ?',
+        [order.id],
+      );
+
+      await request(server())
+        .post(`/orders/${order.id}/claim`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .set('X-Order-Token', accessToken)
+        .expect(404);
+    });
   });
 });

@@ -34,10 +34,12 @@ export interface ApiOrderItem {
   variant: { id: number; name: string } | null
 }
 
-/** POST /orders responde `{ order, items }` (la orden sin ítems y los ítems aparte). */
+/** POST /orders responde `{ order, items, accessToken }` (la orden sin ítems y los ítems aparte). */
 export interface ApiCreateOrderResponse {
   order: ApiOrder
   items: ApiOrderItem[]
+  /** Solo invitados: prueba de que el pedido es suyo. Se entrega una única vez. */
+  accessToken: string | null
 }
 
 /** Body de POST /orders (orders/dto/create-order.dto.ts). `guest_email` es obligatorio sin JWT. */

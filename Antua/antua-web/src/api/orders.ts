@@ -34,14 +34,23 @@ function toOrder(order: ApiOrder, items: ApiOrderItem[] = order.items ?? []): Or
   }
 }
 
+const ORDER_TOKEN_HEADER = 'X-Order-Token'
+
+export interface CreatedOrder {
+  order: Order
+  /** Solo invitados: permite volver a ver el pedido y vincularlo a una cuenta. */
+  accessToken: string | null
+}
+
 /**
  * POST /orders (invitado con X-Guest-Token o usuario con JWT). El backend recalcula todo,
  * usa el cupón del carrito y vacía el carrito. Una segunda llamada responde 400
  * "El carrito está vacío", así que no se pueden duplicar pedidos.
+ * 409 PRICE_CHANGED si cambió algún precio (el carrito ya queda actualizado).
  */
-export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
+export async function createOrder(payload: CreateOrderPayload): Promise<CreatedOrder> {
   const { data } = await api.post<ApiCreateOrderResponse>('/orders', payload)
-  return toOrder(data.order, data.items)
+  return { order: toOrder(data.order, data.items), accessToken: data.accessToken }
 }
 
 /** GET /orders (JWT): pedidos del usuario, el más nuevo primero. El backend no pagina. */
@@ -56,8 +65,14 @@ export async function fetchOrder(id: number, signal?: AbortSignal): Promise<Orde
   return toOrder(data)
 }
 
-/** GET /orders/guest/:id?email= (sin sesión): 404 si el email no coincide. */
-export async function fetchGuestOrder(id: number, email: string, signal?: AbortSignal): Promise<Order> {
-  const { data } = await api.get<ApiOrder>(`/orders/guest/${id}`, { params: { email }, signal })
+/** GET /orders/guest/:id con X-Order-Token: 404 si el token no corresponde. */
+export async function fetchGuestOrder(id: number, accessToken: string, signal?: AbortSignal): Promise<Order> {
+  const { data } = await api.get<ApiOrder>(`/orders/guest/${id}`, { signal, headers: { [ORDER_TOKEN_HEADER]: accessToken } })
+  return toOrder(data)
+}
+
+/** POST /orders/:id/claim (JWT + X-Order-Token): vincula el pedido de invitado a la cuenta. Un solo uso. */
+export async function claimGuestOrder(id: number, accessToken: string): Promise<Order> {
+  const { data } = await api.post<ApiOrder>(`/orders/${id}/claim`, null, { headers: { [ORDER_TOKEN_HEADER]: accessToken } })
   return toOrder(data)
 }

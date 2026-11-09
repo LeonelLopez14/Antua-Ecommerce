@@ -336,3 +336,30 @@ curl -i -X POST localhost:3000/orders -H "Content-Type: application/json" -H "X-
   -d '{"guest_email":"a@b.test","shipping_full_name":"Ana","shipping_phone":"1155554444","shipping_street":"Calle 1","shipping_city":"Montevideo","shipping_postal_code":"11200"}'
 # → 409 {"code":"PRICE_CHANGED","changes":[{"productName":"…","oldPrice":1000,"newPrice":1200,…}]}
 ```
+
+### 9.2 Pedidos de invitado → cuenta
+
+**Qué faltaba:** un pedido de invitado no se podía pasar a una cuenta. Además, `GET /orders/guest/:id?email=` mostraba nombre, teléfono y dirección a quien supiera un id (son consecutivos) y un email.
+
+**Mecanismo elegido y por qué:** un token aleatorio de 256 bits por pedido, generado en `POST /orders`.
+- Vincular por email está prohibido a propósito: el email no se verifica, así que cualquiera podría registrarse con uno ajeno y quedarse con esos pedidos.
+- El token del carrito no sirve: se borra con el carrito y no identifica un pedido puntual.
+- El token de pedido solo lo tiene el navegador que hizo la compra. Se entrega una vez (`accessToken` en la respuesta) y en la base queda solo su hash SHA-256 (si la base se filtra, no sirve para reclamar nada). Es de un solo uso, vence a las 24 h y viaja en un header (`X-Order-Token`), no en la URL, para no quedar en logs ni en el historial.
+
+| Archivo | Qué cambió |
+|---|---|
+| `src/common/secure-token.ts` (nuevo) | Genera tokens, los hashea y los compara en tiempo constante. |
+| `src/orders/entities/order.entity.ts` | Columna `guest_access_token_hash`, con `select: false` y `@Exclude`: nunca sale en una respuesta. |
+| `src/orders/orders.service.ts` | `createOrder` genera el token. `findGuestOrder` lo exige. `claimGuestOrder` vincula y lo borra; todas las fallas responden el mismo 404, para no revelar qué pedidos existen. |
+| `src/orders/orders.controller.ts` | `GET /orders/guest/:id` con `X-Order-Token` (ya no acepta `?email=`) y nuevo `POST /orders/:id/claim`. |
+| Migración `GuestOrderAccessToken` | Agrega la columna (no toca datos). Los pedidos de invitado viejos no tienen token y no se pueden reclamar. |
+| Front: `pages/Checkout.tsx`, `lib/placedOrder.ts`, `api/orders.ts` | El token vive en `sessionStorage`. Al crear la cuenta (o iniciar sesión) desde la confirmación, se reclama ese pedido y se avisa con `aria-live`. |
+
+**Tests** (`test/orders.e2e-spec.ts`): no se filtra el hash; el email solo no alcanza; registrarse con el email de la víctima no da acceso; un token inventado falla; el reclamo correcto funciona una sola vez y el token muere; vencido a las 24 h.
+
+```bash
+# Con $ID y $ORDER_TOKEN (accessToken de POST /orders) y $JWT del usuario:
+curl -i localhost:3000/orders/guest/$ID -H "X-Order-Token: $ORDER_TOKEN"              # 200
+curl -i localhost:3000/orders/guest/$ID                                               # 404
+curl -i -X POST localhost:3000/orders/$ID/claim -H "Authorization: Bearer $JWT" -H "X-Order-Token: $ORDER_TOKEN"  # 200 la primera vez, 404 después
+```

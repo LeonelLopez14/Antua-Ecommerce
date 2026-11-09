@@ -5,7 +5,7 @@ import { useResource } from '../hooks/useResource'
 import { useAuthStore } from '../stores/authStore'
 import { useCartStore } from '../stores/cartStore'
 import { fetchAddresses } from '../api/addresses'
-import { createOrder, fetchGuestOrder, fetchOrder } from '../api/orders'
+import { claimGuestOrder, createOrder, fetchGuestOrder, fetchOrder } from '../api/orders'
 import {
   CHECKOUT_STEPS,
   EMPTY_CHECKOUT_FORM,
@@ -65,9 +65,10 @@ export default function Checkout() {
   const [placedRef] = useState(() => (step === 4 ? readPlacedOrder() : null))
   const [placed, setPlaced] = useState<Order | null>(null)
   const reloaded = useResource(placedRef ? `pedido-${placedRef.id}` : null, (signal) =>
-    placedRef?.email ? fetchGuestOrder(placedRef.id, placedRef.email, signal) : fetchOrder(placedRef?.id ?? 0, signal),
+    placedRef?.accessToken ? fetchGuestOrder(placedRef.id, placedRef.accessToken, signal) : fetchOrder(placedRef?.id ?? 0, signal),
   )
   const placedOrder = placed ?? (reloaded.state.status === 'ready' ? reloaded.state.data : null)
+  const [accessToken, setAccessToken] = useState(placedRef?.accessToken ?? null)
   const inPlacedFlow = placed !== null || placedRef !== null
 
   // Entrar a un checkout nuevo descarta la confirmación anterior y trae el carrito fresco.
@@ -156,7 +157,7 @@ export default function Checkout() {
     setPlacing(true)
     setOrderError(null)
     try {
-      const order = await createOrder({
+      const { order, accessToken: token } = await createOrder({
         guest_email: isGuest ? form.email.trim() : undefined,
         shipping_full_name: form.fullName.trim(),
         shipping_phone: form.phone.trim(),
@@ -164,7 +165,8 @@ export default function Checkout() {
         shipping_city: form.city.trim(),
         shipping_postal_code: form.postalCode.trim(),
       })
-      writePlacedOrder({ id: order.id, email: isGuest ? order.guestEmail : null })
+      writePlacedOrder({ id: order.id, accessToken: token })
+      setAccessToken(token)
       setPlaced(order)
       // El backend vació el carrito: se refleja en la Navbar.
       void loadCart()
@@ -178,6 +180,26 @@ export default function Checkout() {
       setPlacing(false)
     }
   }
+
+  // ---- Pedido de invitado → cuenta ----
+  // Al crear la cuenta (o iniciar sesión) desde la confirmación se vincula SOLO este pedido, con su token.
+  const claimingRef = useRef(false)
+  const [claimNotice, setClaimNotice] = useState('')
+  const placedOrderId = placedOrder?.id ?? null
+  useEffect(() => {
+    if (!loggedIn || !accessToken || placedOrderId === null || claimingRef.current) return
+    claimingRef.current = true
+    claimGuestOrder(placedOrderId, accessToken)
+      .then((order) => {
+        setPlaced(order)
+        setClaimNotice('Guardamos este pedido en tu cuenta.')
+      })
+      .catch(() => setClaimNotice('No pudimos guardar este pedido en tu cuenta, pero el pedido está registrado.'))
+      .finally(() => {
+        setAccessToken(null)
+        writePlacedOrder({ id: placedOrderId, accessToken: null })
+      })
+  }, [loggedIn, accessToken, placedOrderId])
 
   // ---- Foco y scroll al cambiar de paso ----
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -275,7 +297,7 @@ export default function Checkout() {
             </h2>
 
             {placedOrder ? (
-              <OrderPlaced order={placedOrder} isGuest={placedOrder.guestEmail !== null} />
+              <OrderPlaced order={placedOrder} isGuest={placedOrder.guestEmail !== null} claimNotice={claimNotice} />
             ) : step === 1 ? (
               <AddressStep
                 form={form}
