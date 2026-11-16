@@ -898,3 +898,30 @@ curl -s -H "$A" 'localhost:3000/admin/users?q=gmail&role=customer'
    - las subidas se validan por contenido, tamaño y nombre generado.
 8. **`git ls-files`:** no hay `.env`, `node_modules`, respaldos, builds ni subidas versionados.
 9. **Entorno:** después de un reinicio de la máquina, se volvieron a levantar solo la API (pagos simulados) y el front de este repo. No se tocó ningún otro servicio ni contenedor. La base temporal `antua_migr_tmp` se borró.
+
+## 16/11/2026: Fase 13, contenido real y control de calidad (`docs/prompt-fase-13-contenido-qa.md`)
+
+### Paso 0: estado base
+
+- Rama `feat/fase-13-contenido-qa`, creada desde `origin/main` (que ya incluye la Fase 12, PR #2). Base (3307), API (3000, en modo de pagos simulados) y front (5173) respondiendo.
+- **Front:** typecheck, lint y build sin errores; 32 unit tests y 5 e2e de Playwright OK.
+- **Back:** build, lint, 67 unit tests y 95 e2e OK.
+- **`/web-interface-guidelines`:** el archivo `antua-web/.claude/commands/web-interface-guidelines.md` existe, pero el comando **no está disponible en esta sesión**. Claude Code se abrió en `antua-api` y solo carga los comandos de esa carpeta. Para usarlo, hay que abrir la sesión en `antua-web` (o en la raíz, con el comando copiado a `.claude/commands/`).
+
+### Las migraciones ya no se aplican solas
+
+**Qué pasaba:**
+- `src/app.module.ts` tenía `migrationsRun: true`: al arrancar, la API aplicaba todas las migraciones pendientes.
+- Con `pnpm dev` en modo watch, una migración recién generada se aplicaba en segundos.
+- `migration:generate` a veces escribe `DROP COLUMN` + `ADD COLUMN` (por ejemplo, al ampliar un `varchar`).
+- Así, en la Fase 12, se vaciaron los ingredientes y alérgenos antes de que nadie pudiera leer la migración.
+
+**Qué cambió:**
+- **`src/app.module.ts`:** `migrationsRun: false`. Las migraciones se aplican a mano, con `pnpm migration:run`, después de leerlas.
+- **`src/main.ts`:** al arrancar, si falta alguna migración, la API lo **avisa en el log**, pero no la aplica.
+- **`scripts/seed.ts`:** antes también llamaba a `runMigrations()` por su cuenta. Ahora se niega a correr si hay pendientes.
+- **`test/helpers.ts`:** los e2e migran explícitamente, y solo si la base es `antua_test`.
+- **`package.json`:** `migration:run:dist` aplica las migraciones con el código compilado, para Docker (`docker compose run --rm api pnpm migration:run:dist`).
+- **Documentación:** README de la raíz y de la API, `Dockerfile` y `CLAUDE.md`.
+
+**En simple:** antes, la API era como un empleado que firmaba cualquier papel que le dejaran en el escritorio apenas entraba. Ahora te avisa que hay un papel para firmar, y lo firmás vos después de leerlo.

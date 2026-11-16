@@ -78,7 +78,12 @@ async function main() {
   ) as SeedData;
 
   await dataSource.initialize();
-  await dataSource.runMigrations();
+  // El seed no aplica migraciones: si falta alguna, se corre antes `pnpm migration:run` (después de leerla).
+  if (await dataSource.showMigrations()) {
+    throw new Error(
+      'Hay migraciones pendientes. Revisalas y corré `pnpm migration:run` antes del seed.',
+    );
+  }
 
   await dataSource.transaction(async (manager) => {
     const tags = manager.getRepository(Tag);

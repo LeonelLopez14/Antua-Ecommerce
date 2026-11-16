@@ -13,5 +13,5 @@ RUN pnpm --filter antua-api run build
 
 WORKDIR /app/antua-api
 EXPOSE 3000
-# Las migraciones se aplican solas al arrancar (migrationsRun).
+# Las migraciones NO se aplican al arrancar: `docker compose run --rm api pnpm migration:run:dist`.
 CMD ["node", "dist/main"]

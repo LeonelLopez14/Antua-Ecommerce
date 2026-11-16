@@ -28,7 +28,9 @@ docker compose up -d db
 
 # 2. API
 cp antua-api/.env.example antua-api/.env   # completar DB_PASSWORD y JWT_SECRET
-pnpm --filter antua-api seed               # aplica las migraciones y carga los datos de prueba
+pnpm --filter antua-api migration:show     # qué migraciones faltan (leelas antes de aplicarlas)
+pnpm --filter antua-api migration:run      # aplica las pendientes: la API no lo hace sola
+pnpm --filter antua-api seed               # carga los datos de prueba
 pnpm dev:api                               # http://localhost:3000
 
 # 3. Front, en otra terminal
@@ -42,6 +44,8 @@ pnpm dev:web                               # http://localhost:5173
 cp .env.example .env
 cp antua-api/.env.example antua-api/.env
 docker compose --profile web up -d --build
+# La API no migra sola: aplicá las migraciones (después de leerlas) con el código compilado de la imagen
+docker compose run --rm api pnpm migration:run:dist
 ```
 
 Los puertos son configurables en `.env` (`MYSQL_PORT`, `API_PORT`, `WEB_PORT`). El archivo `docker-compose.yml` no contiene credenciales.
@@ -68,13 +72,16 @@ Las imágenes que se suben desde el panel van a `UPLOADS_DIR` (por defecto `antu
 
 ## Migraciones y datos de prueba
 
-El esquema se gestiona con migraciones de TypeORM (`antua-api/src/database/migrations`), que se aplican solas al arrancar la API.
+El esquema se gestiona con migraciones de TypeORM (`antua-api/src/database/migrations`). **La API no las aplica sola al arrancar** (`migrationsRun: false`). Una migración nueva se lee y recién después se aplica con `migration:run`. Si falta alguna, la API lo avisa en el log y el seed se niega a correr.
+
+**Por qué:** `migration:generate` puede escribir `DROP COLUMN` + `ADD COLUMN` cuando en realidad solo se amplía una columna, y eso borra datos. Con la aplicación automática y `pnpm dev` en modo watch, una migración recién generada llegaba a la base en segundos, antes de poder leerla. En la Fase 12 así se vaciaron los ingredientes y alérgenos (se restauraron desde un respaldo).
 
 | Comando (con `pnpm --filter antua-api`) | Qué hace |
 |---|---|
 | `migration:show` | Muestra qué migraciones faltan |
 | `migration:run` | Aplica las pendientes |
 | `migration:revert` | Revierte la última |
+| `migration:run:dist` | Igual que `migration:run`, pero con el código compilado (`dist/`). Es la que se usa en Docker |
 | `seed` | Carga productos, tags, cupones y usuarios de prueba. Se puede repetir. |
 | `seed:clean --yes` | Borra los datos de prueba, los pedidos que los incluyan y las imágenes subidas a esos productos |
 | `admin:create` | Crea el primer administrador (ver arriba) |

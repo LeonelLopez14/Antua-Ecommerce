@@ -30,7 +30,8 @@ Copiá `.env.example` a `.env`. La API valida el entorno al arrancar (`src/confi
 | `pnpm build` | Compila a `dist/` |
 | `pnpm test` / `pnpm test:e2e` | Unitarios / e2e contra la base `antua_test` |
 | `pnpm migration:generate src/database/migrations/Nombre` | Genera una migración desde los cambios en las entidades |
-| `pnpm migration:run` / `:revert` / `:show` | Aplica, revierte o muestra migraciones |
+| `pnpm migration:run` / `:revert` / `:show` | Aplica, revierte o muestra migraciones. **La API no migra sola**: leé la migración y aplicala con `migration:run` |
+| `pnpm migration:run:dist` | Aplica las migraciones con el código compilado (Docker o producción) |
 | `pnpm admin:create` | Crea un administrador (pide los datos o usa `ADMIN_EMAIL`, `ADMIN_NAME` y `ADMIN_PASSWORD`). `--promote` asciende una cuenta existente |
 | `pnpm seed` / `pnpm seed:clean --yes` | Carga o borra los datos de prueba (con `SEED_ADMIN_PASSWORD`, también un admin de desarrollo) |
 | `pnpm payments:simulate <pedido> <estado>` | Envía un webhook firmado a una API simulada |
