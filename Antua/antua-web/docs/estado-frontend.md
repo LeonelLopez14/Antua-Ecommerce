@@ -56,7 +56,7 @@ Para probar los pagos sin credenciales: levantá la API con `PAYMENTS_SIMULATED=
 
 ## Decisiones abiertas
 
-1. **Moneda y país.** Los pagos usan `UYU` (Mercado Pago Uruguay), pero los precios se muestran con formato `es-AR`/`ARS` y el contacto dice Buenos Aires. El símbolo se ve igual (`$`), pero hay que definir el país y unificarlo en `lib/format.ts`.
+1. **Moneda y país:** resuelto en la Fase 12, UYU con `es-UY` en toda la app (`lib/format.ts`). Falta el email de contacto real (hoy dice `.com.ar`).
 2. **Valor real de `SHIPPING_FLAT_RATE`** y de `SHIPPING_ETA_DAYS` (esta última no está en el `.env`, así que hoy no se muestra plazo).
 3. **Verificación de email:** no existe. Por eso `POST /auth/register` responde 409 si el email ya existe (revela cuentas), y por eso los pedidos nunca se vinculan por email.
 4. **Pagos duplicados:** si alguien abre dos checkouts y paga los dos, el segundo queda registrado y hay que devolverlo a mano. Lo mismo con un pago aprobado después de vencer el pedido (`paid_after_cancel`).

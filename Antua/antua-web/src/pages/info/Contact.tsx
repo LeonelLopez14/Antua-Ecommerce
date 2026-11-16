@@ -25,7 +25,7 @@ export default function Contact() {
           <MapPin aria-hidden="true" className="mt-1 size-5 shrink-0 text-accent-main dark:text-dark-accent-main" />
           <div>
             <p className="font-bold">Dónde estamos</p>
-            <p>Buenos Aires, Argentina</p>
+            <p>Montevideo, Uruguay</p>
           </div>
         </li>
       </ul>

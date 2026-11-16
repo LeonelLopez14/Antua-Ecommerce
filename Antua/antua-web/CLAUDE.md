@@ -48,7 +48,7 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 
 ### Montos y formato
 - **Ningún monto se calcula en el cliente:** subtotal, descuento, envío y total salen del backend (carrito o pedido). Se muestra "cantidad × precio unitario", nunca un total por línea calculado.
-- Precios con `formatPrice` y fechas con `formatDate` (`lib/format.ts`, `Intl` es-AR). Siempre `tabular-nums` en montos.
+- Moneda única: **UYU con `es-UY`**, la misma que usa el backend en los pagos (`PAYMENT_CURRENCY`). Precios con `formatPrice` (o `formatExactPrice` si hay centavos) y fechas con `formatDate`/`formatDateTime` (`lib/format.ts`, el único lugar con `Intl`). Nunca otro formateador. Siempre `tabular-nums` en montos.
 
 ### Manejo de errores
 - **API:**

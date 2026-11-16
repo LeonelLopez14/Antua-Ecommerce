@@ -825,3 +825,15 @@ curl -s -H "$A" 'localhost:3000/admin/reviews?hidden=false&rating=1'
 curl -s -H "$A" -H 'Content-Type: application/json' -X PATCH localhost:3000/admin/reviews/7 -d '{"is_hidden":true}'
 curl -s -H "$A" 'localhost:3000/admin/users?q=gmail&role=customer'
 ```
+
+### Moneda: UYU en toda la app
+
+**Qué pasaba:** los pagos se cobraban en `UYU` (`PAYMENT_CURRENCY` en antua-api, por defecto `UYU`), pero el front mostraba los precios con `es-AR`/`ARS`, y el contacto decía Buenos Aires.
+
+**Qué cambió:**
+- `src/lib/format.ts` es el **único** lugar con `Intl`: `LOCALE = 'es-UY'` y `CURRENCY = 'UYU'`. Lo usa toda la app, panel incluido.
+- Funciones nuevas en ese archivo: `formatExactPrice`, para precios con centavos en el panel; `formatNumber`; `formatDateTime`, en hora de Montevideo; y `formatShortDay`, para el gráfico.
+- La ubicación provisoria del footer y de Contacto pasa a "Montevideo, Uruguay". El email sigue siendo provisorio.
+- La regla quedó en `CLAUDE.md`.
+
+**Confirmado:** el backend guarda los montos sin moneda (`decimal`), y el único lugar donde la declara es Payments (`UYU`), que coincide.
