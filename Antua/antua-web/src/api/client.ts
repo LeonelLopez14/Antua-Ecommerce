@@ -55,3 +55,12 @@ export function getApiErrorMessage(error: unknown, fallback = 'Algo salió mal. 
 export function isNotFoundError(error: unknown): boolean {
   return isAxiosError(error) && error.response?.status === 404
 }
+
+/**
+ * URL de una imagen de producto. Las subidas desde el panel las sirve la API en /uploads
+ * (en desarrollo pasan por el proxy /api); las demás (seed, externas) quedan como están.
+ */
+export function imageUrl(url: string): string {
+  if (!url.startsWith('/uploads/')) return url
+  return `${api.defaults.baseURL ?? ''}${url}`
+}

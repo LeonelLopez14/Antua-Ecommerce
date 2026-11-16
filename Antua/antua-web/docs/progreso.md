@@ -837,3 +837,38 @@ curl -s -H "$A" 'localhost:3000/admin/users?q=gmail&role=customer'
 - La regla quedó en `CLAUDE.md`.
 
 **Confirmado:** el backend guarda los montos sin moneda (`decimal`), y el único lugar donde la declara es Payments (`UYU`), que coincide.
+
+### 12.2 a 12.7: panel en el front (`/admin`)
+
+**Estructura.**
+- **Un solo chunk:**
+  - `src/pages/admin/index.ts` reexporta todas las páginas del panel, y `App.tsx` las carga con `lazy(() => import('./pages/admin'))`. Vite arma un único chunk `admin-*.js` (96,8 kB, 25 kB gzip) que la tienda nunca descarga.
+  - El `index` principal creció 2,8 kB: las rutas, el link del menú y `imageUrl`.
+  - Three.js no se importa en el panel.
+- **`AdminLayout`:**
+  - Barra lateral con 8 secciones, encabezado con el usuario, "Ver la tienda", tema y "Cerrar sesión", y skip link.
+  - `meta robots noindex`, y `public/robots.txt` excluye `/admin`.
+- **Acceso.** La seguridad real la hace el backend; esto es solo comodidad.
+  - Sin sesión, abre el AuthModal y queda en la misma URL.
+  - Con una cuenta `customer`, muestra "No tenés permiso".
+  - Si la sesión se guardó antes de que existieran los roles, espera a `/auth/me`.
+  - El link "Administración" del menú de cuenta solo aparece para admins.
+  - `User` ahora tiene `role`.
+- **Componentes** (`src/components/admin/`):
+  - `DataTable`: con `caption`, `th scope`, `aria-sort`, orden con links reales y una región con nombre y scroll horizontal, así a 375 px no rompe la página.
+  - `StatusBadge` (ícono + texto) y `Toaster` (avisos con `aria-live`; los errores como `role="alert"`).
+  - Campos (`TextAreaField`, `SelectField` con colores explícitos y `CheckboxField` con una sola zona de clic) y `SearchField` con debounce.
+  - `useAdminQuery`: filtros, orden y página en la URL.
+  - `useUnsavedChanges` + `UnsavedChangesDialog`: `useBlocker` y `beforeunload`, con `allowNextNavigation()` para la navegación que sigue a un guardado.
+  - Se reutilizan `Button`, `ConfirmDialog`, `Dialog`, `FormField`, `EmptyState`, `ErrorState` y la `Pagination` de la Tienda.
+- **Páginas:**
+  - **Resumen:** tarjetas y gráfico SVG propio (`SalesChart`, sin librerías), con título y descripción accesibles, `<title>` por barra y una tabla alternativa.
+  - **Productos:** lista con filtros y orden en la URL, y un editor por secciones: datos y tags, variantes y stock (diálogos para editar y mover stock con motivo), imágenes (vista previa, principal, orden y borrado) y borrado o desactivación.
+  - **Tags.**
+  - **Cupones:** lista y formulario. Las fechas son días de calendario de Montevideo.
+  - **Pedidos:** lista con filtros y detalle con acciones de estado (con confirmación), nota interna e historial.
+  - **Reseñas:** ocultar o mostrar, y borrar con confirmación.
+  - **Usuarios:** solo lectura.
+  - **Auditoría.**
+- **Validación en línea** (`src/lib/adminForms.ts`, con unit tests): las mismas reglas que los DTOs. Al guardar, el foco va al primer error. Toda acción destructiva pide confirmación, y su resultado se anuncia con un toast.
+- **Imágenes subidas:** la API devuelve `/uploads/…` y el front lo resuelve contra la URL de la API (`imageUrl` en `api/client.ts`). En desarrollo pasa por el proxy `/api`.

@@ -1,10 +1,11 @@
-import { lazy } from 'react'
+import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { RootLayout } from './layouts/RootLayout'
 import { MainLayout } from './layouts/MainLayout'
 import { CheckoutLayout } from './layouts/CheckoutLayout'
 import { AccountLayout } from './layouts/AccountLayout'
 import RouteError from './pages/RouteError'
+import { PageSkeleton } from './components/layout/PageSkeleton'
 
 // Cada página es un chunk aparte. La Home trae el hero 3D (Three/R3F en su propio chunk, solo ahí).
 const Home = lazy(() => import('./pages/Home'))
@@ -25,6 +26,21 @@ const Faq = lazy(() => import('./pages/info/Faq'))
 const Contact = lazy(() => import('./pages/info/Contact'))
 const Terms = lazy(() => import('./pages/info/Terms'))
 const Privacy = lazy(() => import('./pages/info/Privacy'))
+
+// Panel de administración: un solo chunk (pages/admin/index.ts) que la tienda nunca descarga.
+const admin = () => import('./pages/admin')
+const AdminLayout = lazy(() => admin().then((m) => ({ default: m.AdminLayout })))
+const AdminDashboard = lazy(() => admin().then((m) => ({ default: m.Dashboard })))
+const AdminProducts = lazy(() => admin().then((m) => ({ default: m.Products })))
+const AdminProductEditor = lazy(() => admin().then((m) => ({ default: m.ProductEditor })))
+const AdminTags = lazy(() => admin().then((m) => ({ default: m.Tags })))
+const AdminCoupons = lazy(() => admin().then((m) => ({ default: m.Coupons })))
+const AdminCouponEditor = lazy(() => admin().then((m) => ({ default: m.CouponEditor })))
+const AdminOrders = lazy(() => admin().then((m) => ({ default: m.Orders })))
+const AdminOrderDetail = lazy(() => admin().then((m) => ({ default: m.OrderDetail })))
+const AdminReviews = lazy(() => admin().then((m) => ({ default: m.Reviews })))
+const AdminUsers = lazy(() => admin().then((m) => ({ default: m.Users })))
+const AdminAudit = lazy(() => admin().then((m) => ({ default: m.Audit })))
 
 /**
  * Rutas. Se usa un data router (createBrowserRouter) porque el checkout necesita
@@ -64,6 +80,29 @@ const router = createBrowserRouter([
           { path: '/contacto', element: <Contact /> },
           { path: '/terminos', element: <Terms /> },
           { path: '/privacidad', element: <Privacy /> },
+          { path: '*', element: <NotFound /> },
+        ],
+      },
+      {
+        // Panel (solo admins; la seguridad real está en el backend). Layout propio, sin Navbar ni footer.
+        path: '/admin',
+        element: (
+          <Suspense fallback={<PageSkeleton />}>
+            <AdminLayout />
+          </Suspense>
+        ),
+        children: [
+          { index: true, element: <AdminDashboard /> },
+          { path: 'productos', element: <AdminProducts /> },
+          { path: 'productos/:id', element: <AdminProductEditor /> },
+          { path: 'tags', element: <AdminTags /> },
+          { path: 'cupones', element: <AdminCoupons /> },
+          { path: 'cupones/:id', element: <AdminCouponEditor /> },
+          { path: 'pedidos', element: <AdminOrders /> },
+          { path: 'pedidos/:id', element: <AdminOrderDetail /> },
+          { path: 'resenas', element: <AdminReviews /> },
+          { path: 'usuarios', element: <AdminUsers /> },
+          { path: 'auditoria', element: <AdminAudit /> },
           { path: '*', element: <NotFound /> },
         ],
       },

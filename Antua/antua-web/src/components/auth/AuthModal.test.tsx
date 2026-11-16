@@ -13,7 +13,7 @@ vi.mock('../../api/auth', () => ({ login: vi.fn(), register: vi.fn(), fetchMe: v
 
 const session = {
   token: 'jwt-1',
-  user: { id: 7, full_name: 'Ana Pérez', email: 'ana@antua.test', phone: null, created_at: '2026-11-01T10:00:00Z' },
+  user: { id: 7, full_name: 'Ana Pérez', email: 'ana@antua.test', phone: null, role: 'customer' as const, created_at: '2026-11-01T10:00:00Z' },
 }
 
 const unauthorized = new AxiosError('Unauthorized', '401', undefined, undefined, {

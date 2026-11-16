@@ -1,4 +1,4 @@
-import { api } from './client'
+import { api, imageUrl } from './client'
 import type { ApiDecimal, ApiProduct, ApiReview, ApiTag, Product, Review, Tag } from '../types/product'
 import { toProductFilterParams, type ShopFacets, type ShopQuery, type ShopResult } from '../lib/shopQuery'
 
@@ -26,7 +26,8 @@ function toProduct(product: ApiProduct): Product {
     isActive: product.is_active,
     fromPrice: prices.length > 0 ? Math.min(...prices) : 0,
     variants,
-    images: [...product.images].sort((a, b) => a.sort_order - b.sort_order).map((i) => ({ id: i.id, url: i.url })),
+    // El backend ya manda la principal primero (toPublicProduct); se respeta ese orden.
+    images: product.images.map((i) => ({ id: i.id, url: imageUrl(i.url) })),
     tags: product.productTags.map((pt) => toTag(pt.tag)),
   }
 }
