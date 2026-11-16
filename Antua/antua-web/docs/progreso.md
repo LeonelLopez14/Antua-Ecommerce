@@ -648,3 +648,71 @@ curl -i localhost:3000/admin/audit
 curl -i -H "Authorization: Bearer $JWT_CLIENTE" localhost:3000/admin/audit
 curl -s -H "Authorization: Bearer $JWT_ADMIN" 'localhost:3000/admin/audit?entity=product&page=1'
 ```
+
+### 12.2: catálogo en el panel (backend)
+
+**Qué faltaba.**
+- Las escrituras del catálogo eran `POST/PATCH/DELETE /products` y `/tags` con una clave compartida (`X-Admin-Key`).
+- No había variantes, stock con motivo, imágenes ni reglas de borrado.
+
+**Qué cambió.**
+- **`ADMIN_API_KEY` se retiró.** No tenía otro uso. Se borraron:
+  - `src/common/admin-key.guard.ts`;
+  - las escrituras de `src/products/products.controller.ts` y `src/tags/tags.controller.ts`, que ahora son solo lectura;
+  - sus DTOs viejos;
+  - la variable de `.env.example` y de los tests.
+
+  `test/security.e2e-spec.ts` comprueba que esas rutas responden 404 y que mandar `X-Admin-Key` a `/admin` da 401. Si tu `.env` todavía tiene `ADMIN_API_KEY`, ya no se usa: podés borrarla.
+- **`src/admin/catalog/admin-products.service.ts`**, el servicio del catálogo para el panel. Cada escritura corre en una transacción y escribe su auditoría en esa misma transacción.
+  - **Listado** con búsqueda por nombre, slug o SKU; filtros activo/inactivo, tag y stock bajo; orden; y paginación con tope de 50. El `LIKE` escapa `%` y `_`.
+  - **Slug:** si no se manda, se genera desde el nombre (`slug.ts`: sin tildes ni eñes). Si choca, se agrega `-2`, `-3`… Si se manda uno a mano que ya existe, responde 409.
+  - **`base_price`** se recalcula como el menor precio de las variantes activas (`syncBasePrice`). El panel nunca lo pide.
+  - **Activación:** un producto nuevo arranca inactivo y solo se puede activar con al menos una variante activa (409). Si se desactiva su última variante, el producto se desactiva solo.
+- **Variantes** (`dto/admin-product.dto.ts`):
+  - El nombre es `x1`, `x6` o `x12`, una de cada una por producto.
+  - El precio es positivo, con 2 decimales como máximo (`IsNumber({ maxDecimalPlaces: 2 })`), igual que la columna `decimal(10,2)`.
+  - El SKU es único (409 si se repite).
+  - El stock **no** se edita por `PATCH`: el DTO no tiene ese campo, y `whitelist` lo descarta.
+- **Stock con motivo:** `POST /admin/products/:id/variants/:variantId/stock` con `reason` (`restock`, `shrinkage` o `adjustment`) y `quantity`.
+  - La cuenta la hace la función pura `nextStock`, con unit test. Una merma no puede dejar el stock negativo (409).
+  - La fila de la variante se bloquea (`pessimistic_write`) para no pisar un pedido que entra al mismo tiempo.
+  - La auditoría guarda el antes, el después y el motivo.
+- **Borrado:** si el producto o la variante aparece en `order_items` o en `cart_items` (o tiene reseñas), **no se borra: se desactiva**. La respuesta lo explica: `{ deleted: false, deactivated: true, message: "Tiene pedidos o carritos asociados…" }`. Solo se borra físicamente lo que no tiene historial, y en ese caso también se borran sus archivos de imagen.
+- **Imágenes** (`image-file.ts`):
+  - `FileInterceptor` de multer las recibe **en memoria**, con un límite de 2 MB (413 si se pasa) y un solo archivo.
+  - `detectImageKind` mira los primeros bytes (la "firma" de JPEG, PNG y WebP). La extensión y el `Content-Type` los manda el navegador y se pueden falsificar: un HTML renombrado a `.png` se rechaza con 400.
+  - El nombre lo genera el servidor: 32 caracteres hex aleatorios más la extensión del tipo real. Se escribe con `flag: 'wx'`, que nunca pisa un archivo existente.
+  - Hasta 10 imágenes por producto. La primera queda como principal, y hay endpoints para cambiar el orden y la principal.
+  - Al borrar una imagen se borra su archivo, pero solo si el nombre tiene el formato generado; nunca una ruta armada con datos de afuera.
+- **Archivos estáticos** (`src/app.setup.ts`): `/uploads` sirve `UPLOADS_DIR` con `express.static`, con estas opciones y cabeceras:
+  - sin listado de carpeta ni archivos ocultos;
+  - `nosniff`;
+  - `Content-Security-Policy: default-src 'none'; sandbox`: aunque se colara un HTML, no ejecutaría nada;
+  - `Cross-Origin-Resource-Policy: cross-origin`, para que el front pueda mostrarlas desde otro origen.
+
+  Un test comprueba que `/uploads/../package.json` no sale.
+- **Configuración** (`src/config/env.validation.ts`):
+  - `UPLOADS_DIR`: por defecto `uploads/` y nunca dentro de `src/`.
+  - `LOW_STOCK_THRESHOLD`: por defecto 5.
+
+  Las dos tienen tests en `env.validation.spec.ts`.
+- **Docker:** `docker-compose.yml` monta el volumen `uploads_data` en `/data/uploads`, así las imágenes sobreviven a reinicios y rebuilds. `uploads/` está en `.gitignore` y `.dockerignore`.
+- **Tags** (`admin-tags.service.ts`):
+  - Se pueden crear, renombrar y activar o desactivar. No hay `DELETE`.
+  - Los slugs que usa la Home (`clasicas`, `sin-gluten`, `veganas`, `sin-azucar`, `packs`) no cambian (409).
+  - El público solo ve los tags activos: `GET /tags`, las facetas y el filtro de la Tienda.
+- **Público** (`src/products/products.service.ts`, `toPublicProduct`): saca los tags inactivos y las reseñas ocultas, y pone la imagen principal primero. Se reformateó con Prettier: tenía un `eslint-disable prettier` y otra indentación.
+
+```bash
+A="Authorization: Bearer $JWT_ADMIN"
+curl -s -H "$A" 'localhost:3000/admin/products?q=chips&status=active&lowStock=true&page=1'
+curl -s -H "$A" -H 'Content-Type: application/json' -X POST localhost:3000/admin/products \
+  -d '{"name":"Galleta de maní","description":"…","ingredients":"Harina, maní","allergens":"Maní","tagIds":[1]}'
+curl -s -H "$A" -H 'Content-Type: application/json' -X POST localhost:3000/admin/products/14/variants \
+  -d '{"name":"x6","price":5400,"stock":12,"sku":"MANI-X6"}'
+curl -s -H "$A" -H 'Content-Type: application/json' -X POST localhost:3000/admin/products/14/variants/40/stock \
+  -d '{"reason":"shrinkage","quantity":2,"note":"Se rompieron"}'
+curl -s -H "$A" -F file=@foto.webp localhost:3000/admin/products/14/images
+curl -s -H "$A" -X DELETE localhost:3000/admin/products/14   # → {"deleted":false,"deactivated":true,"message":"…"} si tiene historial
+curl -s -H "$A" -H 'Content-Type: application/json' -X PATCH localhost:3000/admin/tags/1 -d '{"slug":"otra"}'  # → 409 si es de la Home
+```

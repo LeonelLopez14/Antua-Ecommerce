@@ -63,5 +63,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .env.*
 !.env.example
 
+# Imágenes subidas desde el panel (UPLOADS_DIR): son datos, no código
+uploads/
+
 # Artefactos de playwright-cli
 .playwright-cli/

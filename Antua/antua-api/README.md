@@ -15,7 +15,8 @@ Copiá `.env.example` a `.env`. La API valida el entorno al arrancar (`src/confi
 | `SHIPPING_ETA_DAYS` | No | Plazo estimado en días; vacía, no se muestra |
 | `FRONTEND_URL` | No | Links de los mails. Por defecto, `http://localhost:5173` |
 | `CORS_ORIGINS` | No | Orígenes permitidos, separados por coma; nunca `*` |
-| `ADMIN_API_KEY` | No | Header `X-Admin-Key` para escribir productos y tags. Vacía, nadie puede |
+| `UPLOADS_DIR` | No | Carpeta de las imágenes del panel. Por defecto `uploads/` (en `.gitignore`); nunca dentro de `src/` |
+| `LOW_STOCK_THRESHOLD` | No | Umbral de "stock bajo" del panel. Por defecto `5` |
 | `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` | No | Credenciales **de prueba** de Mercado Pago. Sin ellas, los pagos quedan deshabilitados |
 | `MP_PUBLIC_API_URL`, `MP_PUBLIC_FRONTEND_URL` | Con pagos | URLs públicas HTTPS |
 | `PAYMENT_CURRENCY`, `PAYMENT_EXPIRATION_HOURS` | No | Por defecto, `UYU` y `48` |

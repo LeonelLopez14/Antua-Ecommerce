@@ -10,8 +10,6 @@ import {
   TestApp,
 } from './helpers';
 
-const ADMIN_KEY = 'clave-de-prueba-para-los-e2e';
-
 describe('endurecimiento', () => {
   let app: TestApp;
   let db: DataSource;
@@ -23,38 +21,23 @@ describe('endurecimiento', () => {
   afterAll(() => app.close());
 
   const server = () => app.getHttpServer();
-  const product = {
-    name: 'Nuevo',
-    slug: 'nuevo',
-    ingredients: 'x',
-    allergens: 'x',
-    description: 'x',
-    base_price: 100,
-    is_active: true,
-  };
-
   it('GET /health informa el estado de la base', async () => {
     const res = await request(server()).get('/health').expect(200);
     expect(res.body).toEqual({ status: 'ok', database: 'up' });
   });
 
-  it('las escrituras del catálogo exigen la clave de administración', async () => {
-    await request(server()).post('/products').send(product).expect(403);
+  it('el catálogo público es de solo lectura: las escrituras viven en /admin', async () => {
+    const body = { name: 'Nuevo', slug: 'nuevo' };
+    await request(server()).post('/products').send(body).expect(404);
+    await request(server()).patch('/products/1').send(body).expect(404);
+    await request(server()).delete('/products/1').expect(404);
+    await request(server()).post('/tags').send(body).expect(404);
+    // La vieja clave compartida ya no abre nada.
     await request(server())
-      .post('/products')
-      .set('X-Admin-Key', 'equivocada')
-      .send(product)
-      .expect(403);
-    await request(server()).delete('/products/1').expect(403);
-    await request(server())
-      .post('/tags')
-      .send({ name: 'a', slug: 'a' })
-      .expect(403);
-    await request(server())
-      .post('/products')
-      .set('X-Admin-Key', ADMIN_KEY)
-      .send(product)
-      .expect(201);
+      .post('/admin/products')
+      .set('X-Admin-Key', 'cualquier-cosa')
+      .send(body)
+      .expect(401);
   });
 
   it('envía cabeceras de seguridad y no permite orígenes ajenos', async () => {

@@ -1,3 +1,5 @@
+import { isAbsolute, relative, resolve } from 'node:path';
+
 // Valida el .env al arrancar. Si algo falta o está mal, Nest no levanta y
 // muestra el motivo, en vez de fallar más tarde con un total NaN.
 
@@ -23,6 +25,8 @@ export interface ValidatedEnv extends Record<string, unknown> {
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
   PAYMENTS: PaymentsConfig;
+  UPLOADS_DIR: string;
+  LOW_STOCK_THRESHOLD: number;
 }
 
 export function parseShippingFlatRate(raw: unknown): number {
@@ -190,6 +194,33 @@ export function parsePaymentsConfig(
   };
 }
 
+/**
+ * Carpeta de las imágenes subidas desde el panel. Por defecto `uploads/` (relativa a donde corre
+ * la API, en .gitignore). Nunca dentro de `src/`: una subida no puede pisar código.
+ */
+export function parseUploadsDir(raw: unknown, cwd = process.cwd()): string {
+  const dir = resolve(cwd, textOf(raw) || 'uploads');
+  const fromSrc = relative(resolve(cwd, 'src'), dir);
+  if (fromSrc === '' || (!fromSrc.startsWith('..') && !isAbsolute(fromSrc))) {
+    throw new Error(
+      `UPLOADS_DIR no puede estar dentro de src/ (recibido: ${dir}).`,
+    );
+  }
+  return dir;
+}
+
+/** Variantes con este stock o menos se marcan como "stock bajo" en el panel. Por defecto 5. */
+export function parseLowStockThreshold(raw: unknown): number {
+  const text = textOf(raw) || '5';
+  const value = Number(text);
+  if (!Number.isInteger(value) || value < 0 || value > 10_000) {
+    throw new Error(
+      `LOW_STOCK_THRESHOLD tiene que ser un entero de 0 a 10000 (recibido: ${text}).`,
+    );
+  }
+  return value;
+}
+
 export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
   return {
     ...config,
@@ -200,5 +231,7 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     JWT_SECRET: parseJwtSecret(config.JWT_SECRET),
     JWT_EXPIRES_IN: parseJwtExpiresIn(config.JWT_EXPIRES_IN),
     PAYMENTS: parsePaymentsConfig(config),
+    UPLOADS_DIR: parseUploadsDir(config.UPLOADS_DIR),
+    LOW_STOCK_THRESHOLD: parseLowStockThreshold(config.LOW_STOCK_THRESHOLD),
   };
 }

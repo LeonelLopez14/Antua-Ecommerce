@@ -7,5 +7,6 @@
 **/test-results
 **/playwright-report
 **/*.sql
+**/uploads
 antua-web/docs/checks
 .git

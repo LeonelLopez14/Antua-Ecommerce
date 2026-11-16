@@ -29,6 +29,10 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: ${DB_PASSWORD:?Definí DB_PASSWORD en .env}
       DB_DATABASE: ${DB_DATABASE:-antua_db}
+      # Imágenes subidas desde el panel: en un volumen, para que sobrevivan a reinicios y rebuilds.
+      UPLOADS_DIR: /data/uploads
+    volumes:
+      - uploads_data:/data/uploads
     ports:
       - '${API_BIND:-127.0.0.1}:${API_PORT:-3000}:3000'
     depends_on:
@@ -55,3 +59,4 @@ services:
 
 volumes:
   db_data:
+  uploads_data:

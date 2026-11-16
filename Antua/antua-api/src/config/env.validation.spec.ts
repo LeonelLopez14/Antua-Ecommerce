@@ -1,4 +1,6 @@
 import {
+  parseLowStockThreshold,
+  parseUploadsDir,
   parseCorsOrigins,
   parseJwtExpiresIn,
   parseJwtSecret,
@@ -90,6 +92,28 @@ describe('validación del entorno', () => {
       expect(() =>
         parsePaymentsConfig({ ...real, PAYMENTS_SIMULATED: 'true' }),
       ).toThrow('PAYMENTS_SIMULATED');
+    });
+  });
+
+  describe('UPLOADS_DIR', () => {
+    it('por defecto es uploads/ junto a la API', () => {
+      expect(parseUploadsDir(undefined, '/app')).toBe('/app/uploads');
+      expect(parseUploadsDir('/var/antua/imagenes', '/app')).toBe(
+        '/var/antua/imagenes',
+      );
+    });
+    it('rechaza carpetas dentro de src/', () => {
+      expect(() => parseUploadsDir('src', '/app')).toThrow('src/');
+      expect(() => parseUploadsDir('./src/../src/img', '/app')).toThrow('src/');
+    });
+  });
+
+  describe('LOW_STOCK_THRESHOLD', () => {
+    it('por defecto 5; acepta enteros de 0 a 10000', () => {
+      expect(parseLowStockThreshold(undefined)).toBe(5);
+      expect(parseLowStockThreshold('0')).toBe(0);
+      expect(() => parseLowStockThreshold('-1')).toThrow();
+      expect(() => parseLowStockThreshold('2.5')).toThrow();
     });
   });
 });

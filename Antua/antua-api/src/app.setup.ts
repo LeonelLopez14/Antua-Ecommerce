@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import helmet from 'helmet';
+import { static as serveStatic } from 'express';
 
 /** Configuración global de la app. La comparten main.ts y los tests e2e. */
 export function configureApp(app: INestApplication): void {
@@ -16,6 +17,28 @@ export function configureApp(app: INestApplication): void {
   if (origins.length > 0) {
     app.enableCors({ origin: origins, exposedHeaders: ['X-Guest-Token'] });
   }
+
+  // Imágenes subidas desde el panel. Solo archivos con nombre generado por el servidor
+  // (ver src/admin/catalog/image-file.ts); sin listado de carpeta ni archivos ocultos.
+  const uploadsDir = app.get(ConfigService).getOrThrow<string>('UPLOADS_DIR');
+  app.use(
+    '/uploads',
+    serveStatic(uploadsDir, {
+      index: false,
+      dotfiles: 'deny',
+      redirect: false,
+      fallthrough: false,
+      maxAge: '30d',
+      immutable: true,
+      setHeaders: (res) => {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        // Aunque alguien lograra subir un HTML, el navegador no ejecutaría nada.
+        res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+        // Las imágenes las muestra el front, que en producción puede estar en otro origen.
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      },
+    }),
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({

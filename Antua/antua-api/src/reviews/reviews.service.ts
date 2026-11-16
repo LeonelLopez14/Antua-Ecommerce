@@ -104,6 +104,8 @@ export class ReviewsService {
         product: {
           id: product.id,
         },
+        // Las ocultas por moderación no se muestran ni cuentan en el promedio.
+        is_hidden: false,
       },
       relations: {
         user: true,
