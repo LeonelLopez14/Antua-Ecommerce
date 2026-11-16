@@ -4,6 +4,7 @@ import { Menu, ShoppingBag, X } from 'lucide-react'
 import { Logo } from './Logo'
 import { galletas } from '../../lib/format'
 import { ThemeToggle } from './ThemeToggle'
+import { InfoMenu } from './InfoMenu'
 import { categoryHref, homeCategories } from '../../data/categories'
 import { infoPages } from '../../data/infoPages'
 import { selectItemCount, useCartStore } from '../../stores/cartStore'
@@ -37,14 +38,10 @@ export function Navbar() {
               </Link>
             </li>
           ))}
-          {/* Institucionales: solo desde lg, donde entran sin apretar las categorías. */}
-          {infoPages.slice(0, 2).map(({ to, label }) => (
-            <li key={to} className="hidden lg:block">
-              <Link to={to} className={navLink}>
-                {label}
-              </Link>
-            </li>
-          ))}
+          {/* Las cinco institucionales, en un panel: entran sin apretar las categorías. */}
+          <li>
+            <InfoMenu buttonClassName={navLink} />
+          </li>
         </ul>
 
         <div className="ml-auto flex items-center gap-1">

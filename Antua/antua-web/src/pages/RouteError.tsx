@@ -1,3 +1,4 @@
+import { CONTACT_EMAIL } from '../data/site'
 import { isRouteErrorResponse, useRouteError } from 'react-router-dom'
 import { RotateCcw } from 'lucide-react'
 import { CookieFallback } from '../three/cookie/CookieFallback'
@@ -26,7 +27,7 @@ export default function RouteError() {
       <p className="mt-4 text-lg text-text-main/85 dark:text-dark-text-secondary">
         {chunk
           ? 'Publicamos una versión nueva del sitio. Recargá la página para seguir.'
-          : 'Algo salió mal de nuestro lado. Probá de nuevo; si sigue pasando, escribinos a hola@antua.com.ar.'}
+          : `Algo salió mal de nuestro lado. Probá de nuevo; si sigue pasando, escribinos a ${CONTACT_EMAIL}.`}
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Button onClick={() => window.location.reload()}>

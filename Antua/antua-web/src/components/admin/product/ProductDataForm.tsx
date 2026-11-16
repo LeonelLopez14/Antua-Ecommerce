@@ -77,10 +77,11 @@ export function ProductDataForm({ initial, tags, isNew, submitLabel, onChange, o
         id="producto-nutricion"
         name="nutrition_info"
         label="Información nutricional (opcional)"
-        rows={3}
         value={values.nutrition_info}
         error={errors.nutrition_info}
-        placeholder="Por galleta (30 g): 140 kcal…"
+        rows={6}
+        placeholder={'Valores | Por 100 g | Por unidad (40 g)\nEnergía | 480 kcal | 192 kcal…'}
+        hint="Para que se vea como tabla: una fila por línea, con las columnas separadas por “|”. La primera línea es el encabezado."
         onChange={(e) => update('nutrition_info', e.target.value)}
       />
 

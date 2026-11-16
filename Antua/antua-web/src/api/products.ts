@@ -22,6 +22,7 @@ function toProduct(product: ApiProduct): Product {
     description: product.description,
     ingredients: product.ingredients,
     allergens: product.allergens,
+    nutritionInfo: product.nutrition_info?.trim() || null,
     basePrice,
     isActive: product.is_active,
     fromPrice: prices.length > 0 ? Math.min(...prices) : 0,

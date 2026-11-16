@@ -39,6 +39,7 @@ export interface ApiProduct {
   slug: string
   ingredients: string
   allergens: string
+  nutrition_info?: string | null
   description: string
   base_price: ApiDecimal
   is_active: boolean
@@ -88,6 +89,8 @@ export interface Product {
   description: string
   ingredients: string
   allergens: string
+  /** Texto de products.nutrition_info; lib/nutrition.ts lo convierte en tabla. */
+  nutritionInfo: string | null
   basePrice: number
   /** GET /products/:slug ya responde 404 para inactivos; el front igual los trata como 404 por si llega uno. */
   isActive: boolean

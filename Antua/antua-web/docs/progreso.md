@@ -925,3 +925,67 @@ curl -s -H "$A" 'localhost:3000/admin/users?q=gmail&role=customer'
 - **Documentación:** README de la raíz y de la API, `Dockerfile` y `CLAUDE.md`.
 
 **En simple:** antes, la API era como un empleado que firmaba cualquier papel que le dejaran en el escritorio apenas entraba. Ahora te avisa que hay un papel para firmar, y lo firmás vos después de leerlo.
+
+### 13.1: contenido de las páginas
+
+**Integrado** desde `docs/contenido-sitio.md`: Nosotros, Preguntas frecuentes, Contacto, Términos y Privacidad, con el `<h1>`, el `document.title` y la meta description del archivo. Se sacó la marca de "Texto provisorio" de las cinco, porque las cinco quedaron integradas.
+- **`ContentPage`:** ya no muestra el aviso provisorio. Acepta un aviso, una bajada y una nota al pie.
+- **`LegalPage` (nuevo), para Términos y Privacidad:**
+  - aviso **"Borrador de práctica"** siempre visible;
+  - índice "Contenido" con anclas a cada `h2` (que tiene `scroll-margin-top`);
+  - fecha de última actualización en `<time>`: 16/11/2026, la fecha real de integración (`LEGAL_UPDATED_AT` en `src/data/site.ts`).
+- **Preguntas frecuentes:** acordeón nativo con `<details>`/`<summary>`. Funciona con teclado y el navegador anuncia si está abierto o cerrado. Los temas son `h2`.
+- **Contacto:** solo datos, sin formulario (no hay endpoint).
+- **Email:** `contacto@antojarte.example` en Contacto, footer, Privacidad, Términos, Preguntas y en la pantalla de error. Se quitó `hola@antua.com.ar`.
+- **Footer:** suma la nota "Antojarte es una marca ficticia creada para un proyecto de práctica.".
+- **Navbar:** en escritorio, un menú **"Ayuda"** (disclosure, como el de cuenta: Escape y clic afuera lo cierran y devuelven el foco) con las cinco páginas; antes había solo dos links. En mobile ya estaban las cinco en el menú.
+
+**Lo que cambié del texto porque no coincidía con la app:**
+
+| Página | Texto original | Qué hace la app | Cómo quedó |
+|---|---|---|---|
+| Nosotros | Categoría "De temporada" y "galletas… de temporada" | La tienda tiene 5 tags: Clásicas, Sin gluten, Veganas, Sin azúcar y Packs | Se quitó "De temporada" |
+| Nosotros | "Packs de 1, 6 y 12 unidades" | Son variantes de cada galleta (1, caja de 6 y caja de 12) | "Cada galleta viene de a 1, en caja de 6 o en caja de 12" |
+| Preguntas | Pagos: variante A o B | Sin credenciales de Mercado Pago (tu `.env`), los pagos están deshabilitados y el pedido se registra | **Variante B** (pago a coordinar) |
+| Preguntas | "Te mandamos un enlace…" | El enlace se genera, pero `MailService` solo lo escribe en el log (no hay SMTP) | Se agregó "(En este proyecto de práctica el correo todavía no se envía de verdad.)" |
+| Preguntas | Plazo de entrega | `SHIPPING_ETA_DAYS` no está en tu `.env`, así que hoy no se muestra | Coincide con el texto ("si todavía no lo ves, escribinos"): sin cambio |
+| Privacidad | Contraseña "guardada de forma cifrada" | Se guarda un hash bcrypt (no se puede descifrar) | "Protegida con un algoritmo de hash" |
+| Privacidad | Cuenta: nombre, correo y contraseña | También teléfono (opcional) y direcciones guardadas | Se agregaron |
+| Privacidad | "Identificador de carrito y tu sesión en el almacenamiento local, y tu tema" | No hay cookies. `localStorage` guarda `antua.auth` (token, nombre, email, rol), `antua.guestToken` y el tema; `sessionStorage` guarda la referencia del último pedido (id y token de invitado) | Se detalló, aclarando que no hay cookies |
+| Privacidad | Comparte con "el servicio de envío de correos" | No hay SMTP ni proveedor de pagos conectados | "Cuando estén activos… Hoy ninguno de los dos está conectado" |
+| Términos | "La información nutricional puede ser orientativa" | Los valores cargados son inventados | "La información nutricional que se muestra hoy es de ejemplo" |
+
+**Verificado y sin cambios:**
+- envío con costo fijo visible antes de confirmar;
+- aviso y reconfirmación si cambia el precio (409 `PRICE_CHANGED`);
+- reglas de cupón (mínimo, vencimiento y límite);
+- solo se reseña lo comprado **y entregado** (`reviews.service.ts`, `hasPurchased`);
+- reseñas que se pueden ocultar (panel);
+- límite de intentos en el login;
+- precios en UYU;
+- no se guardan datos de tarjeta.
+
+**Pendiente de decidir:** el logo y el footer dicen "Antua", y los textos nuevos, "Antojarte". DESIGN.md los da como alias, pero el sitio debería usar uno solo.
+
+**Información nutricional:**
+- No hizo falta ninguna migración: `products.nutrition_info` ya existía (texto, Fase 12).
+- **Formato de tabla:** una fila por línea, con las columnas separadas por `|`; la primera línea es el encabezado.
+  - `src/lib/nutrition.ts` lo convierte en una tabla accesible en la Ficha (`caption`, `th scope`, región con scroll), siempre con la nota "Información nutricional de ejemplo (proyecto de práctica). No corresponde a un producto real.".
+  - Si el texto no tiene ese formato, se muestra como párrafo.
+  - Sin datos, dice "Todavía no cargamos…" en vez de "Pronto…".
+  - El formulario del panel explica el formato.
+- **Script `antua-api/scripts/nutrition-examples.ts` (`pnpm nutrition:examples`):**
+  - completa **solo campos vacíos** (información nutricional y, si estuvieran vacíos, ingredientes y alérgenos) con los valores de §6;
+  - la categoría sale de los tags, con esta prioridad: sin azúcar > sin gluten > veganas > clásicas; "de temporada" usa los valores de clásicas;
+  - los productos que solo son "Packs" (la caja surtida) o que no tienen tags quedan sin tocar;
+  - `--dry-run` muestra lo que haría, `--yes` aplica y `--undo --yes` deshace, pero solo lo que sigue igual a lo que cargó el script: si alguien lo editó después, se respeta;
+  - cada cambio queda en `admin_audit_log` como `product.nutrition_example` (sin admin);
+  - las funciones puras están en `src/products/nutrition-examples.ts`, con unit tests: valores por 100 g = valor por unidad × 2,5.
+- **Aplicado en `antua_db`:**
+  - respaldo previo en `~/respaldos/antua_db_20261116_1903_antes-nutricion.sql`;
+  - se completaron 11 productos (solo `nutrition_info`: todos ya tenían ingredientes y alérgenos);
+  - se probó deshacer (volvió a 0) y aplicar de nuevo.
+
+**Hallazgo de calidad:** el e2e del panel dejaba **activos en la Tienda** sus productos de prueba (`seed-e2e-*`, sin tags).
+- Se desactivaron los 13 que había, por `PATCH /admin/products/:id`: queda en la auditoría y se puede revertir.
+- `e2e/admin.spec.ts` ahora desactiva su producto al terminar.

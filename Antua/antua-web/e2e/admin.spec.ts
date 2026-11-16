@@ -82,6 +82,7 @@ test('un admin crea un producto con variante e imagen, un cupón, y cancela un p
   await page.getByRole('button', { name: 'Crear producto' }).click()
   await expect(page.getByText('Producto creado (inactivo)')).toBeVisible()
   await expect(page).toHaveURL(/\/admin\/productos\/\d+/)
+  const productId = Number(/\/admin\/productos\/(\d+)/.exec(page.url())?.[1])
 
   const variantForm = page.getByRole('form', { name: 'Agregar variante' })
   await variantForm.getByLabel('Precio ($U)').fill('-5')
@@ -159,4 +160,9 @@ test('un admin crea un producto con variante e imagen, un cupón, y cancela un p
   await expect(page.getByRole('img', { name: /Ventas por día/ })).toBeVisible()
   await page.getByRole('navigation', { name: 'Secciones del panel' }).getByRole('link', { name: 'Auditoría' }).click()
   await expect(page.getByRole('cell', { name: 'Cambió el estado de un pedido' }).first()).toBeVisible()
+
+  // Limpieza: el producto de prueba no queda a la venta en la tienda (tiene un pedido, así que se desactiva).
+  const token = await page.evaluate(() => (JSON.parse(localStorage.getItem('antua.auth') ?? '{}') as { state?: { token?: string } }).state?.token)
+  const off = await request.delete(`${API}/admin/products/${productId}`, { headers: { Authorization: `Bearer ${token}` } })
+  expect(await off.json()).toMatchObject({ deactivated: true })
 })
