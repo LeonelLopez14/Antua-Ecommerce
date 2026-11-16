@@ -793,3 +793,35 @@ curl -s -H "$A" -H 'Content-Type: application/json' -X PATCH localhost:3000/admi
 # → 409 {"code":"INVALID_TRANSITION","message":"El pago todavía no está aprobado: no se puede preparar el pedido."}
 curl -s -H "$A" -H 'Content-Type: application/json' -X PATCH localhost:3000/admin/orders/42/note -d '{"note":"Llamar antes de ir"}'
 ```
+
+### 12.5 y 12.6: resumen, moderación de reseñas y usuarios (backend)
+
+**`GET /admin/stats`** (`src/admin/stats/admin-stats.service.ts`). Todo se calcula con `SUM`, `COUNT` y `GROUP BY` en MySQL: nunca se traen los pedidos a Node.
+- **Ventas y cantidad de pedidos** de hoy, de los últimos 7 días y de los últimos 30, en una sola consulta con sumas condicionales. "Ventas" = pedidos no cancelados.
+- **Colas:**
+  - pendientes de pago: en línea, sin pagar ni vencer;
+  - para preparar: pagados, o sin pago en línea;
+  - en preparación.
+- **Serie diaria de 30 días** para el gráfico, agrupada con `CONVERT_TZ(created_at, '+00:00', '-03:00')`. `fillDailySeries` (unit test) completa con ceros los días sin pedidos.
+- **Más vendidos** (top 5 en 30 días), **variantes con stock bajo** (umbral `LOW_STOCK_THRESHOLD`) y **reseñas nuevas** (cantidad en 7 días y las 5 últimas).
+- **Zona horaria:** "hoy" empieza a la medianoche de America/Montevideo (`src/common/store-time.ts`, con unit tests). La base sigue en UTC, como quedó después de la corrección de la Fase 9. El desfase se calcula con `Intl`, así que el código no supone −3 a mano. Se usa el desfase y no el nombre de zona porque MySQL necesita tablas de zonas horarias cargadas para entender `America/Montevideo`.
+
+**Reseñas** (`src/admin/moderation/`):
+- `GET /admin/reviews` con búsqueda (producto o comentario), estrellas y visibles u ocultas.
+- `PATCH /admin/reviews/:id { is_hidden }`: **ocultar es reversible**, y es lo recomendado. Una reseña oculta no sale en `GET /products/:slug/reviews` ni en `GET /products/:slug`.
+- El promedio de estrellas lo calcula el front con las reseñas que recibe, así que **se recalcula solo**.
+- `DELETE` borra para siempre.
+- Las tres acciones quedan en la auditoría.
+
+**Arreglo:** el e2e mostró que `findOne` de `src/products/products.service.ts` todavía devolvía las reseñas ocultas en el detalle. Ahora también pasa por `toPublicProduct`.
+
+**Usuarios:** `GET /admin/users`, en **solo lectura**: nombre, email, fecha de alta, rol y cantidad de pedidos.
+- La consulta elige las columnas una por una: aunque mañana la entidad tenga otra columna sensible, no sale. Un test verifica que la respuesta tiene exactamente esas claves y que no contiene `password`, `hash` ni `token`.
+- No hay `PATCH` ni `DELETE`: el panel no cambia roles ni contraseñas.
+
+```bash
+curl -s -H "$A" localhost:3000/admin/stats
+curl -s -H "$A" 'localhost:3000/admin/reviews?hidden=false&rating=1'
+curl -s -H "$A" -H 'Content-Type: application/json' -X PATCH localhost:3000/admin/reviews/7 -d '{"is_hidden":true}'
+curl -s -H "$A" 'localhost:3000/admin/users?q=gmail&role=customer'
+```

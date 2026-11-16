@@ -189,6 +189,6 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException('Producto no encontrado');
     }
-    return product;
+    return toPublicProduct(product);
   }
 }
