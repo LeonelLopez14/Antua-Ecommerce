@@ -716,3 +716,34 @@ curl -s -H "$A" -F file=@foto.webp localhost:3000/admin/products/14/images
 curl -s -H "$A" -X DELETE localhost:3000/admin/products/14   # → {"deleted":false,"deactivated":true,"message":"…"} si tiene historial
 curl -s -H "$A" -H 'Content-Type: application/json' -X PATCH localhost:3000/admin/tags/1 -d '{"slug":"otra"}'  # → 409 si es de la Home
 ```
+
+### 12.3: cupones (backend)
+
+**Qué faltaba:** los cupones solo se podían crear tocando la base. Las reglas que valen al aplicarlos (`src/cart/cart.service.ts`, `applyCoupon`, y `src/orders/orders.service.ts`) son estas, y no cambiaron:
+- tipo `percentage` o `fixed`;
+- mínimo opcional;
+- límite de usos (`usage_limit`, con `null` = sin límite);
+- vigencia entre `valid_from` y `valid_until`;
+- `is_active`.
+
+**Qué cambió** (`src/admin/coupons/`):
+- **El código se normaliza** a mayúsculas y sin espacios antes de validarlo (`normalizeCouponCode`): " verano 20 " → `VERANO20`. Es único (409 si se repite).
+- **Coherencia entre campos.** La valida `couponRuleErrors`, una función pura con unit test:
+  - el porcentaje va de 1 a 100;
+  - la fecha de fin es posterior a la de inicio;
+  - mínimo y límite son no negativos;
+  - las fechas no pasan de 2037.
+
+  El tope de 2037 se descubrió en el e2e: las columnas son `TIMESTAMP` de MySQL, que no acepta fechas después de enero de 2038, y una fecha de 2099 terminaba en un error 500. Ahora es un 400 que dice qué corregir.
+- **Al editar,** las reglas se validan con los valores combinados (lo nuevo más lo que ya tenía).
+- **`times_used` no se puede mandar:** no está en el DTO, y `whitelist` lo descarta.
+- **Estado** (`couponStatus`): `active`, `inactive`, `scheduled` (todavía no empezó), `expired` o `exhausted` (se agotaron los usos). Se puede filtrar por estado en SQL.
+- **Borrado:** un cupón usado (`times_used > 0`, con pedidos o aplicado en un carrito) se desactiva en vez de borrarse, con el mismo formato de respuesta que en el catálogo.
+- `Coupon.min_order_amount` pasa a tiparse `number | null`, como ya era en la base (no cambia el esquema).
+
+```bash
+curl -s -H "$A" 'localhost:3000/admin/coupons?status=active&q=VER'
+curl -s -H "$A" -H 'Content-Type: application/json' -X POST localhost:3000/admin/coupons \
+  -d '{"code":"verano 20","discount_type":"percentage","discount_value":20,"min_order_amount":3000,"usage_limit":100,"valid_from":"2026-12-01T03:00:00.000Z","valid_until":"2027-03-01T03:00:00.000Z"}'
+curl -s -H "$A" -X DELETE localhost:3000/admin/coupons/3   # usado → {"deleted":false,"deactivated":true,…}
+```
