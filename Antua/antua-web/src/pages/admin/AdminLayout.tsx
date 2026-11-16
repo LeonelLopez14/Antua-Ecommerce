@@ -45,14 +45,23 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
       : 'hover:bg-accent-secondary dark:hover:bg-dark-card'
   }`
 
-/** El panel no se indexa: meta robots mientras está montado (y robots.txt lo excluye). */
-function useNoIndex() {
+/**
+ * Mientras el panel está montado: no se indexa (meta robots; robots.txt también lo excluye) y
+ * el encabezado fijo no tapa el elemento enfocado (scroll-padding-top).
+ */
+function useAdminDocument() {
   useEffect(() => {
     const meta = document.createElement('meta')
     meta.name = 'robots'
     meta.content = 'noindex, nofollow'
     document.head.append(meta)
-    return () => meta.remove()
+    const root = document.documentElement
+    const previous = root.style.scrollPaddingTop
+    root.style.scrollPaddingTop = '5rem'
+    return () => {
+      meta.remove()
+      root.style.scrollPaddingTop = previous
+    }
   }, [])
 }
 
@@ -74,7 +83,7 @@ function CenteredMessage({ icon, title, children }: { icon: ReactNode; title: st
  * - Con sesión de cliente: "No tenés permiso" (403).
  */
 export default function AdminLayout() {
-  useNoIndex()
+  useAdminDocument()
   const user = useAuthStore((s) => s.user)
   const loggedIn = useAuthStore((s) => s.token !== null)
   const clearSession = useAuthStore((s) => s.clearSession)

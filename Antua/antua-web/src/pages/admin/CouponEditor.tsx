@@ -165,6 +165,7 @@ function CouponForm({ coupon, onSaved }: { coupon: AdminCoupon | null; onSaved: 
           name="code"
           label="Código"
           autoComplete="off"
+          autoCapitalize="characters"
           spellCheck={false}
           translate="no"
           value={values.code}

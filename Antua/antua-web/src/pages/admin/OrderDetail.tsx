@@ -264,7 +264,7 @@ function OrderView({ order, onChange }: { order: AdminOrder; onChange: (order: A
 
       <ConfirmDialog
         open={target !== null}
-        title={target ? `${ORDER_ACTION_LABEL[target]} #${order.id}?`.replace(/^/, '¿') : ''}
+        title={target ? `¿${ORDER_ACTION_LABEL[target]} #${order.id}?` : ''}
         confirmLabel={target ? ORDER_ACTION_LABEL[target] : ''}
         cancelLabel="Volver"
         safeFirst={target === 'canceled'}

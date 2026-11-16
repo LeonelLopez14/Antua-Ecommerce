@@ -15,6 +15,7 @@
 import * as bcrypt from 'bcrypt';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { IsNull } from 'typeorm';
 import type {
   DeepPartial,
   FindOptionsWhere,
@@ -120,9 +121,19 @@ async function main() {
         );
       }
 
-      await images.delete({ product: { id: product.id } });
+      // Solo se reemplazan las imágenes del seed: las subidas desde el panel (con archivo) se conservan.
+      await images.delete({ product: { id: product.id }, file_name: IsNull() });
+      const hasPrimary = await images.existsBy({
+        product: { id: product.id },
+        is_primary: true,
+      });
+      const first = Math.min(...item.images.map((image) => image.sort_order));
       for (const image of item.images) {
-        await images.save({ ...image, product: { id: product.id } });
+        await images.save({
+          ...image,
+          is_primary: !hasPrimary && image.sort_order === first,
+          product: { id: product.id },
+        });
       }
 
       await productTags.delete({ product: { id: product.id } });

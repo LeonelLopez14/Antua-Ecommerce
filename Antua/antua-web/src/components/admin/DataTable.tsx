@@ -27,7 +27,8 @@ interface DataTableProps<T> {
 /**
  * Tabla accesible del panel: caption, th con scope, aria-sort y orden con links reales.
  * Va dentro de una región con nombre y foco por teclado, que scrollea en horizontal si no entra
- * (a 375 px no rompe la página).
+ * (a 375 px no rompe la página). `relative` hace que los textos sr-only (position: absolute)
+ * queden dentro de la región; si no, escapan del scroll y ensanchan la página.
  */
 export function DataTable<T>({ caption, hideCaption = false, columns, rows, rowKey, sort }: DataTableProps<T>) {
   const captionId = useId()
@@ -36,7 +37,7 @@ export function DataTable<T>({ caption, hideCaption = false, columns, rows, rowK
       role="region"
       aria-labelledby={captionId}
       tabIndex={0}
-      className="overflow-x-auto overscroll-x-contain rounded-card bg-surface shadow-soft dark:bg-dark-card dark:shadow-none"
+      className="relative overflow-x-auto overscroll-x-contain rounded-card bg-surface shadow-soft dark:bg-dark-card dark:shadow-none"
     >
       <table className="w-full min-w-[640px] border-collapse text-left text-sm">
         <caption id={captionId} className={hideCaption ? 'sr-only' : 'px-4 pt-4 text-left font-display text-lg font-semibold'}>

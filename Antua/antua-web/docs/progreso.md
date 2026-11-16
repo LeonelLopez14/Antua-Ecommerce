@@ -872,3 +872,29 @@ curl -s -H "$A" 'localhost:3000/admin/users?q=gmail&role=customer'
   - **Auditoría.**
 - **Validación en línea** (`src/lib/adminForms.ts`, con unit tests): las mismas reglas que los DTOs. Al guardar, el foco va al primer error. Toda acción destructiva pide confirmación, y su resultado se anuncia con un toast.
 - **Imágenes subidas:** la API devuelve `/uploads/…` y el front lo resuelve contra la URL de la API (`imageUrl` en `api/client.ts`). En desarrollo pasa por el proxy `/api`.
+
+## Check final de la Fase 12 (16/11/2026)
+
+1. **Front:** typecheck, lint y build sin errores ni warnings nuevos; 32 unit tests; e2e de Playwright (compra de invitado y panel, desktop y mobile) 5/5. **Back:** build, lint, 67 unit tests y 95 e2e contra `antua_test`.
+2. **Chunk del panel:** `admin-*.js` pesa 97,1 kB (25 kB gzip). Con playwright-cli se comprobó que **no se descarga** en la Home, la Tienda, la Ficha ni el Checkout, solo al entrar a `/admin`. `index.html` no lo precarga.
+3. **Recorrido con playwright-cli** como admin, en 1280 y 768 px, claro y oscuro: las 13 pantallas cargan sin scroll horizontal y sin errores en la consola, y la validación lleva el foco al primer error. A 375 px: Resumen, Productos, Producto, Cupón, Pedidos, Pedido y Reseñas. **Sin sesión**, el AuthModal se abre. **Como cliente** aparece "No tenés permiso", y la API responde 403. Capturas en `docs/checks/f12-*.png` (no se versionan).
+4. **Corregido durante el check:**
+   - **A 375 px, la lista de productos ensanchaba la página.** Los textos `sr-only` de los encabezados ordenables (`position: absolute`) escapaban de la región con scroll, que no estaba posicionada. Se resolvió con `relative` en `DataTable`.
+   - **`pnpm seed` borraba todas las imágenes de los productos seed,** incluidas las subidas desde el panel, y dejaba sus archivos huérfanos. Además, recreaba las suyas sin imagen principal. Ahora reemplaza solo las propias (sin `file_name`) y marca como principal la de menor orden si no hay otra.
+5. **Guidelines.** El skill `/web-interface-guidelines` no estaba disponible en esta sesión: se aplicaron sus reglas a mano sobre los 41 archivos nuevos o modificados de `src/`. Hallazgos corregidos:
+   - las regiones `aria-live` del `Toaster` usaban `display: contents`, que algunos lectores sacan del árbol de accesibilidad;
+   - las estrellas usaban `aria-label` en un `<span>` sin rol; ahora tienen un texto `sr-only`;
+   - el encabezado fijo podía tapar el elemento enfocado; ahora hay `scroll-padding-top` mientras el panel está montado;
+   - `autoCapitalize` en el código de cupón;
+   - el título del diálogo de pedidos se armaba con un `.replace`;
+   - el placeholder de imagen se veía negro en oscuro.
+6. **DESIGN.md:** sin hex sueltos, sin colores fuera de la paleta, sin `transition: all`, sin `outline-none` y sin radios fuera de la escala. Voseo en todos los textos.
+7. **Seguridad:**
+   - todos los controllers de `src/admin` usan `@AdminController`, y la matriz e2e lo verifica en cada ruta;
+   - todo `@Body` y `@Query` es un DTO de clase con whitelist, y los servicios copian campo por campo (el único *spread* hacia la base es un `CreateVariantDto` ya validado);
+   - el SQL crudo usa parámetros, y los `LIKE` escapan sus comodines;
+   - el módulo no escribe logs;
+   - ninguna respuesta incluye hashes ni tokens;
+   - las subidas se validan por contenido, tamaño y nombre generado.
+8. **`git ls-files`:** no hay `.env`, `node_modules`, respaldos, builds ni subidas versionados.
+9. **Entorno:** después de un reinicio de la máquina, se volvieron a levantar solo la API (pagos simulados) y el front de este repo. No se tocó ningún otro servicio ni contenedor. La base temporal `antua_migr_tmp` se borró.

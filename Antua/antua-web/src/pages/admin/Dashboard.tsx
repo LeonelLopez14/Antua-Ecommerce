@@ -135,7 +135,8 @@ function DashboardContent({ stats }: { stats: AdminStats }) {
             {stats.reviews.latest.map((review) => (
               <li key={review.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span className="min-w-0 truncate">
-                  <span aria-label={`${review.rating} de 5 estrellas`}>{'★'.repeat(review.rating)}</span> · {review.product}
+                  <span aria-hidden="true">{'★'.repeat(review.rating)}</span>
+                  <span className="sr-only">{review.rating} de 5 estrellas</span> · {review.product}
                 </span>
                 {review.is_hidden ? <StatusBadge label="Oculta" tone="muted" /> : <span className="text-text-main/75 dark:text-dark-text-secondary">{formatDateTime(review.created_at)}</span>}
               </li>

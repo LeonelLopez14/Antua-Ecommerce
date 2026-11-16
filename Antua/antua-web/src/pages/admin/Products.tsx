@@ -50,7 +50,7 @@ export default function Products() {
           {product.image ? (
             <img src={product.image} alt="" width={40} height={40} loading="lazy" className="size-10 shrink-0 rounded-xl object-cover" />
           ) : (
-            <span aria-hidden="true" className="size-10 shrink-0 rounded-xl bg-accent-secondary dark:bg-dark-bg" />
+            <span aria-hidden="true" className="size-10 shrink-0 rounded-xl bg-accent-secondary dark:bg-dark-surface" />
           )}
           <div className="min-w-0">
             <Link to={`/admin/productos/${product.id}`} className="font-bold text-accent-main underline-offset-4 hover:underline dark:text-dark-accent-main">

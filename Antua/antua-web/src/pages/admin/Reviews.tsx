@@ -100,7 +100,8 @@ export default function Reviews() {
                           </Link>
                         </h2>
                         <p className="text-sm text-text-main/75 dark:text-dark-text-secondary">
-                          <span aria-label={`${review.rating} de 5 estrellas`}>{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</span> · {review.author.name} ·{' '}
+                          <span aria-hidden="true">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</span>
+                          <span className="sr-only">{review.rating} de 5 estrellas</span> · {review.author.name} ·{' '}
                           {formatDateTime(review.created_at)}
                         </p>
                       </div>

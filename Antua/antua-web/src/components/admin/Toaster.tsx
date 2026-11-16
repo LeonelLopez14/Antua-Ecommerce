@@ -4,6 +4,7 @@ import { iconButtonClasses } from '../ui/buttonStyles'
 
 /**
  * Región aria-live siempre montada (si se montara con el mensaje, algunos lectores no lo leen).
+ * Sin `display: contents`: algunos lectores sacan esos elementos del árbol de accesibilidad.
  * Los errores usan role="alert" (assertive); los éxitos, polite.
  */
 export function Toaster() {
@@ -11,14 +12,14 @@ export function Toaster() {
   const dismiss = useToastStore((s) => s.dismiss)
   return (
     <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col items-end gap-2 sm:left-auto sm:w-96 pb-[env(safe-area-inset-bottom)]">
-      <div aria-live="polite" className="contents">
+      <div aria-live="polite" className="flex w-full flex-col items-end gap-2">
         {toasts
           .filter((t) => t.tone === 'success')
           .map((t) => (
             <ToastCard key={t.id} message={t.message} tone="success" onDismiss={() => dismiss(t.id)} />
           ))}
       </div>
-      <div role="alert" className="contents">
+      <div role="alert" className="flex w-full flex-col items-end gap-2">
         {toasts
           .filter((t) => t.tone === 'error')
           .map((t) => (
