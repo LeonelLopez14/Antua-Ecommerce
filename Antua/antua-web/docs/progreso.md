@@ -559,3 +559,21 @@ curl -s localhost:3000/orders/$ID/payment -H "X-Order-Token: $ORDER_TOKEN"
 - `@nestjs/schedule` 12 es solo ESM y Jest no lo carga: el vencimiento usa un `setInterval` con limpieza al apagar.
 
 **Qué falta redactar:** ver "Qué falta" en [`estado-frontend.md`](./estado-frontend.md).
+
+## Check final de las Fases 9 a 11 (15/11/2026)
+
+1. **Front:** typecheck, lint y build sin errores ni warnings nuevos; 25 unit tests y el e2e de Playwright (desktop y mobile). **Back:** build, lint, 45 unit tests y 63 e2e contra `antua_test`.
+2. **Recorrido con playwright-cli** en 375 y 1280 px, claro y oscuro, con la API en modo de pagos simulados. Todo OK en las 4 combinaciones, sin scroll horizontal ni errores en la consola. Capturas en `docs/checks/f11-*.png`. El recorrido:
+   - Tienda resuelta en el backend y plazo de envío en el drawer y en el checkout.
+   - Precio cambiado (409, aviso y reconfirmación).
+   - Pago rechazado, reintento y aprobado por webhook firmado.
+   - Registro desde el retorno de pago, que reclama el pedido.
+   - Detalle con "Pagado" y el plazo de envío.
+   - Perfil con validación.
+   - Reseña publicada, editada y borrada.
+   - Cupón retirado con aviso.
+   - Recuperación de contraseña e inicio de sesión con la nueva.
+3. **/web-interface-guidelines** sobre lo nuevo y modificado: 2 hallazgos menores, corregidos (`spellCheck` en el email del perfil y `translate="no"` en "Mercado Pago").
+4. **DESIGN.md:** sin hex sueltos fuera del 3D, sin colores fuera de la paleta, sin `transition: all` ni tuteo. El único `outline-none` tiene reemplazo.
+5. **Seguridad:** ownership con test en cada endpoint nuevo, DTOs validados, ningún secreto en el repo y logs solo con ids.
+6. **Entorno:** se borró la base temporal `antua_migr_tmp`, que se usó para generar migraciones; `antua_test` queda para los e2e. A pedido del usuario se detuvieron los contenedores `competika-*` (no se borraron).
