@@ -6,10 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, In, LessThan } from 'typeorm';
-import { Coupon } from 'src/coupons/entities/coupon.entity';
-import { OrderItem } from 'src/orders/entities/order-item.entity';
 import { Order, OrderStatus } from 'src/orders/entities/order.entity';
-import { ProductVariant } from 'src/products/entities/product-variant.entity';
+import { releaseOrderReservation } from 'src/orders/order-reservation';
 import { isPayableStatus, PaymentStatus } from './payment-state';
 
 const EVERY_TEN_MINUTES = 600_000;
@@ -71,20 +69,7 @@ export class PaymentExpirationService implements OnModuleInit, OnModuleDestroy {
         return false;
       }
 
-      const items = await manager.getRepository(OrderItem).find({
-        where: { order: { id: order.id } },
-        relations: { variant: true },
-      });
-      for (const item of items) {
-        await manager
-          .getRepository(ProductVariant)
-          .increment({ id: item.variant.id }, 'stock', item.quantity);
-      }
-      if (order.coupon) {
-        await manager
-          .getRepository(Coupon)
-          .decrement({ id: order.coupon.id }, 'times_used', 1);
-      }
+      await releaseOrderReservation(manager, order);
 
       await orders.update(order.id, {
         status: OrderStatus.CANCELED,

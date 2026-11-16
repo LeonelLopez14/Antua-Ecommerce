@@ -9,6 +9,8 @@ import { AdminTagsController } from './catalog/admin-tags.controller';
 import { AdminTagsService } from './catalog/admin-tags.service';
 import { AdminCouponsController } from './coupons/admin-coupons.controller';
 import { AdminCouponsService } from './coupons/admin-coupons.service';
+import { AdminOrdersController } from './orders/admin-orders.controller';
+import { AdminOrdersService } from './orders/admin-orders.service';
 
 /** Panel de administración: todo lo que vive bajo /admin. */
 @Module({
@@ -18,12 +20,14 @@ import { AdminCouponsService } from './coupons/admin-coupons.service';
     AdminProductsController,
     AdminTagsController,
     AdminCouponsController,
+    AdminOrdersController,
   ],
   providers: [
     AuditService,
     AdminProductsService,
     AdminTagsService,
     AdminCouponsService,
+    AdminOrdersService,
   ],
 })
 export class AdminModule {}

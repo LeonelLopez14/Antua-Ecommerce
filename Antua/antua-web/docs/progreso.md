@@ -747,3 +747,49 @@ curl -s -H "$A" -H 'Content-Type: application/json' -X POST localhost:3000/admin
   -d '{"code":"verano 20","discount_type":"percentage","discount_value":20,"min_order_amount":3000,"usage_limit":100,"valid_from":"2026-12-01T03:00:00.000Z","valid_until":"2027-03-01T03:00:00.000Z"}'
 curl -s -H "$A" -X DELETE localhost:3000/admin/coupons/3   # usado → {"deleted":false,"deactivated":true,…}
 ```
+
+### 12.4: pedidos (backend)
+
+**Qué faltaba:** nada cambiaba `orders.status`, y para cancelar había que tocar la base a mano.
+
+**Estados existentes, sin cambios** (`src/orders/entities/order.entity.ts`): `pending`, `preparing`, `shipped`, `delivered` y `canceled`. "Pagado" no es un estado logístico: está en `payment_status` (lo maneja Payments), y el panel **solo lo lee**.
+
+**Máquina de estados** (`src/orders/order-status.ts`, función pura con unit test):
+
+```
+pending ──► preparing ──► shipped ──► delivered
+   │            │
+   └──► canceled ◄┘
+```
+
+- `pending → preparing` solo si el pago está aprobado (`payment_status = paid`). La excepción es un pedido **sin pago en línea** (`payment_expires_at = null`: se hizo con los pagos deshabilitados y el cobro se coordina aparte).
+- Se cancela desde `pending` o `preparing`; desde `shipped` o `delivered`, no.
+- Toda transición inválida responde **409** con `code: "INVALID_TRANSITION"` y un mensaje en castellano, por ejemplo "Un pedido enviado solo puede pasar a: entregado.".
+
+**Cancelar reutiliza la lógica del vencimiento.**
+- La devolución de stock y cupón vivía dentro de `src/payments/payment-expiration.service.ts`. Se movió **tal cual** a `src/orders/order-reservation.ts` (`releaseOrderReservation`), y el vencimiento ahora llama a esa función.
+- Es el **único cambio en Payments**: una extracción sin cambio de comportamiento, para no duplicar la lógica, como pedía el prompt. Los e2e de pagos (incluido "vencimiento: devuelve stock y cupón") siguen pasando.
+- **Si el pago estaba pendiente o rechazado,** `payment_status` pasa a `canceled`, igual que al vencer. Si después llega un pago aprobado, Payments lo marca `paid_after_cancel`.
+- **Si ya estaba pagado,** el pago no se toca: la respuesta trae un `notice` que pide devolverlo desde Mercado Pago.
+- La fila del pedido se bloquea (`pessimistic_write`), así un webhook o el vencimiento no lo pisan al mismo tiempo. Cancelar dos veces da 409 y no devuelve el stock dos veces (hay test).
+
+**Panel** (`src/admin/orders/`).
+- **Listado** con filtros por estado, estado de pago, número o email, y rango de fechas.
+  - Las fechas son días de calendario de **America/Montevideo** (`src/common/store-time.ts`): `?from=2026-11-14&to=2026-11-14` va de las 03:00 UTC del 14 a las 03:00 UTC del 15. Un test lo verifica con un pedido de las 23:30 de Montevideo.
+  - Las unidades de cada pedido salen de una sola consulta agrupada por página.
+- **Detalle:**
+  - ítems con el precio del *snapshot*;
+  - dirección, contacto (email de la cuenta o del invitado), cupón y totales;
+  - intentos de pago (solo lectura, sin datos del pagador);
+  - nota interna e historial (`order_status_history`, con quién y cuándo);
+  - las transiciones posibles en ese momento.
+- **El panel nunca edita precios ni totales:** no hay endpoint para eso, y la whitelist descarta un `total` que venga en el cuerpo (hay test).
+- **La nota interna** (`orders.internal_note`) tiene `select: false` y `@Exclude`: no sale en las rutas del cliente (hay test). La auditoría guarda solo el largo de la nota, no su texto.
+
+```bash
+curl -s -H "$A" 'localhost:3000/admin/orders?status=pending&payment_status=paid&from=2026-11-01&to=2026-11-15&q=gmail'
+curl -s -H "$A" localhost:3000/admin/orders/42
+curl -s -H "$A" -H 'Content-Type: application/json' -X PATCH localhost:3000/admin/orders/42/status -d '{"status":"preparing"}'
+# → 409 {"code":"INVALID_TRANSITION","message":"El pago todavía no está aprobado: no se puede preparar el pedido."}
+curl -s -H "$A" -H 'Content-Type: application/json' -X PATCH localhost:3000/admin/orders/42/note -d '{"note":"Llamar antes de ir"}'
+```
