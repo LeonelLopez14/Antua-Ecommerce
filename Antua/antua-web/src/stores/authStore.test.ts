@@ -6,7 +6,7 @@ import type { User } from '../types/auth'
 
 vi.mock('../api/auth', () => ({ fetchMe: vi.fn(), login: vi.fn(), register: vi.fn() }))
 
-const user: User = { id: 7, full_name: 'Ana Pérez', email: 'ana@antua.test', phone: null, created_at: '2026-11-01T10:00:00Z' }
+const user: User = { id: 7, full_name: 'Ana Pérez', email: 'ana@antua.test', phone: null, role: 'customer' as const, created_at: '2026-11-01T10:00:00Z' }
 
 const httpError = (status: number) =>
   new AxiosError('error', String(status), undefined, undefined, {

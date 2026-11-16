@@ -67,37 +67,38 @@ export function toSearchParams(query: ShopQuery): URLSearchParams {
 export const hasActiveFilters = (query: ShopQuery): boolean =>
   query.categories.length > 0 || query.minPrice !== null || query.maxPrice !== null
 
+/** Facetas de GET /products: describen todo el catálogo activo, aunque haya filtros aplicados. */
+export interface ShopFacets {
+  tagCounts: Record<string, number>
+  priceMin: number | null
+  priceMax: number | null
+}
+
 export interface ShopResult {
   items: Product[]
   total: number
   totalPages: number
-  /** Página efectiva (si la URL pide una que no existe, se usa la última). */
+  /** Página efectiva (si la URL pide una que no existe, el backend usa la última). */
   page: number
+  facets: ShopFacets
 }
 
-const collator = new Intl.Collator('es-AR', { sensitivity: 'base' })
+const API_SORT: Record<SortKey, string> = {
+  recomendadas: 'recommended',
+  'precio-asc': 'price_asc',
+  'precio-desc': 'price_desc',
+  nombre: 'name',
+}
 
-/**
- * TODO(api): GET /products no acepta filtros, orden ni paginación (product-filter.dto.ts está vacío),
- * así que se aplican acá sobre la lista completa. Cuando el backend acepte estos parámetros,
- * reemplazar esta función por una request con `toSearchParams(query)`; la UI no cambia.
- */
-export function applyShopQuery(products: Product[], query: ShopQuery): ShopResult {
-  const filtered = products.filter((p) => {
-    // Categorías: alcanza con que el producto tenga alguna de las elegidas.
-    if (query.categories.length > 0 && !p.tags.some((t) => query.categories.includes(t.slug))) return false
-    if (query.minPrice !== null && p.fromPrice < query.minPrice) return false
-    if (query.maxPrice !== null && p.fromPrice > query.maxPrice) return false
-    return true
+/** Traduce el estado de la Tienda (URL en español) a los parámetros de GET /products. */
+export function toProductFilterParams(query: ShopQuery): URLSearchParams {
+  const params = new URLSearchParams({
+    sort: API_SORT[query.sort],
+    page: String(query.page),
+    limit: String(PAGE_SIZE),
   })
-
-  const sorted = [...filtered]
-  if (query.sort === 'precio-asc') sorted.sort((a, b) => a.fromPrice - b.fromPrice)
-  if (query.sort === 'precio-desc') sorted.sort((a, b) => b.fromPrice - a.fromPrice)
-  if (query.sort === 'nombre') sorted.sort((a, b) => collator.compare(a.name, b.name))
-
-  const total = sorted.length
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const page = Math.min(query.page, totalPages)
-  return { items: sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), total, totalPages, page }
+  query.categories.forEach((slug) => params.append('tags', slug))
+  if (query.minPrice !== null) params.set('minPrice', String(query.minPrice))
+  if (query.maxPrice !== null) params.set('maxPrice', String(query.maxPrice))
+  return params
 }

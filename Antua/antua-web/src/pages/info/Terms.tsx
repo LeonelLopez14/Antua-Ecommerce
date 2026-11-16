@@ -10,7 +10,7 @@ export default function Terms() {
         entrega.
       </p>
       <h2>Precios y envío</h2>
-      <p>Los precios están en pesos argentinos. El envío tiene una tarifa fija que ves antes de confirmar.</p>
+      <p>Los precios están en pesos. El envío tiene una tarifa fija que ves antes de confirmar.</p>
       <h2>Cupones</h2>
       <p>Cada cupón tiene vigencia y, a veces, un monto mínimo de compra. Si tu carrito deja de cumplirlo, el cupón se quita.</p>
       <h2>Cambios y cancelaciones</h2>

@@ -2,7 +2,7 @@ import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'rea
 import { gsap, useGSAP } from '../../lib/gsap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { login, register } from '../../api/auth'
-import { AUTH_MESSAGES, authErrorsFrom, EMAIL_PATTERN, PASSWORD_MIN, type AuthErrors, type AuthField as FieldName } from '../../lib/authMessages'
+import { AUTH_MESSAGES, authErrorsFrom, EMAIL_PATTERN, isValidNewPassword, type AuthErrors, type AuthField as FieldName } from '../../lib/authMessages'
 import { useAuthModalStore, type AuthTab } from '../../stores/authModalStore'
 import { useAuthStore } from '../../stores/authStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -10,6 +10,7 @@ import type { AuthResponse } from '../../types/auth'
 import { Dialog } from '../ui/Dialog'
 import { Button } from '../ui/Button'
 import { FormField } from '../ui/FormField'
+import { Link } from 'react-router-dom'
 
 const TABS: { id: AuthTab; label: string }[] = [
   { id: 'login', label: 'Iniciar sesión' },
@@ -53,14 +54,12 @@ export function AuthModal() {
   const [errors, setErrors] = useState<AuthErrors>(NO_ERRORS)
   const [pending, setPending] = useState(false)
   const [mergeError, setMergeError] = useState<string | null>(null)
-  const [forgotOpen, setForgotOpen] = useState(false)
 
   const resetForms = () => {
     setFormKey((k) => k + 1)
     setErrors(NO_ERRORS)
     setPending(false)
     setMergeError(null)
-    setForgotOpen(false)
   }
 
   // Crossfade del contenido al cambiar de tab.
@@ -75,7 +74,6 @@ export function AuthModal() {
   const switchTab = (next: AuthTab, focusTab = false) => {
     if (next === tab) return
     setErrors(NO_ERRORS)
-    setForgotOpen(false)
     setTab(next)
     if (focusTab) document.getElementById(`${baseId}-tab-${next}`)?.focus()
   }
@@ -140,7 +138,7 @@ export function AuthModal() {
     const fields: AuthErrors['fields'] = {}
     if (!fullName) fields.fullName = AUTH_MESSAGES.fullName
     if (!EMAIL_PATTERN.test(email)) fields.email = AUTH_MESSAGES.email
-    if (password.length < PASSWORD_MIN) fields.password = AUTH_MESSAGES.passwordMin
+    if (!isValidNewPassword(password)) fields.password = AUTH_MESSAGES.passwordMin
     if (confirm !== password) fields.confirmPassword = AUTH_MESSAGES.confirm
     if (Object.keys(fields).length > 0) return showErrors({ fields, form: null })
 
@@ -232,26 +230,15 @@ export function AuthModal() {
               autoComplete="current-password"
               error={errors.fields.password}
               aside={
-                // TODO(auth): no hay flujo de recuperación en el backend todavía; solo informa.
-                <button
-                  type="button"
-                  onClick={() => setForgotOpen((v) => !v)}
-                  aria-expanded={forgotOpen}
+                <Link
+                  to="/olvide-mi-contrasena"
+                  onClick={close}
                   className="rounded-sm text-sm text-accent-main underline-offset-4 hover:underline dark:text-dark-accent-main"
                 >
                   ¿Olvidaste tu contraseña?
-                </button>
+                </Link>
               }
             />
-            {forgotOpen && (
-              <p className="text-sm text-text-main/85 dark:text-dark-text-secondary">
-                Pronto vas a poder recuperarla desde acá. Mientras tanto, escribinos a{' '}
-                <a href="mailto:hola@antua.com.ar" className="font-bold underline underline-offset-4">
-                  hola@antua.com.ar
-                </a>
-                .
-              </p>
-            )}
             <Button type="submit" loading={pending} className="mt-2 w-full">
               {pending ? 'Iniciando sesión…' : 'Iniciar sesión'}
             </Button>
@@ -291,9 +278,8 @@ export function AuthModal() {
               name="new-password"
               type="password"
               autoComplete="new-password"
-              minLength={PASSWORD_MIN}
               error={errors.fields.password}
-              hint={`Al menos ${PASSWORD_MIN} caracteres.`}
+              hint="De 8 a 72 caracteres, con al menos una letra y un número."
             />
             <FormField
               id={id('confirm-password')}

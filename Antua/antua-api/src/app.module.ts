@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { join } from 'node:path';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -14,9 +15,20 @@ import { UsersModule } from './users/users.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env.validation';
+import { NewsletterModule } from './newsletter/newsletter.module';
+import { HealthController } from './health/health.controller';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AdminModule } from './admin/admin.module';
+import { AdminAccessGuard } from './admin/admin-access.guard';
 
 @Module({
   imports: [
+    // Límite general por IP; las rutas sensibles tienen uno propio con @Throttle.
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 300 }],
+      skipIf: () => process.env.NODE_ENV === 'test',
+    }),
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }), // lee y valida el .env, disponible en toda la app
 
     TypeOrmModule.forRootAsync({
@@ -29,9 +41,16 @@ import { validateEnv } from './config/env.validation';
         username: config.get<string>('DB_USERNAME'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_DATABASE'),
+        // MySQL guarda en UTC: sin esto, el driver leería las fechas como hora local y las correría.
+        timezone: 'Z',
         autoLoadEntities: true, // toma automáticamente las entidades registradas via forFeature()
-        synchronize: true, // SOLO en desarrollo, nunca en producción
-        logging: true, // para que veas los queries SQL en consola (útil para depurar esto mismo)
+        // El esquema se gestiona con migraciones (src/database/migrations), no con synchronize:
+        // synchronize puede borrar columnas sin avisar si una entidad cambia.
+        synchronize: false,
+        migrations: [join(__dirname, 'database', 'migrations', '*.{ts,js}')],
+        migrationsRun: true, // aplica las pendientes al arrancar
+        // Sin `true`: registrar cada query dejaría datos personales (emails, direcciones) en el log.
+        logging: ['error', 'warn', 'migration'],
       }),
     }),
 
@@ -45,8 +64,15 @@ import { validateEnv } from './config/env.validation';
     UsersModule,
     AddressesModule,
     AuthModule,
+    NewsletterModule,
+    AdminModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, HealthController],
+  providers: [
+    AppService,
+    // Los guards globales corren en este orden: primero el límite de intentos, después el rol.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: AdminAccessGuard },
+  ],
 })
 export class AppModule {}

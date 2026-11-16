@@ -1,10 +1,12 @@
 import { api } from './client'
 import { toNumber } from './products'
-import type { ApiCart, ApiCartItem, ApiCartSummary, Cart, CartItem, CartSummary } from '../types/cart'
+import type { ApiCart, ApiCartItem, ApiCartSummary, Cart, CartItem, CartSummary, CartWarning } from '../types/cart'
 
 export interface CartSnapshot {
   cart: Cart
   summary: CartSummary
+  /** Avisos de esta respuesta. Por ejemplo, un cupón retirado por no llegar al mínimo. */
+  warnings: CartWarning[]
 }
 
 /** La respuesta no tiene la forma `{ cart: { items }, summary }` que necesita el drawer. */
@@ -29,6 +31,15 @@ function isSummary(value: unknown): value is ApiCartSummary {
 
 function isCartWithItems(value: unknown): value is ApiCart & { items: ApiCartItem[] } {
   return isRecord(value) && typeof value.id === 'number' && Array.isArray(value.items)
+}
+
+function isCartWarning(value: unknown): value is CartWarning {
+  return (
+    isRecord(value) &&
+    value.code === 'COUPON_REMOVED_MIN_NOT_MET' &&
+    typeof value.couponCode === 'string' &&
+    typeof value.minAmount === 'number'
+  )
 }
 
 function toCartItem(item: ApiCartItem): CartItem {
@@ -61,7 +72,9 @@ function normalize(data: unknown, endpoint: string): CartSnapshot {
       discount: summary.discount,
       shipping: typeof summary.shipping === 'number' ? summary.shipping : null,
       total: summary.total,
+      shippingEtaDays: typeof summary.shippingEtaDays === 'number' ? summary.shippingEtaDays : null,
     },
+    warnings: Array.isArray(data.warnings) ? data.warnings.filter(isCartWarning) : [],
   }
 }
 

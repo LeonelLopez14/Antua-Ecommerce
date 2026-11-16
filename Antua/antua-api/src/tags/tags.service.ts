@@ -2,8 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Tag } from './entities/tag.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CreateTagDto } from './dto/tag.dto';
-import { UpdateTagDto } from './dto/update-tag.dto';
 
 @Injectable()
 export class TagsService {
@@ -15,6 +13,7 @@ export class TagsService {
   //Metodo para obtener todos los tags para un filtro
   async findAll() {
     return this.tagRepository.find({
+      where: { is_active: true },
       order: { name: 'ASC' },
     });
   }
@@ -22,7 +21,7 @@ export class TagsService {
   //metodo para buscar un tag mediante id
   async findOne(id: number) {
     const tag = await this.tagRepository.findOne({
-      where: { id },
+      where: { id, is_active: true },
     });
 
     if (!tag) {
@@ -30,39 +29,5 @@ export class TagsService {
     }
 
     return tag;
-  }
-
-  //metodo para crear un tag
-  async create(dto: CreateTagDto) {
-    const newTag = this.tagRepository.create(dto);
-    return await this.tagRepository.save(newTag);
-  }
-
-  //Metodo para actualizar un tag mediante id
-  async update(id: number, dto: UpdateTagDto) {
-    const tag = await this.tagRepository.findOne({
-      where: { id },
-    });
-
-    if (!tag) {
-      throw new NotFoundException('Tag no encontrado');
-    }
-
-    Object.assign(tag, dto);
-
-    return this.tagRepository.save(tag);
-  }
-
-  //metodo para eliminar un tag mediante id
-  async remove(id: number) {
-    const tag = await this.tagRepository.delete(id);
-
-    if (tag.affected === 0) {
-      throw new NotFoundException('No se encontro el tag');
-    }
-
-    return {
-      message: 'Tag eliminado',
-    };
   }
 }

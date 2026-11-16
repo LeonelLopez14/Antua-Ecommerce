@@ -3,18 +3,43 @@ import { getApiErrorMessage } from '../api/client'
 import { couponErrorMessage } from './cartMessages'
 import type { OrderStatus } from '../types/order'
 
+/** Un producto cuyo precio cambió desde que se agregó al carrito (409 PRICE_CHANGED). */
+export interface PriceChange {
+  productName: string
+  variantName: string
+  oldPrice: number
+  newPrice: number
+}
+
 /** Error de POST /orders traducido y con un camino para resolverlo. */
 export interface OrderError {
   message: string
   /** El problema está en el carrito (stock, cupón, vacío): ofrecer volver a revisarlo. */
   reviewCart: boolean
+  /** Hay precios nuevos: el carrito ya se actualizó y se pide confirmar de nuevo. */
+  priceChanges?: PriceChange[]
 }
+
+interface PriceChangedBody {
+  code: 'PRICE_CHANGED'
+  changes: PriceChange[]
+}
+
+const isPriceChangedBody = (data: unknown): data is PriceChangedBody =>
+  typeof data === 'object' && data !== null && 'code' in data && data.code === 'PRICE_CHANGED' && 'changes' in data && Array.isArray(data.changes)
 
 /**
  * Traduce los errores de orders.service.ts. El backend responde 400 con mensajes sin tildes
  * ("No hay suficiente stock para la variante x6.", "El cupon ha expirado…", etc.).
  */
 export function orderErrorFrom(error: unknown): OrderError {
+  if (isAxiosError(error) && error.response?.status === 409 && isPriceChangedBody(error.response.data)) {
+    return {
+      message: 'Actualizamos tu carrito con los precios nuevos. Revisá el total y confirmá de nuevo.',
+      reviewCart: true,
+      priceChanges: error.response.data.changes,
+    }
+  }
   const message = getApiErrorMessage(error, 'No pudimos registrar tu pedido. Probá de nuevo en un rato.')
   if (!isAxiosError(error) || !error.response || error.response.status >= 500) {
     return { message, reviewCart: false }
@@ -52,6 +77,18 @@ const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'neutral' | 'prog
   delivered: { label: 'Entregado', tone: 'done' },
   canceled: { label: 'Cancelado', tone: 'muted' },
 }
+
+/** Texto del estado de pago (orders.payment_status). Un estado nuevo se muestra tal cual. */
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  pending: 'Pago pendiente',
+  paid: 'Pagado',
+  failed: 'Pago rechazado',
+  canceled: 'Pago vencido',
+  refunded: 'Pago devuelto',
+  paid_after_cancel: 'Pago en revisión',
+}
+
+export const paymentStatusLabel = (status: string): string => PAYMENT_STATUS_LABEL[status] ?? status
 
 const isOrderStatus = (status: string): status is OrderStatus => Object.hasOwn(ORDER_STATUS, status)
 

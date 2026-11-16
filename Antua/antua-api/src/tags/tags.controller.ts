@@ -1,17 +1,7 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { TagsService } from './tags.service';
-import { CreateTagDto } from './dto/tag.dto';
-import { UpdateTagDto } from './dto/update-tag.dto';
-import { ParseIntPipe } from '@nestjs/common';
 
+// Solo lectura y solo tags activos. Las escrituras están en /admin/tags.
 @Controller('tags')
 export class TagsController {
   constructor(private readonly tagService: TagsService) {}
@@ -24,20 +14,5 @@ export class TagsController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.tagService.findOne(id);
-  }
-
-  @Post()
-  create(@Body() dto: CreateTagDto) {
-    return this.tagService.create(dto);
-  }
-
-  @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTagDto) {
-    return this.tagService.update(id, dto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.tagService.remove(id);
   }
 }

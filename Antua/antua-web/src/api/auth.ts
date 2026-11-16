@@ -18,3 +18,25 @@ export async function fetchMe(): Promise<User> {
   const { data } = await api.get<User>('/auth/me')
   return data
 }
+
+/** POST /auth/change-password (JWT): 401 si la actual no coincide. Devuelve un JWT nuevo; los anteriores dejan de valer. */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>('/auth/change-password', { currentPassword, newPassword })
+  return data
+}
+
+/** PATCH /users/me (JWT): nombre y teléfono. El email no se puede cambiar. */
+export async function updateProfile(fullName: string, phone: string): Promise<User> {
+  const { data } = await api.patch<User>('/users/me', { full_name: fullName, phone })
+  return data
+}
+
+/** POST /auth/forgot-password: responde igual exista o no la cuenta. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await api.post('/auth/forgot-password', { email })
+}
+
+/** POST /auth/reset-password: 400 si el token venció, ya se usó o no existe. */
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await api.post('/auth/reset-password', { token, newPassword })
+}

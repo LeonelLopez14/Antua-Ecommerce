@@ -1,5 +1,6 @@
-import { api } from './client'
+import { api, imageUrl } from './client'
 import type { ApiDecimal, ApiProduct, ApiReview, ApiTag, Product, Review, Tag } from '../types/product'
+import { toProductFilterParams, type ShopFacets, type ShopQuery, type ShopResult } from '../lib/shopQuery'
 
 export const toNumber = (value: ApiDecimal): number =>
   typeof value === 'number' ? value : Number.parseFloat(value)
@@ -25,19 +26,30 @@ function toProduct(product: ApiProduct): Product {
     isActive: product.is_active,
     fromPrice: prices.length > 0 ? Math.min(...prices) : 0,
     variants,
-    images: [...product.images].sort((a, b) => a.sort_order - b.sort_order).map((i) => ({ id: i.id, url: i.url })),
+    // El backend ya manda la principal primero (toPublicProduct); se respeta ese orden.
+    images: product.images.map((i) => ({ id: i.id, url: imageUrl(i.url) })),
     tags: product.productTags.map((pt) => toTag(pt.tag)),
   }
 }
 
-/**
- * GET /products devuelve todos los productos activos, sin filtros, orden ni paginación
- * (product-filter.dto.ts está vacío). Filtrar y paginar se hace en `lib/shopQuery.ts`;
- * cuando el backend acepte query params, solo cambia esta función.
- */
+/** GET /products sin parámetros: todos los productos activos (Home y búsqueda por variante). */
 export async function fetchProducts(signal?: AbortSignal): Promise<Product[]> {
   const { data } = await api.get<ApiProduct[]>('/products', { signal })
   return data.map(toProduct)
+}
+
+interface ApiProductPage {
+  items: ApiProduct[]
+  total: number
+  page: number
+  totalPages: number
+  facets: ShopFacets
+}
+
+/** GET /products con filtros, orden y paginación (todo se resuelve en el backend). */
+export async function fetchProductPage(query: ShopQuery, signal?: AbortSignal): Promise<ShopResult> {
+  const { data } = await api.get<ApiProductPage>('/products', { params: toProductFilterParams(query), signal })
+  return { items: data.items.map(toProduct), total: data.total, page: data.page, totalPages: data.totalPages, facets: data.facets }
 }
 
 export async function fetchProduct(slug: string, signal?: AbortSignal): Promise<Product> {
@@ -66,8 +78,17 @@ export async function fetchReviews(slug: string, signal?: AbortSignal): Promise<
 /**
  * POST /products/:slug/reviews (JWT) con `{ rating, comment? }` (create-review.dto.ts).
  * 403 si no hay un pedido entregado con este producto; 409 si ya lo reseñaste.
- * El backend no permite editar ni borrar reseñas.
  */
 export async function postReview(slug: string, rating: number, comment: string): Promise<void> {
   await api.post(`/products/${encodeURIComponent(slug)}/reviews`, comment ? { rating, comment } : { rating })
+}
+
+/** PATCH /products/:slug/reviews/:id (JWT): solo la reseña propia; 404 para cualquier otra. */
+export async function updateReview(slug: string, id: number, rating: number, comment: string): Promise<void> {
+  await api.patch(`/products/${encodeURIComponent(slug)}/reviews/${id}`, { rating, comment })
+}
+
+/** DELETE /products/:slug/reviews/:id (JWT): solo la reseña propia. */
+export async function deleteReview(slug: string, id: number): Promise<void> {
+  await api.delete(`/products/${encodeURIComponent(slug)}/reviews/${id}`)
 }

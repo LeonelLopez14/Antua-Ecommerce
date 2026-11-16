@@ -5,10 +5,16 @@ import { UsersModule } from 'src/users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { PasswordResetService } from './password-reset.service';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
   imports: [
     UsersModule,
+    MailModule,
+    TypeOrmModule.forFeature([PasswordResetToken]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -19,6 +25,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ], // Import UsersModule to use User repository
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, PasswordResetService],
 })
 export class AuthModule {}

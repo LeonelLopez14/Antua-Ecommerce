@@ -4,6 +4,8 @@ export interface User {
   full_name: string
   email: string
   phone: string | null
+  /** Lo asigna solo el servidor (`pnpm admin:create`). En el front sirve para mostrar u ocultar el panel. */
+  role: 'customer' | 'admin'
   created_at: string
 }
 

@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+**/coverage
+**/test-results
+**/playwright-report
+**/*.sql
+**/uploads
+antua-web/docs/checks
+.git

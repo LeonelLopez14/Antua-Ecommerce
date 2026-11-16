@@ -33,6 +33,8 @@ export interface ApiCartSummary {
   /** null = SHIPPING_FLAT_RATE no configurado en el backend. */
   shipping?: number | null
   total: number
+  /** Plazo estimado de entrega, en días. null = no configurado. */
+  shippingEtaDays?: number | null
 }
 
 export interface ApiCartResponse {
@@ -58,6 +60,15 @@ export interface CartSummary {
   /** null: el envío todavía no está definido y se calcula en el checkout. */
   shipping: number | null
   total: number
+  /** Plazo estimado de entrega, en días. null: el backend no informa un plazo. */
+  shippingEtaDays: number | null
+}
+
+/** Algo que el backend cambió en el carrito sin que se lo pidieran (por ahora, cupón retirado). */
+export interface CartWarning {
+  code: 'COUPON_REMOVED_MIN_NOT_MET'
+  couponCode: string
+  minAmount: number
 }
 
 export interface Cart {

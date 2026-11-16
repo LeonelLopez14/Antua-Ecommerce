@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { AxiosError, AxiosHeaders } from 'axios'
 import * as authApi from '../../api/auth'
 import { AuthModal } from './AuthModal'
@@ -12,7 +13,7 @@ vi.mock('../../api/auth', () => ({ login: vi.fn(), register: vi.fn(), fetchMe: v
 
 const session = {
   token: 'jwt-1',
-  user: { id: 7, full_name: 'Ana Pérez', email: 'ana@antua.test', phone: null, created_at: '2026-11-01T10:00:00Z' },
+  user: { id: 7, full_name: 'Ana Pérez', email: 'ana@antua.test', phone: null, role: 'customer' as const, created_at: '2026-11-01T10:00:00Z' },
 }
 
 const unauthorized = new AxiosError('Unauthorized', '401', undefined, undefined, {
@@ -24,7 +25,11 @@ const unauthorized = new AxiosError('Unauthorized', '401', undefined, undefined,
 })
 
 const openModal = (tab: 'login' | 'register' = 'login') => {
-  render(<AuthModal />)
+  render(
+    <MemoryRouter>
+      <AuthModal />
+    </MemoryRouter>,
+  )
   act(() => useAuthModalStore.getState().open(tab))
 }
 
@@ -41,6 +46,11 @@ describe('AuthModal', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true')
     expect(screen.getByRole('tab', { name: 'Iniciar sesión' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('tab', { name: 'Registrarme' })).toHaveAttribute('aria-selected', 'false')
+  })
+
+  it('enlaza a la recuperación de contraseña', () => {
+    openModal()
+    expect(screen.getByRole('link', { name: '¿Olvidaste tu contraseña?' })).toHaveAttribute('href', '/olvide-mi-contrasena')
   })
 
   it('las flechas del teclado cambian de tab', async () => {

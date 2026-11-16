@@ -1,43 +1,25 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Post,
-  Body,
-  Patch,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { CreateProductDto } from './dto/product.dto';
-import { UpdateProductDto } from './dto/update-producto.dto';
-import { ParseIntPipe } from '@nestjs/common';
+import { ProductFilterDto } from './dto/product-filter.dto';
 
+// Solo lectura. Las escrituras del catálogo están en /admin/products (src/admin/catalog).
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productService: ProductsService) {}
 
   @Get()
-  findAll() {
-    return this.productService.findAll();
+  findAll(@Query() filter: ProductFilterDto) {
+    // Sin parámetros responde el array de siempre; con parámetros, una página con facetas.
+    const hasFilter = Object.values(filter).some(
+      (value) => value !== undefined,
+    );
+    return hasFilter
+      ? this.productService.findPage(filter)
+      : this.productService.findAll();
   }
 
   @Get(':slug')
   findOne(@Param('slug') slug: string) {
     return this.productService.findOne(slug);
-  }
-
-  @Post()
-  create(@Body() dto: CreateProductDto) {
-    return this.productService.create(dto);
-  }
-
-  @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProductDto) {
-    return this.productService.update(id, dto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.productService.remove(id);
   }
 }

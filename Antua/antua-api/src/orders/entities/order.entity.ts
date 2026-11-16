@@ -4,9 +4,9 @@ import {
   Column,
   ManyToOne,
   OneToMany,
-  OneToOne,
   CreateDateColumn,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { User } from '../../users/entities/user.entity';
 import { Coupon } from '../../coupons/entities/coupon.entity';
 import { OrderItem } from './order-item.entity';
@@ -28,11 +28,22 @@ export class Order {
   @Column({ type: 'varchar', length: 150, nullable: true })
   guest_email: string | null;
 
+  // Hash del token que prueba que quien pregunta hizo este pedido de invitado.
+  // select: false + @Exclude: nunca sale en una respuesta.
+  @Column({ type: 'char', length: 64, nullable: true, select: false })
+  @Exclude()
+  guest_access_token_hash: string | null;
+
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;
 
+  // Ver src/payments/payment-state.ts. Es independiente del estado logístico (`status`).
   @Column({ type: 'varchar', length: 50, default: 'pending' })
   payment_status: string;
+
+  // Hasta cuándo se reserva el stock esperando el pago. null: sin vencimiento.
+  @Column({ type: 'datetime', nullable: true })
+  payment_expires_at: Date | null;
 
   @Column({ type: 'varchar', length: 200 })
   shipping_full_name: string;
@@ -58,8 +69,17 @@ export class Order {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   shipping_amount: number;
 
+  // Plazo estimado al momento de la compra (no cambia si después cambia la configuración).
+  @Column({ type: 'int', nullable: true })
+  shipping_eta_days: number | null;
+
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   total: number;
+
+  // Solo para el equipo: la escribe el panel y nunca sale en las rutas del cliente.
+  @Column({ type: 'text', nullable: true, select: false })
+  @Exclude()
+  internal_note: string | null;
 
   @CreateDateColumn()
   created_at: Date;
@@ -75,6 +95,6 @@ export class Order {
   @OneToMany(() => OrderItem, (item) => item.order)
   items: OrderItem[];
 
-  @OneToOne(() => Payment, (payment) => payment.order, { nullable: true })
-  payment: Payment | null;
+  @OneToMany(() => Payment, (payment) => payment.order)
+  payments: Payment[];
 }

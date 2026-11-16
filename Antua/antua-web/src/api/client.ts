@@ -36,10 +36,13 @@ api.interceptors.response.use((response) => {
   return response
 })
 
+const TOO_MANY_REQUESTS = 'Hiciste muchos intentos seguidos. Esperá un minuto y probá de nuevo.'
+
 /** Mensaje legible del error de la API (NestJS devuelve `message` como string o string[]). */
 export function getApiErrorMessage(error: unknown, fallback = 'Algo salió mal. Probá de nuevo en un rato.'): string {
   if (isAxiosError<{ message?: string | string[] }>(error)) {
     if (!error.response) return 'No pudimos conectarnos. Revisá tu conexión y probá de nuevo.'
+    if (error.response.status === 429) return TOO_MANY_REQUESTS
     // Los 5xx traen mensajes técnicos (y en inglés): no sirven para quien compra.
     if (error.response.status >= 500) return fallback
     const message = error.response?.data?.message
@@ -51,4 +54,13 @@ export function getApiErrorMessage(error: unknown, fallback = 'Algo salió mal. 
 
 export function isNotFoundError(error: unknown): boolean {
   return isAxiosError(error) && error.response?.status === 404
+}
+
+/**
+ * URL de una imagen de producto. Las subidas desde el panel las sirve la API en /uploads
+ * (en desarrollo pasan por el proxy /api); las demás (seed, externas) quedan como están.
+ */
+export function imageUrl(url: string): string {
+  if (!url.startsWith('/uploads/')) return url
+  return `${api.defaults.baseURL ?? ''}${url}`
 }

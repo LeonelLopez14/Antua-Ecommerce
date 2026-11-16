@@ -1,16 +1,17 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsValidNewPassword } from 'src/common/password-policy';
 
 export class RegisterDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(155)
   full_name: string;
 
   @IsEmail()
   @IsNotEmpty()
+  @MaxLength(155)
   email: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(8)
+  @IsValidNewPassword()
   password: string;
 }

@@ -1,4 +1,5 @@
 import { formatPrice } from './format'
+import type { CartWarning } from '../types/cart'
 
 /**
  * Traduce los mensajes del carrito del backend (sin tildes y sin próximo paso)
@@ -17,6 +18,10 @@ export function couponErrorMessage(message: string): string {
   if (/limite de uso/i.test(message)) return 'Ese cupón ya alcanzó su límite de usos.'
   return message
 }
+
+/** Aviso accionable de algo que el backend cambió en el carrito. */
+export const cartWarningMessage = (warning: CartWarning): string =>
+  `Quitamos el cupón ${warning.couponCode} porque tu compra ya no llega al mínimo de ${formatPrice(warning.minAmount)}. Si sumás algo más, podés volver a aplicarlo.`
 
 export function cartItemErrorMessage(message: string): string {
   if (/stock insuficiente/i.test(message)) return 'No hay tantas unidades disponibles. Probá con menos.'

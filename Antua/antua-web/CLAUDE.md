@@ -29,14 +29,39 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 - Las rutas que requieren sesión van bajo `/cuenta` (`AccountLayout` abre el AuthModal; no hay redirecciones).
 - El estado navegable vive en la URL: filtros (`?categoria=`), variante (`?variante=`) y paso del checkout (`?paso=`).
 
+### Entorno de desarrollo
+- La base es MySQL 8 en el contenedor `antua-mysql` (`127.0.0.1:3307`). El 3306 es un MariaDB del sistema: no se toca.
+- **Nunca detener, reiniciar ni modificar servicios, contenedores o procesos que no sean de este repo** (por ejemplo, otros proyectos de Docker). Si hay un conflicto de puertos, usar otro puerto o preguntar.
+- `pnpm dev` de la API corre con `--watch` y aplica las migraciones al arrancar: una migración nueva en `src/database/migrations/` llega a `antua_db` en segundos. Generarla fuera de `src` (o con la API detenida), revisarla y recién después moverla.
+
+### Backend (`../antua-api`)
+- El esquema se cambia solo con migraciones: `pnpm migration:generate src/database/migrations/Nombre`. Antes de tocarlo, hacer un respaldo fuera del repo. `synchronize` está apagado.
+- Lo ajeno responde 404. Todo endpoint con datos propios filtra por dueño; cada uno lleva su test de ownership en `test/*.e2e-spec.ts`.
+- Los e2e corren contra `antua_test`. Los logs llevan ids, nunca datos personales.
+
+### Panel de administración (`/admin`)
+- Detalle en `docs/admin.md`. Páginas en `pages/admin/`, reexportadas en `pages/admin/index.ts`: así arman un solo chunk diferido que la tienda nunca descarga. Nunca importar nada de `pages/admin` ni de `components/admin` desde la tienda.
+- La seguridad está en el backend: toda ruta nueva de la API va bajo `/admin` con `@AdminController(...)`, y `test/admin-auth.e2e-spec.ts` falla si queda alguna abierta. El front solo esconde.
+- El rol `admin` solo se da con `pnpm admin:create`. Nada en la web asigna roles.
+- Toda escritura del panel queda en la auditoría (`AuditService.record`, en la misma transacción). Lo que tiene historial se desactiva, no se borra.
+- Listas con filtros, orden y página en la URL (`useAdminQuery`), tablas con `DataTable`, resultados con `toast()` (aria-live) y formularios con `useUnsavedChanges`.
+
+### Pagos
+- El estado de pago lo define solo el servidor (webhook firmado o consulta al proveedor); nunca la URL de retorno ni un monto enviado por el cliente.
+- Solo credenciales de prueba. Diseño y pruebas: `docs/payments-design.md`. Las transiciones están en `payment-state.ts`.
+
+### Acceso a pedidos de invitado
+- Con el token del pedido (`X-Order-Token`, guardado en `lib/placedOrder.ts`). Nunca por email.
+
 ### Montos y formato
 - **Ningún monto se calcula en el cliente:** subtotal, descuento, envío y total salen del backend (carrito o pedido). Se muestra "cantidad × precio unitario", nunca un total por línea calculado.
-- Precios con `formatPrice` y fechas con `formatDate` (`lib/format.ts`, `Intl` es-AR). Siempre `tabular-nums` en montos.
+- Moneda única: **UYU con `es-UY`**, la misma que usa el backend en los pagos (`PAYMENT_CURRENCY`). Precios con `formatPrice` (o `formatExactPrice` si hay centavos) y fechas con `formatDate`/`formatDateTime` (`lib/format.ts`, el único lugar con `Intl`). Nunca otro formateador. Siempre `tabular-nums` en montos.
 
 ### Manejo de errores
 - **API:**
   - `getApiErrorMessage` (`api/client.ts`) arma un mensaje legible; los 5xx no muestran el texto técnico.
   - Los errores de cada dominio se traducen en `lib/*Messages.ts` (`cartMessages`, `authMessages`, `orderMessages`, `reviewMessages`) a mensajes accionables: qué pasó y cómo seguir.
+- **Avisos del backend sobre el carrito:** `warnings` en la respuesta, mostrados por `CartWarnings` (aria-live).
 - **Estados de carga:** cargando con skeleton y texto `role="status"` terminado en "…"; vacío con `EmptyState`; error con `ErrorState` y reintento.
 - **Formularios:**
   - Validación en línea con `FormField` (error ligado con `aria-describedby`) y foco en el primer error.

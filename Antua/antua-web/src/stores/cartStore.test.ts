@@ -30,7 +30,8 @@ const snapshot = (quantity: number, total: number): CartSnapshot => ({
       },
     ],
   },
-  summary: { subtotal: total - 1500, discount: 0, shipping: 1500, total },
+  summary: { subtotal: total - 1500, discount: 0, shipping: 1500, total, shippingEtaDays: 3 },
+  warnings: [],
 })
 
 /** Error 400 como los que devuelve NestJS: { message }. */
@@ -45,7 +46,7 @@ const apiError = (message: string) =>
 
 describe('cartStore', () => {
   beforeEach(() => {
-    useCartStore.setState({ cart: null, summary: null, status: 'idle', loadError: null, pendingItemIds: [] })
+    useCartStore.setState({ cart: null, summary: null, warnings: [], status: 'idle', loadError: null, pendingItemIds: [] })
   })
 
   it('reemplaza el estado con lo que devuelve el backend (no calcula montos)', async () => {
@@ -57,6 +58,19 @@ describe('cartStore', () => {
     expect(state.status).toBe('ready')
     expect(state.summary?.total).toBe(6300)
     expect(selectItemCount(state)).toBe(2)
+  })
+
+  it('conserva un aviso pendiente al recargar y lo borra con la próxima acción', async () => {
+    const warning = { code: 'COUPON_REMOVED_MIN_NOT_MET', couponCode: 'SEED10', minAmount: 5000 } as const
+    useCartStore.setState({ ...snapshot(1, 3900), warnings: [warning], status: 'ready' })
+
+    vi.mocked(cartApi.fetchCart).mockResolvedValue(snapshot(1, 3900))
+    await useCartStore.getState().load()
+    expect(useCartStore.getState().warnings).toEqual([warning])
+
+    vi.mocked(cartApi.updateCartItem).mockResolvedValue(snapshot(2, 6300))
+    await useCartStore.getState().updateQuantity(10, 2)
+    expect(useCartStore.getState().warnings).toEqual([])
   })
 
   it('marca el ítem como pendiente mientras se actualiza la cantidad', async () => {

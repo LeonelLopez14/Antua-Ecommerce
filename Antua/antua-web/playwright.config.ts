@@ -14,7 +14,7 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:5173',
-    locale: 'es-AR',
+    locale: 'es-UY',
     trace: 'retain-on-failure',
   },
   projects: [

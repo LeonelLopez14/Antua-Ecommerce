@@ -67,7 +67,7 @@ export function Footer() {
             </li>
             <li className="flex items-center gap-2 text-surface/80 dark:text-dark-text-secondary">
               <MapPin aria-hidden="true" className="size-4 shrink-0" />
-              Buenos Aires, Argentina
+              Montevideo, Uruguay
             </li>
           </ul>
         </div>

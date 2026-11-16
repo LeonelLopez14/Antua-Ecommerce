@@ -12,6 +12,10 @@ export class Tag {
   @Column({ type: 'varchar', length: 255, unique: true })
   slug: string;
 
+  // Un tag inactivo no se ofrece en la Tienda, pero sus productos siguen existiendo.
+  @Column({ type: 'boolean', default: true })
+  is_active: boolean;
+
   @OneToMany(() => ProductTag, (productTag) => productTag.tag)
   productTags: ProductTag[];
 }

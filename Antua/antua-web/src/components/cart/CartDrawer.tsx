@@ -12,6 +12,7 @@ import { EmptyState } from '../ui/EmptyState'
 import { CartItemCard } from './CartItemCard'
 import { CouponField } from './CouponField'
 import { CartTotals } from './CartTotals'
+import { CartWarnings } from './CartWarnings'
 import { skeletonBar } from '../ui/skeleton'
 
 /** Segundos que se ofrece "Deshacer" después de quitar un ítem. */
@@ -182,6 +183,8 @@ export function CartDrawer() {
           </div>
         </div>
       )}
+
+      <CartWarnings className="mb-4" />
 
       {loading && <CartSkeleton />}
 

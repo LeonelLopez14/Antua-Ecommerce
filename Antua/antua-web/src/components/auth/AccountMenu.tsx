@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { LogOut, MapPin, Package, UserRound } from 'lucide-react'
+import { LayoutDashboard, LogOut, MapPin, Package, UserRound } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { useAuthModalStore } from '../../stores/authModalStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -100,6 +100,21 @@ export function AccountMenu({ buttonClassName }: AccountMenuProps) {
                 Direcciones
               </Link>
             </li>
+            <li>
+              <Link to="/cuenta/perfil" onClick={() => setOpen(false)} className={MENU_ITEM}>
+                <UserRound aria-hidden="true" className="size-4" />
+                Perfil
+              </Link>
+            </li>
+            {/* Solo comodidad: el backend rechaza /admin a quien no sea admin. */}
+            {user?.role === 'admin' && (
+              <li>
+                <Link to="/admin" onClick={() => setOpen(false)} className={MENU_ITEM}>
+                  <LayoutDashboard aria-hidden="true" className="size-4" />
+                  Administración
+                </Link>
+              </li>
+            )}
           </ul>
           <button type="button" onClick={logout} className={`mt-1 ${MENU_ITEM}`}>
             <LogOut aria-hidden="true" className="size-4" />

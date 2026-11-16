@@ -17,7 +17,7 @@ export class Coupon {
   discount_value: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  min_order_amount: number;
+  min_order_amount: number | null;
 
   @Column({ type: 'int', nullable: true })
   usage_limit: number | null;

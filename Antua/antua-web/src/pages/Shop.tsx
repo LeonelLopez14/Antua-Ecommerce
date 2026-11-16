@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { SlidersHorizontal } from 'lucide-react'
 import { useShopData } from '../hooks/useShopData'
 import { usePageMeta } from '../hooks/usePageMeta'
 import { useShopParams } from '../hooks/useShopParams'
 import { galletas } from '../lib/format'
-import { applyShopQuery, hasActiveFilters, PAGE_SIZE } from '../lib/shopQuery'
-import type { Product } from '../types/product'
+import { hasActiveFilters, PAGE_SIZE } from '../lib/shopQuery'
 import { ProductCard } from '../components/product/ProductCard'
 import { ProductGridSkeleton } from '../components/product/ProductGridSkeleton'
 import { ShopFilters } from '../components/shop/ShopFilters'
@@ -24,28 +23,18 @@ const GRID = 'grid gap-6 sm:grid-cols-2 xl:grid-cols-3'
 const noticeFrom = (state: unknown): string | null =>
   typeof state === 'object' && state !== null && 'notice' in state && typeof state.notice === 'string' ? state.notice : null
 
-function priceBoundsOf(products: Product[]): { min: number; max: number } | null {
-  const prices = products.map((p) => p.fromPrice).filter((p) => p > 0)
-  return prices.length > 0 ? { min: Math.min(...prices), max: Math.max(...prices) } : null
-}
-
 export default function Shop() {
-  const { data, retry } = useShopData()
   const { query, toggleCategory, setPriceRange, setSort, clearFilters, pageHref } = useShopParams()
+  const { data, retry } = useShopData(query)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const notice = noticeFrom(useLocation().state)
 
   usePageMeta('Tienda', 'Todas las galletas de Antua: clásicas, sin gluten, veganas y sin azúcar. Filtrá por categoría y precio.')
 
-  const products = data.status === 'ready' ? data.products : null
-  const result = useMemo(() => (products ? applyShopQuery(products, query) : null), [products, query])
-
-  const counts = useMemo(() => {
-    const map: Record<string, number> = {}
-    products?.forEach((p) => p.tags.forEach((t) => (map[t.slug] = (map[t.slug] ?? 0) + 1)))
-    return map
-  }, [products])
-  const priceBounds = useMemo(() => (products ? priceBoundsOf(products) : null), [products])
+  const result = data.status === 'ready' ? data.result : null
+  const counts = result?.facets.tagCounts ?? {}
+  const { priceMin, priceMax } = result?.facets ?? { priceMin: null, priceMax: null }
+  const priceBounds = priceMin !== null && priceMax !== null ? { min: priceMin, max: priceMax } : null
 
   // Al cambiar de página, volver al principio de la grilla.
   useEffect(() => {

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -15,6 +16,36 @@ import { CartItem } from 'src/cart/entities/cart-item.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Coupon } from 'src/coupons/entities/coupon.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
+import type { PaymentsConfig } from 'src/config/env.validation';
+import {
+  generateToken,
+  hashToken,
+  tokenMatchesHash,
+} from 'src/common/secure-token';
+
+/** Un ítem cuyo precio actual ya no es el que mostró el carrito. */
+export interface PriceChange {
+  cartItemId: number;
+  variantId: number;
+  productName: string;
+  variantName: string;
+  oldPrice: number;
+  newPrice: number;
+}
+
+/** Se lanza dentro de la transacción para revertirla: el pedido no se crea ni se descuenta stock. */
+class PriceChangedError extends Error {
+  constructor(readonly changes: PriceChange[]) {
+    super('Cambiaron los precios del carrito');
+  }
+}
+
+const toCents = (amount: number): number => Math.round(amount * 100);
+
+/** Plazo para reclamar un pedido de invitado desde la cuenta. */
+const CLAIM_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+const ORDER_NOT_FOUND = 'Orden no encontrada.';
 
 @Injectable()
 export class OrdersService {
@@ -46,6 +77,36 @@ export class OrdersService {
       );
     }
     //transaccion
+    try {
+      return await this.placeOrder(fullCart, userId, dto);
+    } catch (error) {
+      if (!(error instanceof PriceChangedError)) throw error;
+      // La transacción ya se revirtió. Recién ahora se guardan los precios nuevos,
+      // para que el carrito y la próxima confirmación usen los mismos montos.
+      await this.cartService.updatePriceSnapshots(error.changes);
+      throw new ConflictException({
+        statusCode: 409,
+        code: 'PRICE_CHANGED',
+        message:
+          'Cambió el precio de algunos productos. Revisá el total y confirmá de nuevo.',
+        changes: error.changes,
+      });
+    }
+  }
+
+  /** Con Payments activo, el stock queda reservado solo hasta este momento. */
+  private paymentExpiration(): Date | null {
+    const payments = this.configService.getOrThrow<PaymentsConfig>('PAYMENTS');
+    return payments.mode === 'disabled'
+      ? null
+      : new Date(Date.now() + payments.expirationHours * 3_600_000);
+  }
+
+  private placeOrder(
+    fullCart: Cart,
+    userId: number | undefined,
+    dto: CreateOrderDto,
+  ) {
     return this.dataSource.transaction(async (manager) => {
       const variantRepo = manager.getRepository(ProductVariant);
       const orderRepo = manager.getRepository(Order);
@@ -60,6 +121,7 @@ export class OrdersService {
         quantity: number;
         unitPrice: number;
       }[] = [];
+      const priceChanges: PriceChange[] = [];
       //crear order
       for (const cartItem of fullCart.items) {
         const variant = await variantRepo.findOne({
@@ -83,11 +145,29 @@ export class OrdersService {
             `No hay suficiente stock para la variante ${variant.name}.`,
           );
         }
+        if (!variant.is_active || !variant.product.is_active) {
+          throw new BadRequestException(
+            `La variante ${variant.name} ya no esta a la venta.`,
+          );
+        }
+
+        // El precio que vale es el que vio el cliente: si cambió, no se cobra sin avisarle.
+        const unitPrice = Number(cartItem.unit_price_snapshot);
+        const currentPrice = Number(variant.price);
+        if (toCents(unitPrice) !== toCents(currentPrice)) {
+          priceChanges.push({
+            cartItemId: cartItem.id,
+            variantId: variant.id,
+            productName: variant.product.name,
+            variantName: variant.name,
+            oldPrice: unitPrice,
+            newPrice: currentPrice,
+          });
+        }
+
         variant.stock -= cartItem.quantity;
 
         await variantRepo.save(variant);
-
-        const unitPrice = Number(variant.price);
 
         subtotal += unitPrice * cartItem.quantity;
 
@@ -97,6 +177,8 @@ export class OrdersService {
           unitPrice,
         });
       }
+      if (priceChanges.length > 0) throw new PriceChangedError(priceChanges);
+
       let discount = 0;
 
       if (fullCart.coupon) {
@@ -164,10 +246,15 @@ export class OrdersService {
         );
       }
 
+      // Solo los invitados: es su única prueba de que este pedido es suyo.
+      const accessToken = userId ? null : generateToken();
+
       //creacion dela order
       const order = orderRepo.create({
         user: userId ? { id: userId } : null,
         guest_email: userId ? null : dto.guest_email,
+        guest_access_token_hash: accessToken ? hashToken(accessToken) : null,
+        payment_expires_at: this.paymentExpiration(),
         coupon: fullCart.coupon ?? null,
         status: OrderStatus.PENDING,
         payment_status: 'pending',
@@ -179,6 +266,8 @@ export class OrdersService {
         subtotal,
         discount_amount: discount,
         shipping_amount: shippingAmount,
+        shipping_eta_days:
+          this.configService.get<number | null>('SHIPPING_ETA_DAYS') ?? null,
         total,
       });
 
@@ -211,6 +300,8 @@ export class OrdersService {
       return {
         order,
         items: orderItems,
+        // Se entrega una sola vez; en la base queda solo el hash.
+        accessToken,
       };
     });
   }
@@ -257,24 +348,62 @@ export class OrdersService {
     return order;
   }
 
-  async findGuestOrder(orderId: number, email: string) {
-    const order = await this.orderRepository.findOne({
-      where: {
-        id: orderId,
-        guest_email: email,
-      },
-      relations: {
-        items: {
-          variant: true,
-        },
-        coupon: true,
-      },
-    });
+  /** Pedido de invitado: requiere el token que se entregó al crearlo (no alcanza con saber el email). */
+  async findGuestOrder(orderId: number, accessToken: string | undefined) {
+    const order = await this.findGuestOrderWithHash(orderId);
 
-    if (!order) {
-      throw new NotFoundException('Orden no encontrada');
+    if (
+      !order ||
+      !tokenMatchesHash(accessToken, order.guest_access_token_hash)
+    ) {
+      throw new NotFoundException(ORDER_NOT_FOUND);
     }
 
     return order;
+  }
+
+  /**
+   * Vincula un pedido de invitado a la cuenta de quien presenta su token.
+   * Nunca se vincula por email: como el email no se verifica, cualquiera podría
+   * registrarse con uno ajeno. El token solo lo tiene quien hizo el pedido, sirve
+   * una vez y vence. Todas las fallas responden igual para no revelar qué pedidos existen.
+   */
+  async claimGuestOrder(
+    orderId: number,
+    userId: number,
+    accessToken: string | undefined,
+  ) {
+    const order = await this.findGuestOrderWithHash(orderId);
+    const expired =
+      !order || Date.now() - order.created_at.getTime() > CLAIM_WINDOW_MS;
+
+    if (
+      !order ||
+      expired ||
+      order.user ||
+      !tokenMatchesHash(accessToken, order.guest_access_token_hash)
+    ) {
+      throw new NotFoundException(ORDER_NOT_FOUND);
+    }
+
+    await this.orderRepository.update(order.id, {
+      user: { id: userId },
+      guest_email: null,
+      guest_access_token_hash: null,
+    });
+
+    return this.findOne(order.id, userId);
+  }
+
+  private findGuestOrderWithHash(orderId: number) {
+    return this.orderRepository
+      .createQueryBuilder('o')
+      .addSelect('o.guest_access_token_hash')
+      .leftJoinAndSelect('o.user', 'user')
+      .leftJoinAndSelect('o.items', 'items')
+      .leftJoinAndSelect('items.variant', 'variant')
+      .leftJoinAndSelect('o.coupon', 'coupon')
+      .where('o.id = :orderId', { orderId })
+      .getOne();
   }
 }

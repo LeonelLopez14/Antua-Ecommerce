@@ -12,6 +12,12 @@ import { Review } from '../../reviews/entities/review.entity';
 import { Order } from '../../orders/entities/order.entity';
 import { Cart } from '../../cart/entities/cart.entity';
 
+/** Nadie puede elegir su rol desde la web: solo `pnpm admin:create` crea administradores. */
+export enum UserRole {
+  CUSTOMER = 'customer',
+  ADMIN = 'admin',
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
@@ -29,6 +35,14 @@ export class User {
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string;
+
+  // Los JWT emitidos antes de esta fecha dejan de valer (ver JwtStrategy).
+  @Column({ type: 'datetime', nullable: true })
+  @Exclude()
+  password_changed_at: Date | null;
+
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.CUSTOMER })
+  role: UserRole;
 
   @CreateDateColumn()
   created_at: Date;

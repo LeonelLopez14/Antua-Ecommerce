@@ -18,4 +18,5 @@ export const orderSummaryTotals = (order: Order): SummaryTotals => ({
   discount: order.discount,
   shipping: order.shippingAmount,
   total: order.total,
+  shippingEtaDays: order.shippingEtaDays,
 })
