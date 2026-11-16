@@ -15,14 +15,18 @@ export class Product {
   @Column({ type: 'varchar', length: 100, unique: true })
   slug: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 500 })
   ingredients: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 255 })
   allergens: string;
 
   @Column({ type: 'text' })
   description: string;
+
+  // Opcional: texto libre (por ejemplo "Por galleta: 120 kcal…").
+  @Column({ type: 'text', nullable: true })
+  nutrition_info: string | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   base_price: number;

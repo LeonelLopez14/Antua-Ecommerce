@@ -29,6 +29,11 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 - Las rutas que requieren sesión van bajo `/cuenta` (`AccountLayout` abre el AuthModal; no hay redirecciones).
 - El estado navegable vive en la URL: filtros (`?categoria=`), variante (`?variante=`) y paso del checkout (`?paso=`).
 
+### Entorno de desarrollo
+- La base es MySQL 8 en el contenedor `antua-mysql` (`127.0.0.1:3307`). El 3306 es un MariaDB del sistema: no se toca.
+- **Nunca detener, reiniciar ni modificar servicios, contenedores o procesos que no sean de este repo** (por ejemplo, otros proyectos de Docker). Si hay un conflicto de puertos, usar otro puerto o preguntar.
+- `pnpm dev` de la API corre con `--watch` y aplica las migraciones al arrancar: una migración nueva en `src/database/migrations/` llega a `antua_db` en segundos. Generarla fuera de `src` (o con la API detenida), revisarla y recién después moverla.
+
 ### Backend (`../antua-api`)
 - El esquema se cambia solo con migraciones: `pnpm migration:generate src/database/migrations/Nombre`. Antes de tocarlo, hacer un respaldo fuera del repo. `synchronize` está apagado.
 - Lo ajeno responde 404. Todo endpoint con datos propios filtra por dueño; cada uno lleva su test de ownership en `test/*.e2e-spec.ts`.

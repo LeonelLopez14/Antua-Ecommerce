@@ -577,3 +577,74 @@ curl -s localhost:3000/orders/$ID/payment -H "X-Order-Token: $ORDER_TOKEN"
 4. **DESIGN.md:** sin hex sueltos fuera del 3D, sin colores fuera de la paleta, sin `transition: all` ni tuteo. El único `outline-none` tiene reemplazo.
 5. **Seguridad:** ownership con test en cada endpoint nuevo, DTOs validados, ningún secreto en el repo y logs solo con ids.
 6. **Entorno:** se borró la base temporal `antua_migr_tmp`, que se usó para generar migraciones; `antua_test` queda para los e2e. A pedido del usuario se detuvieron los contenedores `competika-*` (no se borraron).
+
+## 15/11/2026: Fase 12, panel de administración (`docs/prompt-fase-12-admin.md`)
+
+### Paso 0: estado base
+
+- Rama `feat/fase-12-admin`, creada desde `feat/fases-9-11` (todavía no se mezcló en `main`). Base (3307), API (3000, en modo de pagos simulados) y front (5173) respondiendo.
+- **Front:** typecheck, lint y build sin errores; 25 unit tests OK.
+- **Back:** build, lint y 45 unit tests OK. Los e2e fallaban de forma intermitente (1 a 7 de 63) por *timeout* de 5 s en `resetDatabase`: hacía `TRUNCATE` de las ~20 tablas antes de cada test, y en MySQL cada `TRUNCATE` recrea la tabla. 
+  - **Qué cambió** (`test/helpers.ts`, `resetDatabase`): ahora solo vacía las tablas que tienen filas (`SELECT 1 … LIMIT 1` antes de cada `TRUNCATE`). En `test/jest-e2e.json` el timeout pasa a 30 s.
+  - **Resultado:** 63/63, y la corrida bajó de 289 s a 91 s.
+
+### 12.1: base de seguridad del panel (backend)
+
+**Respaldo:** `~/respaldos/antua_db_20261115_2256.sql`, fuera del repo, antes de tocar el esquema.
+
+**Migración `src/database/migrations/1794794256346-AdminPanel.ts`.** Solo agrega; no borra columnas ni tablas.
+- `users.role`: enum `customer`/`admin`, con `customer` por defecto, así que todas las cuentas existentes quedaron como `customer`.
+- Tabla `admin_audit_log`: quién, qué acción, sobre qué entidad, cuándo y un resumen JSON del cambio.
+- Tabla `order_status_history`, para la 12.4.
+- Columnas nuevas, para la 12.2, la 12.4 y la 12.6:
+  - `orders.internal_note`
+  - `reviews.is_hidden`
+  - `tags.is_active`
+  - `product_images.is_primary` y `product_images.file_name`
+  - `products.nutrition_info`
+- Se amplían `products.ingredients` (100 → 500) y `allergens` (100 → 255) con `MODIFY`, que conserva los datos.
+
+**Incidente y cómo se resolvió.**
+- `migration:generate` escribe un `DROP COLUMN` + `ADD COLUMN` cuando cambia el largo de un `varchar`. La API de desarrollo corre con `--watch` y `migrationsRun: true`: compiló y aplicó esa versión sobre `antua_db` en segundos, antes de que la corrigiera. Eso vació `ingredients` y `allergens` de los 13 productos.
+- Se restauraron desde el respaldo de minutos antes: se cargó en una base temporal, se copiaron las dos columnas por `id`, se comprobó que no quedara ninguna diferencia y se borró la temporal.
+- La migración del repo usa `MODIFY`, y se probó `run` → `revert` → `run` en una base temporal. `migration:generate` contra esa base confirma que el esquema coincide con las entidades.
+- **Regla nueva en `CLAUDE.md`:** generar las migraciones fuera de `src` (o con la API detenida) y revisarlas antes de moverlas.
+
+**Cómo funciona la autorización** (`src/admin/`).
+- `admin-access.guard.ts` es un guard **global** (`APP_GUARD` en `src/app.module.ts`). En Nest, un guard decide si una request llega al controller, y uno global corre en todas las rutas.
+  - Si la ruta empieza con `/admin` o tiene `@Roles(...)`, exige un JWT válido; si no lo hay, responde 401.
+  - Después exige que el rol del usuario esté entre los permitidos; si no, 403.
+  - Si una ruta `/admin` no tiene `@Roles`, responde **403 a todos**, incluso a un admin. Esto es "denegar por defecto": olvidarse del decorador no abre nada.
+- **El rol sale de la base:** el JWT solo lleva el id del usuario (`sub`), y `JwtStrategy` busca al usuario en cada request. Si se le quita el rol, su token deja de servir en el acto (hay un test que lo prueba). Editar el JWT para "declararse admin" no sirve: el rol no está en el token, y la firma lo invalidaría.
+- `roles.decorator.ts`: `@AdminController('products')` equivale a `@Controller('admin/products')` más `@Roles('admin')`. Todos los controllers del panel lo usan.
+- **Nadie se vuelve admin desde la web.** `RegisterDto` y `UpdateProfileDto` no tienen `role`, y `ValidationPipe({ whitelist: true })` descarta todo campo que no esté en el DTO. Hay un test que manda `role: 'admin'` al registro y al perfil.
+- **Auditoría** (`audit.service.ts`): `record()` acepta el `EntityManager` de la transacción, así que el cambio y su registro quedan juntos o no queda ninguno. `sanitizeChanges` descarta cualquier clave que contenga `password`, `token`, `hash`, `secret` o `card`.
+- **Límite de intentos en el login:** los admins entran por el mismo `POST /auth/login`, que tiene `@Throttle` de 10 por minuto por IP (`src/auth/auth.controller.ts`). No hay un login aparte que se salte el límite.
+
+**Script `pnpm admin:create`** (`scripts/admin-create.ts`).
+- Pide el email, el nombre y la contraseña por terminal (la contraseña no se muestra), o los toma de `ADMIN_EMAIL`, `ADMIN_NAME` y `ADMIN_PASSWORD`.
+- Valida con las mismas reglas que el registro (`RegisterDto`, que incluye la política de contraseñas).
+- Si el email ya existe, no hace nada, salvo con `--promote`.
+- Sin terminal y sin variables, falla con un mensaje en vez de colgarse.
+
+**Tests** (`test/admin-auth.e2e-spec.ts`). Recorre **todas** las rutas registradas en Express que empiezan con `/admin` y comprueba:
+- sin token → 401;
+- con un token inválido → 401;
+- como `customer` → 403;
+- como admin → nunca 401 ni 403.
+
+Además:
+- Si se agrega un endpoint `/admin` sin rol, el test falla.
+- Un controller de prueba sin `@Roles` demuestra la denegación por defecto.
+
+```bash
+# Crear el primer admin (pide los datos):
+pnpm --filter antua-api admin:create
+# Sin terminal (por ejemplo en un servidor):
+ADMIN_EMAIL=admin@ejemplo.com ADMIN_NAME="Nombre" ADMIN_PASSWORD='…' pnpm --filter antua-api admin:create
+
+# Sin token → 401; con token de customer → 403; con token de admin → 200
+curl -i localhost:3000/admin/audit
+curl -i -H "Authorization: Bearer $JWT_CLIENTE" localhost:3000/admin/audit
+curl -s -H "Authorization: Bearer $JWT_ADMIN" 'localhost:3000/admin/audit?entity=product&page=1'
+```

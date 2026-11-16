@@ -19,6 +19,8 @@ import { NewsletterModule } from './newsletter/newsletter.module';
 import { HealthController } from './health/health.controller';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AdminModule } from './admin/admin.module';
+import { AdminAccessGuard } from './admin/admin-access.guard';
 
 @Module({
   imports: [
@@ -63,8 +65,14 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     AddressesModule,
     AuthModule,
     NewsletterModule,
+    AdminModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    AppService,
+    // Los guards globales corren en este orden: primero el límite de intentos, después el rol.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: AdminAccessGuard },
+  ],
 })
 export class AppModule {}

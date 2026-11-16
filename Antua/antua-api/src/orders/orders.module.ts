@@ -1,3 +1,4 @@
+import { OrderStatusHistory } from './entities/order-status-history.entity';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
@@ -9,7 +10,7 @@ import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem]),
+    TypeOrmModule.forFeature([Order, OrderItem, OrderStatusHistory]),
     CartModule,
     ConfigModule,
   ],

@@ -21,6 +21,10 @@ export class Review {
   @Column({ type: 'int' })
   rating: number; //1 a 5
 
+  // Moderación: una reseña oculta no se muestra ni cuenta en el promedio, y se puede restaurar.
+  @Column({ type: 'boolean', default: false })
+  is_hidden: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

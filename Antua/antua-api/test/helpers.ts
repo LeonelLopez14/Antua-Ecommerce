@@ -9,6 +9,7 @@ import { Coupon } from 'src/coupons/entities/coupon.entity';
 import { MAIL_TRANSPORT, MailMessage } from 'src/mail/mail.types';
 import { Product } from 'src/products/entities/product.entity';
 import { ProductVariant } from 'src/products/entities/product-variant.entity';
+import { User, UserRole } from 'src/users/entities/user.entity';
 
 export type TestApp = INestApplication<App>;
 
@@ -44,8 +45,13 @@ export async function resetDatabase(db: DataSource): Promise<void> {
     );
   }
   await db.query('SET FOREIGN_KEY_CHECKS = 0');
-  for (const { tableName } of db.entityMetadatas)
-    await db.query(`TRUNCATE TABLE \`${tableName}\``);
+  // TRUNCATE es lento en MySQL (recrea la tabla): solo se vacían las que tienen filas.
+  for (const { tableName } of db.entityMetadatas) {
+    const rows: unknown[] = await db.query(
+      `SELECT 1 FROM \`${tableName}\` LIMIT 1`,
+    );
+    if (rows.length > 0) await db.query(`TRUNCATE TABLE \`${tableName}\``);
+  }
   await db.query('SET FOREIGN_KEY_CHECKS = 1');
 }
 
@@ -144,4 +150,35 @@ export async function buyAndDeliver(
   const { id } = (res.body as { order: { id: number } }).order;
   await db.query("UPDATE orders SET status = 'delivered' WHERE id = ?", [id]);
   return id;
+}
+
+/** Cuenta con rol admin. El rol se asigna en la base, igual que `pnpm admin:create`. */
+export async function registerAdmin(
+  app: TestApp,
+  db: DataSource,
+  email = 'admin@antua.test',
+) {
+  const session = await registerUser(app, email);
+  await db
+    .getRepository(User)
+    .update(session.user.id, { role: UserRole.ADMIN });
+  return session;
+}
+
+interface RouteLayer {
+  route?: { path: string; methods: Record<string, boolean> };
+}
+
+/** Rutas registradas en Express (método y path), para recorrerlas en los tests de autorización. */
+export function listRoutes(app: TestApp): { method: string; path: string }[] {
+  const express = app.getHttpAdapter().getInstance() as {
+    router: { stack: RouteLayer[] };
+  };
+  return express.router.stack.flatMap((layer) =>
+    layer.route
+      ? Object.keys(layer.route.methods)
+          .filter((method) => method !== '_all')
+          .map((method) => ({ method, path: layer.route!.path }))
+      : [],
+  );
 }

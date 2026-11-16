@@ -76,6 +76,11 @@ export class Order {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   total: number;
 
+  // Solo para el equipo: la escribe el panel y nunca sale en las rutas del cliente.
+  @Column({ type: 'text', nullable: true, select: false })
+  @Exclude()
+  internal_note: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 
