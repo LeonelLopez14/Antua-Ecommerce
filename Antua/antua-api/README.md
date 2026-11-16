@@ -31,7 +31,8 @@ Copiá `.env.example` a `.env`. La API valida el entorno al arrancar (`src/confi
 | `pnpm test` / `pnpm test:e2e` | Unitarios / e2e contra la base `antua_test` |
 | `pnpm migration:generate src/database/migrations/Nombre` | Genera una migración desde los cambios en las entidades |
 | `pnpm migration:run` / `:revert` / `:show` | Aplica, revierte o muestra migraciones |
-| `pnpm seed` / `pnpm seed:clean --yes` | Carga o borra los datos de prueba |
+| `pnpm admin:create` | Crea un administrador (pide los datos o usa `ADMIN_EMAIL`, `ADMIN_NAME` y `ADMIN_PASSWORD`). `--promote` asciende una cuenta existente |
+| `pnpm seed` / `pnpm seed:clean --yes` | Carga o borra los datos de prueba (con `SEED_ADMIN_PASSWORD`, también un admin de desarrollo) |
 | `pnpm payments:simulate <pedido> <estado>` | Envía un webhook firmado a una API simulada |
 
 ## Endpoints
@@ -48,6 +49,8 @@ Copiá `.env.example` a `.env`. La API valida el entorno al arrancar (`src/confi
 | Pedidos | `POST /orders`, `GET /orders`, `GET /orders/:id`, `GET /orders/guest/:id`, `POST /orders/:id/claim` |
 | Pagos | `GET /payments/config`, `POST /orders/:id/payment`, `POST /orders/:id/payment/retry`, `GET /orders/:id/payment`, `POST /payments/webhook` |
 | Newsletter | `POST /newsletter/subscribe` |
+| Panel (solo admins) | `/admin/stats`, `/admin/products` (variantes, stock e imágenes), `/admin/tags`, `/admin/coupons`, `/admin/orders`, `/admin/reviews`, `/admin/users`, `/admin/audit`. Detalle en [`antua-web/docs/admin.md`](../antua-web/docs/admin.md) |
+| Imágenes subidas | `GET /uploads/products/<archivo>` (estático) |
 
 Un invitado se identifica con `X-Guest-Token` (carrito) y `X-Order-Token` (su pedido); un usuario, con `Authorization: Bearer`.
 
@@ -56,7 +59,8 @@ Un invitado se identifica con `X-Guest-Token` (carrito) y `X-Order-Token` (su pe
 ```text
 src/
 ├── <módulo>/         controller, service, dto/ y entities/
-├── common/           tokens seguros, política de contraseñas, guard de administración
+├── admin/            panel: guard de roles, auditoría, catálogo, cupones, pedidos, métricas, moderación
+├── common/           tokens seguros, política de contraseñas, hora de la tienda
 ├── config/           validación del entorno
 ├── database/         data source y migraciones
 ├── mail/             MailService y transporte de desarrollo (escribe en el log)
@@ -70,3 +74,4 @@ src/
 - Lo ajeno responde 404, no 403: así no se revela qué existe.
 - Los cambios de esquema van siempre por migración.
 - Los logs llevan ids, nunca datos personales.
+- Toda ruta de administración va bajo `/admin` con `@AdminController`: el guard global niega por defecto, y `test/admin-auth.e2e-spec.ts` falla si alguna queda abierta.

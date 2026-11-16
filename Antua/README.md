@@ -1,6 +1,6 @@
 # Antojarte (Antua)
 
-E-commerce de práctica de galletas caseras: catálogo con filtros, carrito para invitados y usuarios, checkout en 4 pasos, cuenta con pedidos y direcciones, reseñas y pagos de prueba con Mercado Pago.
+E-commerce de práctica de galletas caseras: catálogo con filtros, carrito para invitados y usuarios, checkout en 4 pasos, cuenta con pedidos y direcciones, reseñas, pagos de prueba con Mercado Pago y un panel de administración en `/admin`.
 
 Es un monorepo con pnpm:
 
@@ -50,6 +50,18 @@ Si ya tenés otro contenedor usando el 3307, detenelo o cambiá `MYSQL_PORT`.
 
 Para cargar los datos de prueba en la opción B, corré el seed desde tu máquina, apuntando al puerto publicado (`pnpm --filter antua-api seed`).
 
+### Panel de administración
+
+El primer admin se crea en el servidor; nadie puede volverse admin desde la web:
+
+```bash
+pnpm --filter antua-api admin:create      # pide email, nombre y contraseña
+```
+
+Después, entrá a `http://localhost:5173/admin`. Roles, endpoints y estados de pedidos: [`antua-web/docs/admin.md`](./antua-web/docs/admin.md).
+
+Las imágenes que se suben desde el panel van a `UPLOADS_DIR` (por defecto `antua-api/uploads/`, que no se versiona). En Docker van al volumen `uploads_data`.
+
 ### Salud del servicio
 
 `GET http://localhost:3000/health` responde `{"status":"ok","database":"up"}`.
@@ -64,7 +76,8 @@ El esquema se gestiona con migraciones de TypeORM (`antua-api/src/database/migra
 | `migration:run` | Aplica las pendientes |
 | `migration:revert` | Revierte la última |
 | `seed` | Carga productos, tags, cupones y usuarios de prueba. Se puede repetir. |
-| `seed:clean --yes` | Borra los datos de prueba y los pedidos que los incluyan |
+| `seed:clean --yes` | Borra los datos de prueba, los pedidos que los incluyan y las imágenes subidas a esos productos |
+| `admin:create` | Crea el primer administrador (ver arriba) |
 
 Datos de prueba: cupones `SEED10` (−10 %, mínimo 5000), `SEEDFIJO` (−1000) y `SEEDVENCIDO`; usuario `seed.cliente@antua.test` con contraseña `SeedPass123!` (solo desarrollo; se cambia con `SEED_PASSWORD`).
 
@@ -107,6 +120,8 @@ DB_DATABASE=antua_test pnpm --filter antua-api migration:run
 - **Migraciones en vez de `synchronize`,** para que un cambio de entidad nunca borre datos sin avisar.
 - **Fechas en UTC** en la conexión con MySQL.
 - **Pagos con Mercado Pago Checkout Pro:** ningún dato de tarjeta pasa por este sistema. El estado del pago lo define solo el servidor (webhook firmado y consulta al proveedor), nunca la URL de retorno. Solo admite credenciales de prueba. Ver [`antua-web/docs/payments-design.md`](./antua-web/docs/payments-design.md).
+- **Roles, no claves compartidas:** el panel exige un JWT con rol `admin`, leído de la base en cada request. Toda ruta `/admin` se niega por defecto, y un test recorre todas para verificarlo.
+- **Moneda única:** pesos uruguayos (UYU, `es-UY`) en toda la app y en los pagos.
 - **Secretos solo en `.env`,** que nunca se versiona. La API valida su configuración al arrancar y explica qué falta.
 
 Documentación de trabajo: [`progreso.md`](./antua-web/docs/progreso.md) (qué se hizo y por qué) y [`estado-frontend.md`](./antua-web/docs/estado-frontend.md) (foto actual).

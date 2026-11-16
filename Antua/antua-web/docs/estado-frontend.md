@@ -1,6 +1,6 @@
 # Estado del frontend de Antua
 
-Última actualización: 08/11/2026 (Fases 9 a 11). Stack: React 19 + TypeScript estricto + Vite 8 + Tailwind v4 + GSAP + Three.js/R3F + Zustand + Axios + Lucide. Gestor de paquetes: **pnpm**. Registro detallado por fase: [`progreso.md`](./progreso.md).
+Última actualización: 16/11/2026 (Fase 12, panel de administración). Stack: React 19 + TypeScript estricto + Vite 8 + Tailwind v4 + GSAP + Three.js/R3F + Zustand + Axios + Lucide. Gestor de paquetes: **pnpm**. Registro detallado por fase: [`progreso.md`](./progreso.md).
 
 ## Qué está hecho
 
@@ -20,17 +20,18 @@
 | Institucionales | `/nosotros`, `/preguntas-frecuentes`, `/contacto`, `/terminos`, `/privacidad` | **Texto provisorio** (marcado en cada página). Enlazadas desde el footer y la Navbar. |
 | Errores | 404 y `RouteError` | 404 con la marca. ErrorBoundary global (errorElement del router) con "Reintentar", que también cubre un chunk que no se pudo bajar. |
 | Tema | `ThemeToggle` | Sistema → claro → oscuro, guardado en localStorage. Un script en `index.html` lo aplica antes de pintar; `theme-color` acorde. |
-| SEO básico | `usePageMeta` | Título y meta description por página, sin librerías. |
+| SEO básico | `usePageMeta` | Título y meta description por página, sin librerías. `robots.txt` excluye `/admin`, `/cuenta` y `/checkout`. |
+| Administración | `/admin/*` | Solo para admins, en un chunk aparte (96,8 kB, 25 kB gzip) que la tienda no descarga. Resumen con gráfico, productos (variantes, stock e imágenes), tags, cupones, pedidos (estado, nota e historial), reseñas, usuarios (solo lectura) y auditoría. Ver [`admin.md`](./admin.md). |
 
 Reglas que respeta todo el código:
 - **DESIGN.md:** tokens de diseño (los únicos hex sueltos están en `three/cookie/cookieConfig.ts` y en el script de tema de `index.html`), radios de la escala, claro y oscuro, y voseo.
 - **Sección 11 de DESIGN.md:** foco visible, sin `transition: all`, imágenes con dimensiones, `Intl` para precios y fechas, y reduced motion en todas las animaciones.
-- **Montos:** ninguno se calcula en el cliente.
+- **Montos:** ninguno se calcula en el cliente. Moneda única UYU con `es-UY` (`lib/format.ts`).
 
 ### Calidad
 
-- **Front:** `pnpm typecheck`, `pnpm lint` y `pnpm build` sin errores; unit tests con Vitest y un e2e con Playwright del flujo de invitado (desktop y mobile).
-- **Back:** build, unit tests y e2e contra la base `antua_test` (precio cambiado, reclamo de pedidos, reseñas, cuenta, recuperación, newsletter, endurecimiento y pagos).
+- **Front:** `pnpm typecheck`, `pnpm lint` y `pnpm build` sin errores; unit tests con Vitest; e2e con Playwright del flujo de invitado (desktop y mobile) y del panel (admin y cliente).
+- **Back:** build, unit tests y e2e contra la base `antua_test` (precio cambiado, reclamo de pedidos, reseñas, cuenta, recuperación, newsletter, endurecimiento, pagos y panel, con una matriz de autorización sobre todas las rutas `/admin`).
 - **Capturas** de los recorridos en [`docs/checks/`](./checks/). No se versionan.
 
 ## Cómo correr todo
@@ -52,7 +53,10 @@ Para probar los pagos sin credenciales: levantá la API con `PAYMENTS_SIMULATED=
   - **Términos y condiciones:** revisión legal; cambios, cancelaciones, devoluciones y medios de pago.
   - **Política de privacidad:** revisión legal; responsable de los datos, plazos de guarda y derechos según la ley aplicable.
 - **Información nutricional:** `Product` no tiene ese campo.
-- **Panel de administración:** las escrituras del catálogo se protegen con `X-Admin-Key` hasta que exista un panel con roles.
+- **Panel:**
+  - no hay reembolsos desde el panel (se hacen en Mercado Pago);
+  - no hay gestión de roles (es a propósito, ver [`admin.md`](./admin.md));
+  - no hay exportación a CSV.
 
 ## Decisiones abiertas
 
@@ -60,7 +64,9 @@ Para probar los pagos sin credenciales: levantá la API con `PAYMENTS_SIMULATED=
 2. **Valor real de `SHIPPING_FLAT_RATE`** y de `SHIPPING_ETA_DAYS` (esta última no está en el `.env`, así que hoy no se muestra plazo).
 3. **Verificación de email:** no existe. Por eso `POST /auth/register` responde 409 si el email ya existe (revela cuentas), y por eso los pedidos nunca se vinculan por email.
 4. **Pagos duplicados:** si alguien abre dos checkouts y paga los dos, el segundo queda registrado y hay que devolverlo a mano. Lo mismo con un pago aprobado después de vencer el pedido (`paid_after_cancel`).
-5. **Estado logístico:** nada cambia `orders.status` a "en preparación", "en camino" o "entregado" hasta que exista un panel de administración.
+5. **Estado logístico:** resuelto. El panel cambia `orders.status` con una máquina de estados validada en el servidor (ver [`admin.md`](./admin.md)).
 6. **Footer oscuro vs. surface:** sigue el wireframe (`#2E2D2C`); DESIGN.md §12 lo deja abierto.
 7. **JWT en localStorage:** simple para una SPA; la alternativa más segura es una cookie httpOnly.
 8. **Login con Google:** decidido que por ahora no (TODO en `AuthModal.tsx`).
+9. **Pedidos pagados que se cancelan:** el panel libera el stock y avisa, pero la devolución del dinero se hace a mano en Mercado Pago.
+10. **Pedidos sin pago en línea** (los que se hicieron con los pagos deshabilitados): el panel deja prepararlos, porque el cobro se coordina por fuera. Si eso no es lo que querés, se cambia en `order-status.ts`.

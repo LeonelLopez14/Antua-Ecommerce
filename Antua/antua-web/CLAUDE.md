@@ -39,6 +39,13 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 - Lo ajeno responde 404. Todo endpoint con datos propios filtra por dueño; cada uno lleva su test de ownership en `test/*.e2e-spec.ts`.
 - Los e2e corren contra `antua_test`. Los logs llevan ids, nunca datos personales.
 
+### Panel de administración (`/admin`)
+- Detalle en `docs/admin.md`. Páginas en `pages/admin/`, reexportadas en `pages/admin/index.ts`: así arman un solo chunk diferido que la tienda nunca descarga. Nunca importar nada de `pages/admin` ni de `components/admin` desde la tienda.
+- La seguridad está en el backend: toda ruta nueva de la API va bajo `/admin` con `@AdminController(...)`, y `test/admin-auth.e2e-spec.ts` falla si queda alguna abierta. El front solo esconde.
+- El rol `admin` solo se da con `pnpm admin:create`. Nada en la web asigna roles.
+- Toda escritura del panel queda en la auditoría (`AuditService.record`, en la misma transacción). Lo que tiene historial se desactiva, no se borra.
+- Listas con filtros, orden y página en la URL (`useAdminQuery`), tablas con `DataTable`, resultados con `toast()` (aria-live) y formularios con `useUnsavedChanges`.
+
 ### Pagos
 - El estado de pago lo define solo el servidor (webhook firmado o consulta al proveedor); nunca la URL de retorno ni un monto enviado por el cliente.
 - Solo credenciales de prueba. Diseño y pruebas: `docs/payments-design.md`. Las transiciones están en `payment-state.ts`.

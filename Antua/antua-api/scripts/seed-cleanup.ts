@@ -5,8 +5,14 @@
  *   pnpm seed:clean --yes
  *
  * Las tags se conservan: el catálogo real también las usa.
+ * También borra los archivos de imagen que se subieron a esos productos desde el panel
+ * (por ejemplo, los que crea el e2e del panel).
  */
+import { unlink } from 'node:fs/promises';
+import { join } from 'node:path';
 import dataSource from '../src/database/data-source';
+import { parseUploadsDir } from '../src/config/env.validation';
+import { UPLOADED_FILE_NAME } from '../src/admin/catalog/image-file';
 
 const SEED_PRODUCTS = `SELECT id FROM products WHERE slug LIKE 'seed-%'`;
 const SEED_VARIANTS = `SELECT id FROM product_variants WHERE productId IN (${SEED_PRODUCTS})`;
@@ -26,6 +32,7 @@ async function main() {
     );
   }
 
+  const files: string[] = [];
   await dataSource.transaction(async (manager) => {
     // MySQL no deja borrar de una tabla que se lee en un subquery directo: se resuelven los ids antes.
     const ids = async (sql: string): Promise<number[]> =>
@@ -38,6 +45,13 @@ async function main() {
     };
 
     const products = await ids(SEED_PRODUCTS);
+    if (products.length) {
+      const rows = await manager.query<{ file_name: string }[]>(
+        'SELECT file_name FROM product_images WHERE productId IN (?) AND file_name IS NOT NULL',
+        [products],
+      );
+      files.push(...rows.map((row) => row.file_name));
+    }
     const variants = await ids(SEED_VARIANTS);
     const users = await ids(SEED_USERS);
     const coupons = await ids(SEED_COUPONS);
@@ -89,6 +103,14 @@ async function main() {
       `Limpieza lista en ${database}: ${products.length} productos, ${coupons.length} cupones, ${users.length} usuarios, ${orders.length} pedidos.\n`,
     );
   });
+
+  // Los archivos se borran después de confirmar la transacción, y solo los de nombre generado.
+  const dir = join(parseUploadsDir(process.env.UPLOADS_DIR), 'products');
+  for (const name of files.filter((file) => UPLOADED_FILE_NAME.test(file))) {
+    await unlink(join(dir, name)).catch(() => undefined);
+  }
+  if (files.length)
+    process.stdout.write(`Imágenes subidas borradas: ${files.length}.\n`);
 }
 
 void main()
