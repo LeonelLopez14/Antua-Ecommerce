@@ -7,6 +7,10 @@
  *
  * La contraseña de los usuarios de prueba es SEED_PASSWORD o, por defecto, SeedPass123!.
  * No es una credencial real: no la uses fuera de desarrollo.
+ *
+ * Admin de prueba (solo desarrollo): seed.admin@antua.test, SOLO si se define SEED_ADMIN_PASSWORD.
+ * No tiene contraseña por defecto, a propósito: un admin con clave conocida sería una puerta abierta.
+ *   SEED_ADMIN_PASSWORD='…' pnpm seed
  */
 import * as bcrypt from 'bcrypt';
 import { readFileSync } from 'node:fs';
@@ -25,7 +29,7 @@ import { ProductVariant } from '../src/products/entities/product-variant.entity'
 import { Product } from '../src/products/entities/product.entity';
 import { Review } from '../src/reviews/entities/review.entity';
 import { Tag } from '../src/tags/entities/tag.entity';
-import { User } from '../src/users/entities/user.entity';
+import { User, UserRole } from '../src/users/entities/user.entity';
 
 interface SeedData {
   tags: { name: string; slug: string }[];
@@ -185,6 +189,31 @@ async function main() {
       await saveBy(users, { email }, { full_name, email, password_hash });
     }
 
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (adminPassword) {
+      // La misma política que el registro y admin:create.
+      if (
+        adminPassword.length < 8 ||
+        adminPassword.length > 72 ||
+        !/[A-Za-z]/.test(adminPassword) ||
+        !/\d/.test(adminPassword)
+      ) {
+        throw new Error(
+          'SEED_ADMIN_PASSWORD: de 8 a 72 caracteres, con al menos una letra y un número.',
+        );
+      }
+      await saveBy(
+        users,
+        { email: 'seed.admin@antua.test' },
+        {
+          full_name: 'Admin de Prueba',
+          email: 'seed.admin@antua.test',
+          password_hash: await bcrypt.hash(adminPassword, 10),
+          role: UserRole.ADMIN,
+        },
+      );
+    }
+
     const reviews = manager.getRepository(Review);
     for (const review of data.reviews) {
       const product = await products.findOneByOrFail({ slug: review.product });
@@ -205,7 +234,9 @@ async function main() {
   });
 
   process.stdout.write(
-    `Seed listo: ${data.products.length} productos, ${data.tags.length} tags, 3 cupones.\n`,
+    `Seed listo: ${data.products.length} productos, ${data.tags.length} tags, 3 cupones${
+      process.env.SEED_ADMIN_PASSWORD ? ' y el admin seed.admin@antua.test' : ''
+    }.\n`,
   );
 }
 
