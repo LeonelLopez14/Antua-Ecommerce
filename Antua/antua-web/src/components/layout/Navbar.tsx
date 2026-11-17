@@ -28,7 +28,7 @@ export function Navbar() {
 
   return (
     <header className="relative z-20 bg-surface shadow-soft dark:bg-dark-surface dark:shadow-none">
-      <nav aria-label="Principal" className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
+      <nav aria-label="Principal" className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
         <Logo />
 
         <ul className="ml-6 hidden items-center gap-1 md:flex">
