@@ -11,7 +11,7 @@ export function MainLayout() {
     <>
       <SkipLink />
       <Navbar />
-      <main id="contenido">
+      <main id="contenido" className="min-h-[calc(100svh-4rem)]">
         {/* Las páginas se cargan en diferido: skeleton con alto reservado para que el footer no salte. */}
         <Suspense fallback={<PageSkeleton />}>
           <Outlet />

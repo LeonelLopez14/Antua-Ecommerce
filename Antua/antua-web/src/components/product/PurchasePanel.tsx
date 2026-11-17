@@ -1,3 +1,4 @@
+import { preloadCartProps } from '../../lib/panels'
 import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ShoppingBag } from 'lucide-react'
@@ -131,6 +132,7 @@ export function PurchasePanel({ product }: PurchasePanelProps) {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
               ref={addButtonRef}
+              {...preloadCartProps}
               loading={pending === 'add'}
               disabled={soldOut || pending === 'buy'}
               onClick={() => void add('add')}

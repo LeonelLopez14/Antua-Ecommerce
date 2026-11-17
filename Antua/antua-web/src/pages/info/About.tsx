@@ -36,7 +36,7 @@ export default function About() {
       <p>
         <strong>Nuestras categorías:</strong> Clásicas, Sin gluten, Veganas, Sin azúcar y Packs.
       </p>
-      <blockquote className="border-l-4 border-accent-main pl-4 font-display text-2xl italic dark:border-dark-accent-main">Date un gustito, llevate un antojo.</blockquote>
+      <blockquote className="border-l-4 border-accent-main pl-4 font-display text-2xl dark:border-dark-accent-main">Date un gustito, llevate un antojo.</blockquote>
       <div className="mt-4">
         <ButtonLink to="/tienda">Ver las galletas</ButtonLink>
       </div>

@@ -2,8 +2,7 @@ import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useCartStore } from '../stores/cartStore'
 import { useAuthStore } from '../stores/authStore'
-import { AuthModal } from '../components/auth/AuthModal'
-import { CartDrawer } from '../components/cart/CartDrawer'
+import { LazyPanels } from '../components/layout/LazyPanels'
 
 /**
  * Raíz de todas las rutas: valida la sesión, carga el carrito y monta los paneles globales
@@ -27,8 +26,7 @@ export function RootLayout() {
   return (
     <>
       <Outlet />
-      <CartDrawer />
-      <AuthModal />
+      <LazyPanels />
     </>
   )
 }

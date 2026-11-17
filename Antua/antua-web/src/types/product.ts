@@ -32,7 +32,7 @@ export interface ApiProductImage {
   sort_order: number
 }
 
-/** GET /products/:slug incluye `reviews` (sin usuario). GET /products no las incluye. */
+/** GET /products y GET /products/:slug. Las reseñas se piden aparte (GET /products/:slug/reviews). */
 export interface ApiProduct {
   id: number
   name: string
@@ -46,7 +46,6 @@ export interface ApiProduct {
   variants: ApiProductVariant[]
   images: ApiProductImage[]
   productTags: ApiProductTag[]
-  reviews?: ApiReviewBase[]
 }
 
 export interface ApiReviewBase {

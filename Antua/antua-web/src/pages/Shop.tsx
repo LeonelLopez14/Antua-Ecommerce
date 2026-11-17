@@ -108,7 +108,11 @@ export default function Shop() {
                 {result ? galletas(result.total) : ''}
               </p>
             </div>
-            <SortSelect value={query.sort} onChange={setSort} />
+            {/* En móvil, siempre en su propia línea: si dependiera del ancho del contador o de la
+                fuente, la barra cambiaba de alto al cargar y movía la grilla (CLS). */}
+            <div className="w-full sm:w-auto">
+              <SortSelect value={query.sort} onChange={setSort} />
+            </div>
           </div>
 
           <div className="mt-6" aria-busy={data.status === 'loading'}>

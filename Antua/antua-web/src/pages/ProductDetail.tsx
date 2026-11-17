@@ -3,6 +3,8 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { useProductDetail } from '../hooks/useProductDetail'
 import { usePageMeta } from '../hooks/usePageMeta'
+import { useJsonLd } from '../hooks/useJsonLd'
+import { productJsonLd } from '../lib/structuredData'
 import { ProductGallery } from '../components/product/ProductGallery'
 import { PurchasePanel } from '../components/product/PurchasePanel'
 import { ProductInfo } from '../components/product/ProductInfo'
@@ -18,6 +20,13 @@ export default function ProductDetail() {
   usePageMeta(
     product.status === 'ready' ? product.product.name : null,
     product.status === 'ready' ? product.product.description.slice(0, 155) || undefined : undefined,
+  )
+
+  // Datos estructurados (schema.org/Product): precio en UYU y disponibilidad por variante.
+  useJsonLd(
+    product.status === 'ready'
+      ? productJsonLd(product.product, reviews.status === 'ready' ? reviews.reviews : [], window.location.origin)
+      : null,
   )
 
   // Links como /producto/x#resenas (desde "Mis pedidos"): la sección existe recién con la ficha cargada.

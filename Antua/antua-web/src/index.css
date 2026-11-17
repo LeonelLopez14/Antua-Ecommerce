@@ -1,6 +1,64 @@
 @import "tailwindcss";
 
 /*
+  Fuentes servidas desde el sitio (paquetes @fontsource, licencia OFL), solo los pesos que se usan
+  y solo el subconjunto latino (incluye á, é, ñ, ¿, ¡). Antes venían de Google Fonts: un CSS de otro
+  dominio que bloqueaba el primer pintado. font-display: swap muestra el texto con la fuente del
+  sistema mientras carga. Las dos críticas (Lato 400 y Playfair 700) se precargan (vite.config.ts).
+*/
+/*
+  Respaldos con métricas ajustadas: mientras llega la fuente real se usa una del sistema con el mismo
+  ancho promedio y la misma altura de línea, así el cambio de fuente no mueve el texto (CLS).
+  Valores calculados con las métricas de @capsizecss/metrics (Lato vs. Arial, Playfair Display 700 vs.
+  Times New Roman), con la fórmula de next/font: size-adjust = ancho promedio relativo, y los
+  overrides = ascent/descent ÷ (unitsPerEm × size-adjust).
+*/
+@font-face {
+  font-family: "Lato Fallback";
+  src: local("Arial"), local("Liberation Sans"), local("Helvetica");
+  size-adjust: 97.69%;
+  ascent-override: 101.03%;
+  descent-override: 21.8%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Playfair Display Fallback";
+  src: local("Times New Roman"), local("Liberation Serif"), local("Times");
+  size-adjust: 113.97%;
+  ascent-override: 94.94%;
+  descent-override: 22.02%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Lato";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../node_modules/@fontsource/lato/files/lato-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Lato";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../node_modules/@fontsource/lato/files/lato-latin-700-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../node_modules/@fontsource/playfair-display/files/playfair-display-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../node_modules/@fontsource/playfair-display/files/playfair-display-latin-700-normal.woff2") format("woff2");
+}
+
+/*
   Modo oscuro: sigue la preferencia del sistema por defecto.
   Override manual: clase .dark o .light en <html> (DESIGN.md §9).
 */
@@ -36,8 +94,8 @@
   --color-footer: var(--color-text-main);
   --color-dark-footer: var(--color-dark-surface);
 
-  --font-display: "Playfair Display", ui-serif, Georgia, serif;
-  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", "Playfair Display Fallback", ui-serif, Georgia, serif;
+  --font-sans: "Lato", "Lato Fallback", ui-sans-serif, system-ui, sans-serif;
 
   /* Radios */
   --radius-card: 20px;

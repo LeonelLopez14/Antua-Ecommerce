@@ -18,6 +18,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { useAuthModalStore } from '../../stores/authModalStore'
 import { useCartStore } from '../../stores/cartStore'
 import { usePageMeta } from '../../hooks/usePageMeta'
+import { useNoIndex } from '../../hooks/useNoIndex'
 import { Logo } from '../../components/layout/Logo'
 import { SkipLink } from '../../components/layout/SkipLink'
 import { ThemeToggle } from '../../components/layout/ThemeToggle'
@@ -50,16 +51,12 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
  * el encabezado fijo no tapa el elemento enfocado (scroll-padding-top).
  */
 function useAdminDocument() {
+  useNoIndex()
   useEffect(() => {
-    const meta = document.createElement('meta')
-    meta.name = 'robots'
-    meta.content = 'noindex, nofollow'
-    document.head.append(meta)
     const root = document.documentElement
     const previous = root.style.scrollPaddingTop
     root.style.scrollPaddingTop = '5rem'
     return () => {
-      meta.remove()
       root.style.scrollPaddingTop = previous
     }
   }, [])

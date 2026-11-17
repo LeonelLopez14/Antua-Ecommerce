@@ -5,6 +5,7 @@ import { Logo } from './Logo'
 import { galletas } from '../../lib/format'
 import { ThemeToggle } from './ThemeToggle'
 import { InfoMenu } from './InfoMenu'
+import { preloadCartProps } from '../../lib/panels'
 import { categoryHref, homeCategories } from '../../data/categories'
 import { infoPages } from '../../data/infoPages'
 import { selectItemCount, useCartStore } from '../../stores/cartStore'
@@ -51,6 +52,7 @@ export function Navbar() {
             type="button"
             aria-label={cartLabel}
             aria-haspopup="dialog"
+            {...preloadCartProps}
             onClick={(event) => openCart(event.currentTarget)}
             className={`${iconButton} relative`}
           >

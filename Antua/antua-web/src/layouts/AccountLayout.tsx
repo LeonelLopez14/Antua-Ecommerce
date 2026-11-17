@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { LockKeyhole, MapPin, Package, UserRound } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
+import { useNoIndex } from '../hooks/useNoIndex'
 import { useAuthModalStore } from '../stores/authModalStore'
 import { Button } from '../components/ui/Button'
 import { ButtonLink } from '../components/ui/ButtonLink'
@@ -18,6 +19,7 @@ const tabClass = ({ isActive }: { isActive: boolean }) =>
  * muestra la misma ruta que se pidió (no hay redirección: la URL nunca cambia).
  */
 export function AccountLayout() {
+  useNoIndex()
   const loggedIn = useAuthStore((s) => s.token !== null)
   const openAuth = useAuthModalStore((s) => s.open)
 

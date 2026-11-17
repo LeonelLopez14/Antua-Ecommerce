@@ -9,6 +9,12 @@
     <meta name="theme-color" content="#FFFBE9" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#151515" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="Antua: galletas caseras, sin gluten, veganas y sin azúcar. Date un gustito." />
+    <!-- Open Graph por defecto. Cada página los actualiza (usePageMeta), pero sin SSR quien no ejecuta JavaScript ve estos. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Antua" />
+    <meta property="og:locale" content="es_UY" />
+    <meta property="og:title" content="Antua · Galletas caseras" />
+    <meta property="og:description" content="Antua: galletas caseras, sin gluten, veganas y sin azúcar. Date un gustito." />
     <!-- Tema elegido (stores/themeStore.ts): se aplica antes del primer pintado para que no parpadee. -->
     <script>
       try {
@@ -21,12 +27,7 @@
         }
       } catch (error) {}
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@600;700&display=swap"
-    />
+    <!-- Fuentes: servidas desde el sitio (src/index.css). El preload de las críticas lo agrega vite.config.ts. -->
     <title>Antua · Galletas caseras</title>
   </head>
   <body>
