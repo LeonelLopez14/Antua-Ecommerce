@@ -25,7 +25,7 @@ export function SortSelect({ value, onChange }: SortSelectProps) {
           onChange={(e) => {
             if (isSortKey(e.target.value)) onChange(e.target.value)
           }}
-          className="min-h-11 appearance-none rounded-full border border-text-main/40 bg-bg py-2 pr-10 pl-4 text-sm font-bold text-text-main dark:border-dark-text-secondary/60 dark:bg-dark-card dark:text-dark-text-main"
+          className="min-h-11 appearance-none rounded-full border border-text-main/60 bg-bg py-2 pr-10 pl-4 text-sm font-bold text-text-main dark:border-dark-text-secondary/60 dark:bg-dark-card dark:text-dark-text-main"
         >
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>

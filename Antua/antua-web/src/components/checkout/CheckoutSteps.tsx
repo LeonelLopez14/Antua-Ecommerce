@@ -27,7 +27,7 @@ export function CheckoutSteps({ current, reachable, locked = false }: CheckoutSt
                 className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums ${
                   isCurrent || done
                     ? 'bg-accent-main text-bg dark:bg-dark-accent-main dark:text-dark-bg'
-                    : 'border-2 border-text-main/40 dark:border-dark-text-secondary/60'
+                    : 'border-2 border-text-main/60 dark:border-dark-text-secondary/60'
                 }`}
               >
                 {done ? <Check className="size-4" /> : step}
