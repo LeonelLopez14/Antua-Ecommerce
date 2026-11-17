@@ -6,11 +6,15 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import helmet from 'helmet';
+import compression from 'compression';
 import { static as serveStatic } from 'express';
 
 /** Configuración global de la app. La comparten main.ts y los tests e2e. */
 export function configureApp(app: INestApplication): void {
   app.use(helmet());
+  // gzip para respuestas de texto de más de 1 kB (JSON del catálogo, por ejemplo). Las imágenes ya
+  // vienen comprimidas: compression las saltea por su Content-Type.
+  app.use(compression({ threshold: 1024 }));
 
   // Solo los orígenes de CORS_ORIGINS. Vacío: sin CORS (en desarrollo, Vite hace de proxy).
   const origins = app.get(ConfigService).get<string[]>('CORS_ORIGINS') ?? [];

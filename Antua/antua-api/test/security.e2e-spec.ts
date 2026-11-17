@@ -40,6 +40,15 @@ describe('endurecimiento', () => {
       .expect(401);
   });
 
+  it('comprime con gzip las respuestas grandes', async () => {
+    for (let i = 0; i < 6; i++) await createProduct(db, `gzip-${i}`);
+    const res = await request(server())
+      .get('/products')
+      .set('Accept-Encoding', 'gzip')
+      .expect(200);
+    expect(res.headers['content-encoding']).toBe('gzip');
+  });
+
   it('envía cabeceras de seguridad y no permite orígenes ajenos', async () => {
     const res = await request(server())
       .get('/products')

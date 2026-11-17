@@ -182,7 +182,8 @@ export class ProductsService {
         productTags: {
           tag: true,
         },
-        reviews: true,
+        // Sin `reviews`: el front las pide en GET /products/:slug/reviews. Traerlas también acá
+        // cargaba todas las reseñas dos veces por cada visita a la Ficha.
       },
     });
 
