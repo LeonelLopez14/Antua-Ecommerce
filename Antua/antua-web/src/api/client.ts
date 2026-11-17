@@ -36,6 +36,27 @@ api.interceptors.response.use((response) => {
   return response
 })
 
+/** Un 401 con sesión: el JWT venció o se invalidó (por ejemplo, al cambiar la contraseña). */
+export const SESSION_EXPIRED = 'Tu sesión venció. Iniciá sesión de nuevo para seguir: tu carrito te espera.'
+export const SESSION_EXPIRED_EVENT = 'antua:session-expired'
+
+/** 401 que NO son sesión vencida: credenciales malas en el login o contraseña actual incorrecta. */
+const CREDENTIAL_CHECKS = ['/auth/login', '/auth/change-password']
+
+function isExpiredSession(error: unknown): boolean {
+  if (!isAxiosError(error) || error.response?.status !== 401 || !error.config) return false
+  const hadJwt = AxiosHeaders.from(error.config.headers).has('Authorization')
+  const url = error.config.url ?? ''
+  return hadJwt && !CREDENTIAL_CHECKS.some((path) => url.endsWith(path))
+}
+
+// Sesión vencida a mitad de algo (por ejemplo, el checkout): se avisa una vez a la app
+// (RootLayout cierra la sesión y abre el AuthModal) en vez de mostrar "Unauthorized".
+api.interceptors.response.use(undefined, (error: unknown) => {
+  if (isExpiredSession(error)) window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+  return Promise.reject(error)
+})
+
 const TOO_MANY_REQUESTS = 'Hiciste muchos intentos seguidos. Esperá un minuto y probá de nuevo.'
 
 /** Mensaje legible del error de la API (NestJS devuelve `message` como string o string[]). */
@@ -43,6 +64,7 @@ export function getApiErrorMessage(error: unknown, fallback = 'Algo salió mal. 
   if (isAxiosError<{ message?: string | string[] }>(error)) {
     if (!error.response) return 'No pudimos conectarnos. Revisá tu conexión y probá de nuevo.'
     if (error.response.status === 429) return TOO_MANY_REQUESTS
+    if (isExpiredSession(error)) return SESSION_EXPIRED
     // Los 5xx traen mensajes técnicos (y en inglés): no sirven para quien compra.
     if (error.response.status >= 500) return fallback
     const message = error.response?.data?.message

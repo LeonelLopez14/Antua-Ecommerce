@@ -42,6 +42,7 @@ export function AuthModal() {
   const setTab = useAuthModalStore((s) => s.setTab)
   const close = useAuthModalStore((s) => s.close)
   const returnFocusTo = useAuthModalStore((s) => s.returnFocusTo)
+  const notice = useAuthModalStore((s) => s.notice)
   const setSession = useAuthStore((s) => s.setSession)
   const mergeGuestCart = useCartStore((s) => s.mergeGuestCart)
   const reduced = usePrefersReducedMotion()
@@ -195,6 +196,11 @@ export function AuthModal() {
       returnFocusTo={returnFocusTo}
     >
       <div ref={panelRef} id={panelId} role="tabpanel" aria-labelledby={`${baseId}-tab-${tab}`} key={`${tab}-${formKey}`}>
+        {notice && (
+          <p role="status" className="mb-4 rounded-xl bg-accent-secondary px-4 py-3 text-sm font-bold dark:bg-dark-card dark:text-dark-text-main">
+            {notice}
+          </p>
+        )}
         {errors.form && (
           <p role="alert" className="mb-4 rounded-xl bg-accent-secondary px-4 py-3 text-sm font-bold dark:bg-dark-card dark:text-dark-accent-main">
             {errors.form}
