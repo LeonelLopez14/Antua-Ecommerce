@@ -77,6 +77,14 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 - `pnpm test`: Vitest + Testing Library. Los archivos van junto al código (`*.test.ts(x)`) y la API se simula con `vi.mock('../api/…')`.
 - `pnpm test:e2e`: Playwright (`e2e/`). Necesita la API con los datos de prueba.
 
+### Calidad (Fase 13)
+- Medir siempre el build de producción (`pnpm qa:build && pnpm qa:preview`), nunca el servidor de desarrollo. Comandos y criterios en `docs/qa/informe-qa.md`.
+- Cada UI nueva tiene que pasar `pnpm qa:a11y` (axe en 375/1280 px, claro y oscuro) sin violaciones serias, y no desbordar a 320 px.
+- Nada de trucos para el puntaje (por ejemplo, detectar el navegador de Lighthouse): se arregla el problema o se documenta.
+- Los textos institucionales salen de `docs/contenido-sitio.md` y cada afirmación se verifica contra la app. El contacto es `contacto@antojarte.example` (`src/data/site.ts`).
+- Componentes que se abren pocas veces y pesan (drawer, modal) se cargan al abrirse (`components/layout/LazyPanels.tsx`, `lib/panels.ts`).
+- Mientras corre `pnpm dev` de la API, no correr `pnpm build` de la API: borra `dist/` y la API de desarrollo se cae. Para chequear tipos, `npx tsc --noEmit`.
+
 ### Registro de trabajo
 - `docs/progreso.md`: qué se hizo en cada fase, commits, decisiones y pendientes.
 - `docs/estado-frontend.md`: foto actual y cómo correr todo.

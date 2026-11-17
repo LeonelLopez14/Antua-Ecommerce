@@ -85,6 +85,7 @@ El esquema se gestiona con migraciones de TypeORM (`antua-api/src/database/migra
 | `seed` | Carga productos, tags, cupones y usuarios de prueba. Se puede repetir. |
 | `seed:clean --yes` | Borra los datos de prueba, los pedidos que los incluyan y las imágenes subidas a esos productos |
 | `admin:create` | Crea el primer administrador (ver arriba) |
+| `nutrition:examples --yes` | Carga información nutricional de ejemplo en los campos vacíos (`--undo --yes` la quita) |
 
 Datos de prueba: cupones `SEED10` (−10 %, mínimo 5000), `SEEDFIJO` (−1000) y `SEEDVENCIDO`; usuario `seed.cliente@antua.test` con contraseña `SeedPass123!` (solo desarrollo; se cambia con `SEED_PASSWORD`).
 
@@ -130,5 +131,7 @@ DB_DATABASE=antua_test pnpm --filter antua-api migration:run
 - **Roles, no claves compartidas:** el panel exige un JWT con rol `admin`, leído de la base en cada request. Toda ruta `/admin` se niega por defecto, y un test recorre todas para verificarlo.
 - **Moneda única:** pesos uruguayos (UYU, `es-UY`) en toda la app y en los pagos.
 - **Secretos solo en `.env`,** que nunca se versiona. La API valida su configuración al arrancar y explica qué falta.
+
+Control de calidad (Lighthouse, accesibilidad, resiliencia): [`antua-web/docs/qa/informe-qa.md`](./antua-web/docs/qa/informe-qa.md).
 
 Documentación de trabajo: [`progreso.md`](./antua-web/docs/progreso.md) (qué se hizo y por qué) y [`estado-frontend.md`](./antua-web/docs/estado-frontend.md) (foto actual).

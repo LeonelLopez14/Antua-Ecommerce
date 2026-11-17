@@ -989,3 +989,55 @@ curl -s -H "$A" 'localhost:3000/admin/users?q=gmail&role=customer'
 **Hallazgo de calidad:** el e2e del panel dejaba **activos en la Tienda** sus productos de prueba (`seed-e2e-*`, sin tags).
 - Se desactivaron los 13 que había, por `PATCH /admin/products/:id`: queda en la auditoría y se puede revertir.
 - `e2e/admin.spec.ts` ahora desactiva su producto al terminar.
+
+### 13.2: control de calidad con herramientas reales
+
+Informe completo en [`docs/qa/informe-qa.md`](./qa/informe-qa.md), Lighthouse antes y después en [`docs/qa/lighthouse-resumen.md`](./qa/lighthouse-resumen.md) y el recorrido de accesibilidad en [`docs/qa/accesibilidad-manual.md`](./qa/accesibilidad-manual.md).
+
+**Herramientas** (scripts en `package.json`):
+- **`qa:build` / `qa:preview`:** build de producción con `VITE_API_URL=/api`, servido por `vite preview` con un proxy `/api` → API. Se mide el build, no el servidor de desarrollo.
+- **`qa:lighthouse` (`qa/lighthouse.ts`, Lighthouse 13.0.3).**
+  - Mide móvil y escritorio. Cada medición usa un perfil nuevo, así que arranca con la caché vacía.
+  - Prepara el estado (carrito, sesión de cliente, sesión de admin) sin precargar la app.
+  - Falla si la página medida redirige.
+  - Con `--runs=3` toma la mediana.
+  - Guarda JSON sin capturas.
+  - Se usa la 13.0.3 porque `lighthouse` 13.4 y 13.5 dependen de `zod@^4.6.5`, que no está publicado.
+  - **Falla corregida durante la fase:** al principio el carrito y la sesión preparados no llegaban a la pestaña de Lighthouse (Playwright crea un contexto aislado), y el "Checkout" que se medía en realidad era la Tienda. Se pasó a un perfil persistente compartido, y se volvió a medir el commit original para tener un "antes" válido.
+- **`qa:a11y` (`e2e/a11y.spec.ts`, `@axe-core/playwright` 4.14.0):** 150 análisis, con 0 violaciones.
+- **`qa:keyboard` (`e2e/keyboard.spec.ts`):** 10 pruebas de teclado, foco, zoom, movimiento, tema y respaldo sin WebGL.
+- **`qa:resilience` (`e2e/resilience.spec.ts`):** red lenta, API caída o con error 500, 404, sesión vencida y carrito vacío, más la compra en Firefox.
+- **`test:e2e`** sigue con los flujos funcionales (compra y panel, desktop y mobile). **`qa:e2e`** corre axe, teclado y resiliencia en serie (`--workers=1`): en paralelo saturaban la máquina y la prueba de red lenta y axe superaban sus límites de tiempo. Firefox y WebKit son proyectos aparte.
+
+**Arreglos del front** (detalle y commits en el informe):
+- contraste de bordes;
+- reflow de la Ficha y de la Navbar a 320 px;
+- foco de los diálogos condicionales;
+- sesión vencida en el checkout;
+- carrito y AuthModal diferidos (chunk principal de 413 a 321 kB);
+- fuentes propias con `preload` y respaldos ajustados;
+- CLS;
+- 3D diferido;
+- `canonical`, Open Graph, JSON-LD y `noindex`.
+
+**Cambios en el backend, explicados:**
+- **`src/app.setup.ts` (línea 15), gzip.**
+  - *Qué faltaba:* la API mandaba el JSON sin comprimir.
+  - *Qué cambió:* se agregó el middleware `compression` (un middleware es una función por la que pasa cada request antes de llegar al controller). Comprime con gzip las respuestas de más de 1 kB cuando el navegador lo acepta, y saltea las imágenes, que ya vienen comprimidas.
+  - *Por qué:* el catálogo pasa de 12,5 a 2,3 kB, y en una red móvil eso se nota.
+  - *Test:* `test/security.e2e-spec.ts`, "comprime con gzip las respuestas grandes".
+  - Las imágenes subidas ya tenían caché larga e `immutable` (Fase 12): sus nombres son aleatorios, así que un archivo nunca cambia de contenido.
+- **`src/products/products.service.ts` (`findOne`), reseñas duplicadas.**
+  - *Qué pasaba:* `GET /products/:slug` pedía la relación `reviews`, y TypeORM traía todas las reseñas del producto. El front no las usaba: las pedía de nuevo en `GET /products/:slug/reviews`. Se cargaban dos veces en cada visita a la Ficha.
+  - *Qué cambió:* se sacó la relación. El test de reseñas ocultas ahora verifica que el comentario oculto no aparece en el detalle.
+- **`src/database/proposed/1794900000000-OrdersIndexes.ts`, índices. PROPUESTA, sin aplicar.**
+  - *Qué es un índice:* como el índice de un libro. Sin él, MySQL lee todas las filas para encontrar las que busca, y además ordena en memoria (el `filesort` que muestra `EXPLAIN`).
+  - *Qué encontré con `EXPLAIN`:*
+    - "Mis pedidos" (`WHERE userId = ? ORDER BY created_at`) ordenaba en memoria;
+    - los rangos de fechas del panel y del resumen recorrían toda la tabla (`type=ALL`);
+    - el vencimiento de pagos también.
+  - *Qué propone:* tres índices sobre `orders`: `(userId, created_at)`, `(created_at)` y `(status, payment_status, payment_expires_at)`. Se probaron en una copia temporal de la base (ya borrada): las tres consultas pasan a usar índice.
+  - *Por qué no se aplicó:* la regla de la fase es que leas toda migración antes. Está fuera de `src/database/migrations/`, así que no la ve ni la API, ni `migration:run`, ni los e2e. El archivo explica cómo aplicarla y qué `@Index` agregar después a la entidad.
+- **Sin otros cambios en el backend.** El resto de las consultas que se revisaron (catálogo, detalle, carrito, pedidos del cliente) ya usaban índice. El carrito no tiene N+1: los dos bucles que hay hacen cálculos en memoria o corren solo cuando cambió un precio.
+
+**Sesiones interrumpidas.** Esta fase se cortó varias veces. Una de las sesiones cortadas dejó el commit `7292c1ca` (spec de axe y contraste de bordes) y un ajuste sin commit en la Navbar (`f519db1c`, que se verificó antes de commitear). También dejó la API y el front detenidos: se volvieron a levantar solo los procesos de este repo.

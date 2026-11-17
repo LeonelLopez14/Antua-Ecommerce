@@ -147,9 +147,11 @@ async function main() {
       results.sort((a, b) => (a.lhr.categories.performance?.score ?? 0) - (b.lhr.categories.performance?.score ?? 0))
       const result = results[Math.floor(results.length / 2)]
       if (!result) continue
-      // Sin capturas: el JSON pasa de ~1 MB a ~200 kB.
-      const lhr = structuredClone(result.lhr)
+      // Sin capturas ni metadatos (textos traducibles, tiempos internos): de ~1 MB a ~150 kB.
+      const lhr: Partial<typeof result.lhr> & Pick<typeof result.lhr, 'audits'> = structuredClone(result.lhr)
       delete lhr.fullPageScreenshot
+      delete lhr.i18n
+      delete lhr.timing
       for (const id of ['screenshot-thumbnails', 'final-screenshot']) delete lhr.audits[id]
       writeFileSync(join(OUT, `${target.key}-${form === 'móvil' ? 'movil' : 'escritorio'}.json`), JSON.stringify(lhr))
 

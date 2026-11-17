@@ -68,3 +68,7 @@ uploads/
 
 # Artefactos de playwright-cli
 .playwright-cli/
+
+# Reportes HTML de Lighthouse (pesados): en docs/qa solo van los JSON sin capturas y los resúmenes
+*.report.html
+antua-web/docs/qa/**/*.html
