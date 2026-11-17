@@ -15,7 +15,8 @@
     "qa:build": "tsc -b && VITE_API_URL=/api vite build",
     "qa:preview": "vite preview --port 4173 --strictPort",
     "qa:lighthouse": "node qa/lighthouse.ts",
-    "qa:a11y": "playwright test e2e/a11y.spec.ts --project=desktop"
+    "qa:a11y": "playwright test e2e/a11y.spec.ts --project=desktop",
+    "qa:keyboard": "playwright test e2e/keyboard.spec.ts --project=desktop"
   },
   "dependencies": {
     "@fontsource/lato": "5.3.0",

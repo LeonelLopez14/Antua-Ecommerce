@@ -16,7 +16,8 @@ export function ProductInfo({ product }: ProductInfoProps) {
       <h2 id="info-title" className="font-display text-3xl font-semibold">
         Qué lleva
       </h2>
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
+      {/* grid-cols-1 = minmax(0, 1fr): la tabla nutricional scrollea en su región en vez de ensanchar la página (320 px). */}
+      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className={card}>
           <h3 className="font-display text-xl font-semibold">Ingredientes</h3>
           <p className="mt-3 wrap-break-word">{product.ingredients || 'Sin datos por ahora.'}</p>

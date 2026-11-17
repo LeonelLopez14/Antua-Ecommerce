@@ -37,7 +37,8 @@ const findings: Finding[] = []
 let customerAuth = ''
 let adminAuth = ''
 
-test.describe.configure({ mode: 'serial' })
+// Cada test analiza varias páginas o estados con axe (unos segundos cada uno): 60 s no alcanzan.
+test.describe.configure({ mode: 'serial', timeout: 240_000 })
 
 test.beforeAll(async ({ request }) => {
   const login = async (email: string, password: string) => {
