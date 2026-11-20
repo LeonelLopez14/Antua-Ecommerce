@@ -1,0 +1,16 @@
+# Dispara antojarte-backup.service todos los días a las 03:30 (hora del servidor).
+#
+#   systemctl list-timers antojarte-backup.timer   # cuándo corre la próxima vez
+#   journalctl -u antojarte-backup.service         # qué pasó en las últimas corridas
+[Unit]
+Description=Respaldo diario de Antojarte
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+# Hasta 15 minutos de demora al azar: no todo arranca al mismo segundo.
+RandomizedDelaySec=15min
+# Si el servidor estaba apagado a esa hora, corre al encenderse.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

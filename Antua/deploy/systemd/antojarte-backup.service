@@ -1,0 +1,29 @@
+# Respaldo de Antojarte (base + imágenes subidas). Lo dispara antojarte-backup.timer.
+#
+# Instalación (docs/despliegue.md, "Respaldos automáticos"):
+#   sudo cp deploy/systemd/antojarte-backup.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now antojarte-backup.timer
+#
+# Ajustá las rutas si clonaste el repo en otro lugar que /opt/antojarte.
+[Unit]
+Description=Respaldo diario de Antojarte (MySQL e imágenes subidas)
+Requires=docker.service
+After=docker.service
+
+[Service]
+# oneshot: corre, termina, y systemd registra si salió bien o mal (systemctl status, journalctl).
+Type=oneshot
+# Usuario que puede usar Docker y es dueño de BACKUP_DIR y de .env.prod (no hace falta root).
+User=antojarte
+Group=antojarte
+WorkingDirectory=/opt/antojarte/Antua
+Environment=ENV_FILE=/opt/antojarte/Antua/.env.prod
+Environment=BACKUP_DIR=/var/backups/antojarte
+Environment=BACKUP_RETENTION_DAYS=14
+ExecStart=/opt/antojarte/Antua/scripts/backup-db.sh
+# Prioridad baja de CPU y disco: el respaldo no compite con la tienda.
+Nice=10
+IOSchedulingClass=idle
+# Los archivos que crea quedan solo para el dueño.
+UMask=0077
