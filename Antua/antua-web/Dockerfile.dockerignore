@@ -1,0 +1,47 @@
+# Lo que NO se manda a Docker al construir antua-web/Dockerfile (el contexto es la raíz del
+# monorepo). Docker usa este archivo en vez del .dockerignore de la raíz porque se llama igual
+# que el Dockerfile + ".dockerignore".
+#
+# Por qué importa: todo lo que entra al contexto puede terminar en una capa. Un antua-web/.env
+# además cambiaría el build (Vite lo lee): por eso VITE_API_URL se pasa como argumento.
+
+# Secretos y configuración local
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.key
+**/*.crt
+
+# Dependencias y compilados locales
+**/node_modules
+**/dist
+**/dist-tools
+**/coverage
+**/*.tsbuildinfo
+
+# Datos
+**/*.sql
+**/*.sql.gz
+**/*.tar.gz
+**/uploads
+**/backups
+**/respaldos
+
+# La API no hace falta para el front (solo su package.json, que pnpm necesita para el workspace)
+antua-api
+!antua-api/package.json
+
+# Reportes de QA, pruebas y documentación: no van al sitio
+antua-web/docs
+antua-web/e2e
+antua-web/qa
+antua-web/test-results
+antua-web/playwright-report
+Design
+Documentation
+
+# Git y herramientas
+.git
+**/.github
+**/.claude

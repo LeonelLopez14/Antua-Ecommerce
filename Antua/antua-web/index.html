@@ -15,18 +15,9 @@
     <meta property="og:locale" content="es_UY" />
     <meta property="og:title" content="Antua · Galletas caseras" />
     <meta property="og:description" content="Antua: galletas caseras, sin gluten, veganas y sin azúcar. Date un gustito." />
-    <!-- Tema elegido (stores/themeStore.ts): se aplica antes del primer pintado para que no parpadee. -->
-    <script>
-      try {
-        var theme = localStorage.getItem('antua.theme')
-        if (theme === 'light' || theme === 'dark') {
-          document.documentElement.classList.add(theme)
-          document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
-            meta.setAttribute('content', theme === 'dark' ? '#151515' : '#FFFBE9')
-          })
-        }
-      } catch (error) {}
-    </script>
+    <!-- Tema elegido: se aplica antes del primer pintado para que no parpadee. Va en un archivo
+         (public/theme-init.js) y no en línea, para que la CSP no necesite 'unsafe-inline'. -->
+    <script src="/theme-init.js"></script>
     <!-- Fuentes: servidas desde el sitio (src/index.css). El preload de las críticas lo agrega vite.config.ts. -->
     <title>Antua · Galletas caseras</title>
   </head>
