@@ -28,9 +28,14 @@ interface Row {
 }
 
 async function main() {
-  if (process.env.NODE_ENV === 'production') {
+  // En producción solo con --allow-production: son valores inventados, y quien los carga en un
+  // servidor tiene que decidirlo a propósito (por ejemplo, junto con `seed --catalog-only`).
+  if (
+    process.env.NODE_ENV === 'production' &&
+    !process.argv.includes('--allow-production')
+  ) {
     throw new Error(
-      'Son datos de ejemplo: este script no corre en producción.',
+      'Son datos de ejemplo: en producción este script solo corre con --allow-production.',
     );
   }
   const undo = process.argv.includes('--undo');

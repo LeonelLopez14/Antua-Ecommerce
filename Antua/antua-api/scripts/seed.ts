@@ -1,9 +1,10 @@
 /**
  * Datos de prueba reproducibles: productos, tags, cupones, usuarios y reseñas.
  * Es idempotente (actualiza por slug, sku, código o email) y solo toca filas con
- * prefijo `seed-` / `SEED` / `seed.`. Nunca corre en producción.
+ * prefijo `seed-` / `SEED` / `seed.`. El seed completo nunca corre en producción.
  *
  *   pnpm seed
+ *   pnpm seed --catalog-only   # solo tags y productos: sin usuarios, cupones ni reseñas (vale en producción)
  *
  * La contraseña de los usuarios de prueba es SEED_PASSWORD o, por defecto, SeedPass123!.
  * No es una credencial real: no la uses fuera de desarrollo.
@@ -69,8 +70,14 @@ async function saveBy<T extends ObjectLiteral>(
 }
 
 async function main() {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('El seed no corre en producción.');
+  // --catalog-only: solo tags y productos de ejemplo (con variantes e imágenes). Sin usuarios,
+  // cupones ni reseñas, así que no crea ninguna cuenta con contraseña conocida. Es el único modo
+  // que corre en producción (por ejemplo, para mostrar la tienda en un servidor de prueba).
+  const catalogOnly = process.argv.includes('--catalog-only');
+  if (process.env.NODE_ENV === 'production' && !catalogOnly) {
+    throw new Error(
+      'El seed completo no corre en producción: crea usuarios con contraseña conocida. Usá --catalog-only para cargar solo el catálogo de ejemplo.',
+    );
   }
 
   const data = JSON.parse(
@@ -147,6 +154,8 @@ async function main() {
         await productTags.save({ product: { id: product.id }, tag });
       }
     }
+
+    if (catalogOnly) return;
 
     const now = Date.now();
     const coupons = manager.getRepository(Coupon);
@@ -250,9 +259,13 @@ async function main() {
   });
 
   process.stdout.write(
-    `Seed listo: ${data.products.length} productos, ${data.tags.length} tags, 3 cupones${
-      process.env.SEED_ADMIN_PASSWORD ? ' y el admin seed.admin@antua.test' : ''
-    }.\n`,
+    catalogOnly
+      ? `Catálogo de ejemplo listo: ${data.products.length} productos y ${data.tags.length} tags (sin usuarios, cupones ni reseñas).\n`
+      : `Seed listo: ${data.products.length} productos, ${data.tags.length} tags, 3 cupones${
+          process.env.SEED_ADMIN_PASSWORD
+            ? ' y el admin seed.admin@antua.test'
+            : ''
+        }.\n`,
   );
 }
 
