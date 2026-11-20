@@ -268,7 +268,11 @@ const EXAMPLE_MARKERS = [
   'secreto',
 ];
 
-/** Rechaza secretos vacíos, cortos, de ejemplo o repetitivos ("aaaa…"). */
+/**
+ * Rechaza secretos vacíos, cortos, de ejemplo, repetitivos ("aaaa…") o solo con dígitos
+ * ("1234567890123456"). Un valor aleatorio de scripts/generate-secrets.sh siempre pasa: tiene
+ * 48 caracteres o más y usa casi todos los símbolos posibles.
+ */
 function assertStrongSecret(
   name: string,
   raw: unknown,
@@ -279,7 +283,8 @@ function assertStrongSecret(
   const weak =
     value.length < minLength ||
     EXAMPLE_MARKERS.some((marker) => lower.includes(marker)) ||
-    new Set(value).size < Math.min(12, Math.floor(minLength / 2));
+    /^\d+$/.test(value) ||
+    new Set(value).size < 10;
   if (weak) {
     throw new Error(
       `${name} es débil o de ejemplo: en producción tiene que ser aleatoria, de ${minLength} caracteres o más. Generala con scripts/generate-secrets.sh.`,

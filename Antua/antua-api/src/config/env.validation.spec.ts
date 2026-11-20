@@ -183,9 +183,15 @@ describe('validación del entorno', () => {
           'JWT_SECRET',
         );
       }
-      expect(() =>
-        assertProductionEnv({ ...prod, DB_PASSWORD: 'tu_password' }),
-      ).toThrow('DB_PASSWORD');
+      for (const DB_PASSWORD of [
+        'tu_password',
+        '1234567890123456',
+        'abababababababab',
+      ]) {
+        expect(() => assertProductionEnv({ ...prod, DB_PASSWORD })).toThrow(
+          'DB_PASSWORD',
+        );
+      }
     });
     it('exige HTTPS en FRONTEND_URL y nada de SEED_ADMIN_PASSWORD', () => {
       expect(() =>
