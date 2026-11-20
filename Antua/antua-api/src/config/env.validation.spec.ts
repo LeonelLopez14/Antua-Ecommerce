@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import {
   parseLowStockThreshold,
   parseUploadsDir,
@@ -96,10 +97,14 @@ describe('validación del entorno', () => {
   });
 
   describe('UPLOADS_DIR', () => {
+    // Se compara con path.resolve para que el test pase igual en Linux
+    // (/app/uploads) y en Windows (d:\app\uploads).
     it('por defecto es uploads/ junto a la API', () => {
-      expect(parseUploadsDir(undefined, '/app')).toBe('/app/uploads');
+      expect(parseUploadsDir(undefined, '/app')).toBe(
+        resolve('/app', 'uploads'),
+      );
       expect(parseUploadsDir('/var/antua/imagenes', '/app')).toBe(
-        '/var/antua/imagenes',
+        resolve('/var/antua/imagenes'),
       );
     });
     it('rechaza carpetas dentro de src/', () => {
