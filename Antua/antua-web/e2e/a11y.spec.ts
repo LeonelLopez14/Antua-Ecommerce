@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { API } from './env'
 
 /**
  * Accesibilidad automática con axe-core: cada pantalla y estado clave en 375 y 1280 px, en claro
@@ -14,7 +15,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
  * QA_ADMIN_EMAIL y QA_ADMIN_PASSWORD (si faltan, se saltea). No crea pedidos: el paso 4 del
  * checkout se alcanza simulando que los pagos online están desactivados (el estado real sin credenciales).
  */
-const API = 'http://localhost:3000'
+// URL de la API: e2e/env.ts (por defecto, la de desarrollo).
 const OUT = join(import.meta.dirname, '..', 'docs', 'qa', 'axe')
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 

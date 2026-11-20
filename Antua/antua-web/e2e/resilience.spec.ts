@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { API } from './env'
 
 /**
  * Resiliencia: red lenta, API caída o con error 500, 404, sesión vencida a mitad del checkout y
@@ -6,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test'
  *
  *   pnpm qa:resilience
  */
-const API = 'http://localhost:3000'
+// URL de la API: e2e/env.ts (por defecto, la de desarrollo).
 // Solo las llamadas a la API (/api/ en la raíz). Un glob con "/api/" en cualquier parte también tomaría
 // los módulos src/api/*.ts que sirve el servidor de desarrollo, y la app no llegaría a cargar.
 const API_CALLS = /^https?:\/\/[^/]+\/api\//

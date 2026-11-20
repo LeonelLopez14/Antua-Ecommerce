@@ -1,4 +1,5 @@
 import { chromium, expect, test, type Page } from '@playwright/test'
+import { API } from './env'
 
 /**
  * Accesibilidad que axe no mide: teclado, foco, zoom, movimiento reducido, tema y sin WebGL.
@@ -6,7 +7,7 @@ import { chromium, expect, test, type Page } from '@playwright/test'
  *
  *   pnpm qa:keyboard
  */
-const API = 'http://localhost:3000'
+// URL de la API: e2e/env.ts (por defecto, la de desarrollo).
 
 test.describe.configure({ mode: 'serial' })
 // Se prueba con teclado en escritorio (el proyecto mobile emula táctil); el tamaño se varía en cada test.
