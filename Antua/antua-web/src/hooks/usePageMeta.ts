@@ -2,8 +2,8 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 /** Descripción por defecto (la misma que trae index.html). */
-const DEFAULT_DESCRIPTION = 'Antua: galletas caseras, sin gluten, veganas y sin azúcar. Date un gustito.'
-const SITE_NAME = 'Antua'
+const DEFAULT_DESCRIPTION = 'Antojarte: galletas caseras, sin gluten, veganas y sin azúcar. Date un gustito.'
+const SITE_NAME = 'Antojarte'
 
 /** Crea o actualiza un <meta> o <link> del <head>. */
 function upsert(selector: string, create: () => HTMLElement, set: (element: HTMLElement) => void): void {
@@ -27,7 +27,7 @@ const meta = (attr: 'name' | 'property', key: string, content: string) =>
   )
 
 /**
- * Título de la pestaña ("<página> · Antua"), meta description, canonical y Open Graph básicos,
+ * Título de la pestaña ("<página> · Antojarte"), meta description, canonical y Open Graph básicos,
  * sin librerías. Con `title = null` no se cambia nada (ej.: mientras carga la ficha).
  * El canonical es la ruta sin parámetros (los filtros de la Tienda no son páginas distintas).
  * Limitación: es una SPA sin SSR; quien no ejecuta JavaScript ve los valores de index.html.

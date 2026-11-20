@@ -18,7 +18,7 @@ export function Footer() {
         <div className="max-w-sm">
           <p translate="no" className="flex items-center gap-2 font-display text-2xl font-bold">
             <Cookie aria-hidden="true" className="size-7" />
-            Antua
+            Antojarte
           </p>
           <p className="mt-4 text-surface/80 dark:text-dark-text-secondary">
             Hechas para darte un gustito. Galletas caseras, horneadas en tandas chicas.
@@ -43,7 +43,7 @@ export function Footer() {
 
         <nav aria-labelledby="footer-antua">
           <h2 id="footer-antua" className="font-display text-lg font-semibold">
-            <span translate="no">Antua</span>
+            <span translate="no">Antojarte</span>
           </h2>
           <ul className="mt-4 flex flex-col gap-3">
             {infoPages.map(({ to, label }) => (
@@ -74,7 +74,7 @@ export function Footer() {
       </div>
       <div className="border-t border-surface/15 dark:border-dark-text-main/10">
         <p className="mx-auto max-w-7xl px-4 pt-6 pb-2 text-sm text-surface/70 sm:px-6 dark:text-dark-text-secondary">
-          © {year} <span translate="no">Antua</span>. Hecho con manteca y paciencia.
+          © {year} <span translate="no">Antojarte</span>. Hecho con manteca y paciencia.
         </p>
         <p className="mx-auto max-w-7xl px-4 pb-6 text-xs text-surface/70 sm:px-6 dark:text-dark-text-secondary">{FICTIONAL_BRAND_NOTE}</p>
       </div>

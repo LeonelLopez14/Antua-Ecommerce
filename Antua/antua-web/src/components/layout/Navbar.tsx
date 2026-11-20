@@ -102,7 +102,7 @@ export function Navbar() {
             </li>
           ))}
         </ul>
-        <ul aria-label="Sobre Antua" className="mt-2 flex flex-col gap-1 border-t border-text-main/10 pt-2 dark:border-dark-text-main/10">
+        <ul aria-label="Sobre Antojarte" className="mt-2 flex flex-col gap-1 border-t border-text-main/10 pt-2 dark:border-dark-text-main/10">
           {infoPages.map(({ to, label }) => (
             <li key={to}>
               <Link to={to} onClick={() => setMenuOpen(false)} className={`${navLink} flex min-h-11 items-center text-base`}>

@@ -10,7 +10,7 @@ import { ButtonLink } from '../components/ui/ButtonLink'
 
 /** Pedido de recuperación. El mensaje final es el mismo exista o no la cuenta. */
 export default function ForgotPassword() {
-  usePageMeta('Recuperar contraseña', 'Pedí un link para restablecer tu contraseña de Antua.')
+  usePageMeta('Recuperar contraseña', 'Pedí un link para restablecer tu contraseña de Antojarte.')
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [emailError, setEmailError] = useState<string>()

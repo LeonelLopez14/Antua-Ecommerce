@@ -5,7 +5,7 @@ import { readGuestToken, writeGuestToken } from '../lib/guestToken'
 const GUEST_HEADER = 'X-Guest-Token'
 
 /**
- * Cliente HTTP de Antua.
+ * Cliente HTTP de Antojarte.
  * baseURL: VITE_API_URL (ver .env.example). En desarrollo se usa `/api`, que Vite
  * reenvía a VITE_API_URL (vite.config.ts), porque la API todavía no habilita CORS.
  */

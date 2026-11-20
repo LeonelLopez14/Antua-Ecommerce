@@ -186,7 +186,7 @@ for (const viewport of VIEWPORTS) {
         await scan(page, testInfo, `${label}-checkout-1`)
 
         // Salir con datos sin guardar: diálogo de confirmación.
-        await page.getByRole('link', { name: /Antua/ }).first().click()
+        await page.getByRole('link', { name: /Antojarte/ }).first().click()
         await expect(page.getByRole('dialog')).toBeVisible()
         await scan(page, testInfo, `${label}-checkout-salir`)
         await page.getByRole('dialog').getByRole('button', { name: /Seguir/ }).click()

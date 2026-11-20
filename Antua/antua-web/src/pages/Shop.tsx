@@ -29,7 +29,7 @@ export default function Shop() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const notice = noticeFrom(useLocation().state)
 
-  usePageMeta('Tienda', 'Todas las galletas de Antua: clásicas, sin gluten, veganas y sin azúcar. Filtrá por categoría y precio.')
+  usePageMeta('Tienda', 'Todas las galletas de Antojarte: clásicas, sin gluten, veganas y sin azúcar. Filtrá por categoría y precio.')
 
   const result = data.status === 'ready' ? data.result : null
   const counts = result?.facets.tagCounts ?? {}

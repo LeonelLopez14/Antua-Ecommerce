@@ -79,7 +79,7 @@ export default function PaymentResult({ kind }: { kind: ReturnKind }) {
   const message = (payment && BY_STATUS[payment.paymentStatus]) ?? UNKNOWN[kind]
   const loading = state.status === 'loading'
 
-  usePageMeta(message.title, 'El estado de tu pago en Antua.')
+  usePageMeta(message.title, 'El estado de tu pago en Antojarte.')
 
   return (
     <div className="mx-auto max-w-xl px-4 py-16 text-center sm:px-6">

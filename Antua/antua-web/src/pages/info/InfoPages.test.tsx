@@ -27,7 +27,7 @@ describe('páginas institucionales (docs/contenido-sitio.md)', () => {
   ] as const)('%o: título, meta description y sin marcas de provisorio', (Page, h1, desc) => {
     renderPage(Page)
     expect(screen.getByRole('heading', { level: 1, name: h1 })).toBeInTheDocument()
-    expect(document.title).toBe(`${h1} · Antua`)
+    expect(document.title).toBe(`${h1} · Antojarte`)
     expect(description()).toContain(desc)
     expect(document.body.textContent).not.toMatch(/provisorio|\.com\.ar/i)
   })

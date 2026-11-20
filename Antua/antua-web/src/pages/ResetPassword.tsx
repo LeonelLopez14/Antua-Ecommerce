@@ -13,7 +13,7 @@ import { ButtonLink } from '../components/ui/ButtonLink'
 
 /** Crea una contraseña nueva con el token de un solo uso que llega por email. */
 export default function ResetPassword() {
-  usePageMeta('Nueva contraseña', 'Creá una contraseña nueva para tu cuenta de Antua.')
+  usePageMeta('Nueva contraseña', 'Creá una contraseña nueva para tu cuenta de Antojarte.')
   const [params] = useSearchParams()
   const token = params.get('token') ?? ''
   const baseId = useId()
