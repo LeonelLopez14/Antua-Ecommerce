@@ -5,3 +5,6 @@ allowBuilds:
   '@scarf/scarf': true
   bcrypt: true
   unrs-resolver: true
+# Los scripts usan sintaxis POSIX (por ejemplo `VITE_API_URL=/api vite build`).
+# Con el emulador de shell de pnpm funcionan igual en Windows (cmd) que en Linux o macOS.
+shellEmulator: true

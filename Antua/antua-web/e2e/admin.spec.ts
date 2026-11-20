@@ -26,6 +26,9 @@ test.describe.configure({ mode: 'serial' })
 test.beforeAll(async ({ request }) => {
   execFileSync('pnpm', ['--filter', 'antua-api', 'admin:create'], {
     cwd: '..',
+    // En Windows pnpm es un .cmd, y Node solo lo ejecuta con shell. Los argumentos son fijos y la
+    // contraseña va por variable de entorno, así que el shell no recibe nada externo.
+    shell: process.platform === 'win32',
     env: { ...process.env, ADMIN_EMAIL: ADMIN.email, ADMIN_NAME: 'Admin E2E', ADMIN_PASSWORD: ADMIN.password },
     stdio: 'pipe',
   })
