@@ -10,12 +10,10 @@
 # Para desarrollo (servidor de Vite con recarga) está Dockerfile.dev.
 #
 # Versiones fijadas; para actualizarlas, ver docs/despliegue.md ("Actualizar las imágenes base").
-ARG NODE_IMAGE=node:24.22.3-alpine3.23
-ARG CADDY_IMAGE=caddy:2.11.9-alpine
 ARG PNPM_VERSION=10.34.9
 
 # ---------- 1. Build del front ----------
-FROM ${NODE_IMAGE} AS build
+FROM node:24.22.3-alpine3.23 AS build
 ARG PNPM_VERSION
 ENV CI=true
 RUN npm install -g "pnpm@${PNPM_VERSION}" --no-fund --no-audit
@@ -37,7 +35,7 @@ ENV VITE_API_URL=${VITE_API_URL}
 RUN pnpm --filter antua-web run build
 
 # ---------- 2. Caddy con el front ----------
-FROM ${CADDY_IMAGE} AS runtime
+FROM caddy:2.11.9-alpine AS runtime
 COPY deploy/caddy/Caddyfile /etc/caddy/Caddyfile
 COPY deploy/caddy/modes /etc/caddy/modes
 COPY --from=build /app/antua-web/dist /srv

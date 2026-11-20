@@ -11,11 +11,10 @@
 # Versiones fijadas (nada de `latest`): una imagen base que cambia sola puede romper el build
 # o meter cambios sin que nadie los revise. Para actualizarlas, ver docs/despliegue.md
 # ("Actualizar las imágenes base"); Dependabot propone los cambios cada semana.
-ARG NODE_IMAGE=node:24.22.3-alpine3.23
 ARG PNPM_VERSION=10.34.9
 
 # ---------- 1. Base: Node + pnpm ----------
-FROM ${NODE_IMAGE} AS base
+FROM node:24.22.3-alpine3.23 AS base
 ARG PNPM_VERSION
 ENV CI=true
 RUN npm install -g "pnpm@${PNPM_VERSION}" --no-fund --no-audit
@@ -49,7 +48,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
 
 # ---------- 5. Imagen final ----------
 # Parte de Node limpio: sin pnpm, sin devDependencies y sin el código fuente.
-FROM ${NODE_IMAGE} AS runtime
+FROM node:24.22.3-alpine3.23 AS runtime
 ENV NODE_ENV=production \
     UPLOADS_DIR=/data/uploads
 WORKDIR /app
