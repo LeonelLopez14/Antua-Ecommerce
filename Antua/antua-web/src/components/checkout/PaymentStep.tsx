@@ -24,7 +24,7 @@ export function PaymentStep({ enabled, children }: PaymentStepProps) {
               Pagás en <span translate="no">Mercado Pago</span>
             </p>
             <p className="mt-1 text-text-main/85 dark:text-dark-text-secondary">
-              Te llevamos a su página para pagar. Los datos de tu tarjeta nunca pasan por Antojarte.
+              Te llevamos a su página para pagar. Los datos de tu tarjeta nunca pasan por <span translate="no">Antojarte</span>.
             </p>
           </div>
         </div>

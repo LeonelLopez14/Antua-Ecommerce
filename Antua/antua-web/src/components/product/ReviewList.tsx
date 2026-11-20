@@ -85,7 +85,7 @@ export function ReviewList({ state, form, ownerId = null, onEdit, onDelete }: Re
                 <li key={review.id} className="rounded-card bg-surface p-6 dark:bg-dark-surface">
                   <article>
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="min-w-0 truncate font-bold">{review.authorName ?? 'Cliente de Antojarte'}</p>
+                      <p className="min-w-0 truncate font-bold">{review.authorName ?? <>Cliente de <span translate="no">Antojarte</span></>}</p>
                       <div className="flex items-center gap-2">
                         <Stars value={review.rating} />
                         <span className="sr-only">{review.rating} de 5</span>

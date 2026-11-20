@@ -100,7 +100,7 @@ export default function AdminLayout() {
   if (!loggedIn) {
     return (
       <CenteredMessage icon={<LockKeyhole aria-hidden="true" className="size-8 text-accent-main dark:text-dark-accent-main" />} title="Iniciá sesión para administrar">
-        <p className="mt-4 text-lg text-text-main/85 dark:text-dark-text-secondary">El panel es solo para el equipo de Antojarte.</p>
+        <p className="mt-4 text-lg text-text-main/85 dark:text-dark-text-secondary">El panel es solo para el equipo de <span translate="no">Antojarte</span>.</p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button onClick={(event) => openAuth('login', event.currentTarget)}>Iniciar sesión</Button>
           <ButtonLink to="/" variant="secondary">
