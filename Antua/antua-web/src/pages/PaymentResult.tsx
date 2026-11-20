@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { CircleAlert, CircleCheck, Clock, UserPlus, type LucideIcon } from 'lucide-react'
 import { claimGuestOrder } from '../api/orders'
@@ -36,6 +36,19 @@ const UNKNOWN: Record<ReturnKind, Message> = {
   exitoso: { title: 'Volviste de Mercado Pago', text: 'Si el pago se aprobó, lo vas a ver en tu pedido en unos minutos.', Icon: Clock },
   pendiente: { title: 'Volviste de Mercado Pago', text: 'Si el pago quedó pendiente, se va a actualizar cuando se confirme.', Icon: Clock },
   fallido: { title: 'El pago no se completó', text: 'Si querés, podés intentarlo de nuevo desde tu pedido.', Icon: CircleAlert },
+}
+
+/** El título también es el de la pestaña (texto plano); al mostrarlo, la marca no se traduce. */
+const withBrand = (text: string): ReactNode => {
+  const [before, ...after] = text.split('Mercado Pago')
+  if (after.length === 0) return text
+  return (
+    <>
+      {before}
+      <span translate="no">Mercado Pago</span>
+      {after.join('Mercado Pago')}
+    </>
+  )
 }
 
 const parseOrderId = (reference: string | null): number | null => {
@@ -96,7 +109,7 @@ export default function PaymentResult({ kind }: { kind: ReturnKind }) {
       ) : (
         <div aria-live="polite" className="flex flex-col items-center">
           <message.Icon aria-hidden="true" className="size-14 text-accent-main dark:text-dark-accent-main" />
-          <h1 className="mt-4 font-display text-4xl font-bold">{message.title}</h1>
+          <h1 className="mt-4 font-display text-4xl font-bold">{withBrand(message.title)}</h1>
           <p className="mt-3 text-lg text-text-main/85 dark:text-dark-text-secondary">{message.text}</p>
           {orderId !== null && payment && <p className="mt-2 font-bold tabular-nums">Pedido #{orderId}</p>}
           {claimNotice && <p className="mt-2 font-bold">{claimNotice}</p>}
