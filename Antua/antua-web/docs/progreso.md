@@ -1041,3 +1041,28 @@ Informe completo en [`docs/qa/informe-qa.md`](./qa/informe-qa.md), Lighthouse an
 - **Sin otros cambios en el backend.** El resto de las consultas que se revisaron (catálogo, detalle, carrito, pedidos del cliente) ya usaban índice. El carrito no tiene N+1: los dos bucles que hay hacen cálculos en memoria o corren solo cuando cambió un precio.
 
 **Sesiones interrumpidas.** Esta fase se cortó varias veces. Una de las sesiones cortadas dejó el commit `7292c1ca` (spec de axe y contraste de bordes) y un ajuste sin commit en la Navbar (`f519db1c`, que se verificó antes de commitear). También dejó la API y el front detenidos: se volvieron a levantar solo los procesos de este repo.
+
+## 20/11/2026: Fase 13, verificación en un segundo equipo (Windows)
+
+Se retomó la fase en otro equipo (Windows 11) para revisar qué faltaba del prompt. El equipo estaba vacío: sin contenedor, sin `.env` y sin dependencias.
+
+**Entorno que se armó (solo de este repo):**
+- pnpm 10.34.9 global (`npm i -g pnpm@10`) y Docker Desktop iniciado;
+- contenedor `antua-mysql` (MySQL 8) en `127.0.0.1:3307`, con volumen propio;
+- `.env` locales (ignorados por git) con contraseñas aleatorias y pagos simulados;
+- `pnpm migration:run` sobre la base vacía: solo las 8 migraciones ya versionadas. La propuesta de índices **no** se aplicó;
+- `pnpm seed`, respaldo en `~/respaldos/antua_db_20261119_2355_antes-nutricion.sql` y `pnpm nutrition:examples --yes` (11 productos).
+
+**Resultado:** todo pasa igual que en el informe. Detalle en [`qa/informe-qa.md`](./qa/informe-qa.md#verificación-en-windows-20112026). Lo nuevo:
+- **WebKit:** la compra pasa (en Windows no necesita `install-deps`). Es el pendiente 3 del informe.
+- Tres problemas que solo aparecían en Windows, ya corregidos (W1 a W3): `qa:build`, el e2e del panel y un test de la API.
+
+**Cambio en el backend, explicado (solo un test):**
+- **`antua-api/src/config/env.validation.spec.ts`, línea 99.**
+  - *Qué pasaba:* el test esperaba `'/app/uploads'` escrito a mano. La función usa `path.resolve`, que arma la ruta según el sistema operativo: en Windows da `d:\app\uploads`.
+  - *Qué cambió:* el test calcula el valor esperado con `path.resolve`.
+  - *Por qué:* la función estaba bien; el test asumía Linux. No cambió el comportamiento de la API.
+
+**`/web-interface-guidelines`:** el archivo `antua-web/.claude/commands/web-interface-guidelines.md` **no existe** en este equipo, y nunca se versionó en git. El comando no está disponible y la revisión con el comando real sigue pendiente. Para hacerla, hay que copiar el archivo al repo (o a `~/.claude/commands/`) y abrir la sesión en `antua-web`.
+
+---

@@ -5,6 +5,7 @@ Build de producción servido con `vite preview` (con proxy `/api` → API en `:3
 - **Antes:** commit `5d3900cb` (fin de 13.1), mismo script y mismas condiciones. **Después:** código final de la Fase 13.
 - Formato de cada celda: antes → después. Los JSON (sin capturas) están en `lighthouse/antes/` y `lighthouse/despues/`.
 - Lighthouse varía ±2-5 puntos entre corridas. Para las tres páginas más parejas se midió además la **mediana de 3 corridas** (abajo).
+- **Verificación en Windows (20/11):** las mismas mediciones, repetidas en otro equipo, están en `lighthouse/windows/` y `lighthouse/windows-mediana/` (mediana de 3 para Tienda, Ficha y Checkout). Dan lo mismo que el "después", dentro de la variación normal; ver el informe.
 
 ## Móvil
 

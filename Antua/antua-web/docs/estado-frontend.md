@@ -53,7 +53,7 @@ Para probar los pagos sin credenciales: levantá la API con `PAYMENTS_SIMULATED=
 - **Envío de mails:** sin SMTP; `MailService` escribe en el log y en producción se niega a funcionar. Para conectarlo, se implementa `MailTransport`.
 - **Textos legales:** Términos y Privacidad son un borrador de práctica (con el aviso visible); antes de un uso real necesitan revisión legal.
 - **Información nutricional:** los valores cargados son de ejemplo (`pnpm --filter antua-api nutrition:examples`, reversible). La caja surtida no tiene valores.
-- **Pendientes de QA:** lector de pantalla real, la Home 3D en un teléfono con GPU, WebKit y la migración de índices propuesta (ver `qa/informe-qa.md`).
+- **Pendientes de QA:** lector de pantalla real, la Home 3D en un teléfono con GPU, WebKit en Linux (en Windows ya pasa) y la migración de índices propuesta (ver `qa/informe-qa.md`).
 - **Panel:**
   - no hay reembolsos desde el panel (se hacen en Mercado Pago);
   - no hay gestión de roles (es a propósito, ver [`admin.md`](./admin.md));

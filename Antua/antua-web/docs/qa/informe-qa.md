@@ -7,7 +7,7 @@ Fecha: 17/11/2026. Rama `feat/fase-13-contenido-qa`. Detalle de Lighthouse en [`
 - **Accesibilidad:** Lighthouse da 100 en todas las páginas, panel incluido. axe-core no encuentra **ninguna violación** en 150 análisis (375 y 1280 px, claro y oscuro, con drawer, modal, menús, cada paso del checkout, estados vacío y de error, cuenta y panel). El teclado está cubierto por 10 pruebas automatizadas. Se corrigieron 5 problemas reales; ver A1 a A5.
 - **Rendimiento:** en móvil, todas las páginas sin 3D quedan entre 89 y 95 (objetivo: 85). La Home con 3D baja su LCP de 4,8 a 3,1 s; su TBT no se puede medir bien sin GPU (ver P4).
 - **SEO:** 100 en las páginas públicas. Checkout y Mis pedidos dan 66-69 **a propósito**: son privadas, con `noindex` y fuera de `robots.txt`.
-- **Resiliencia:** red lenta, API caída o con error 500, 404, sesión vencida y carrito vacío, sin pantallas rotas. La compra funciona en Chromium y Firefox. **WebKit no se pudo probar** (ver pendientes).
+- **Resiliencia:** red lenta, API caída o con error 500, 404, sesión vencida y carrito vacío, sin pantallas rotas. La compra funciona en Chromium, Firefox y WebKit (WebKit se probó el 20/11 en Windows; ver "Verificación en Windows").
 
 ## Lighthouse antes / después (móvil, rendimiento · LCP)
 
@@ -79,18 +79,34 @@ Severidad: **alta** (impide usar algo o incumple WCAG AA), **media** (molesta o 
 | Sesión vencida a mitad del checkout | Ver A5 |
 | Carrito vacío | El drawer lo dice; `/checkout` lleva a la Tienda con un aviso |
 | Compra completa en Firefox | OK |
-| Compra completa en WebKit | **No probada:** el host no tiene `libicu74`, `libjpeg-turbo8` ni gstreamer, y para instalarlos hace falta `sudo pnpm exec playwright install-deps` |
+| Compra completa en WebKit | OK en Windows (WebKit 27.2, Playwright 1.65), 20/11. En el host Linux original no se pudo: faltaban `libicu74`, `libjpeg-turbo8` y gstreamer (`sudo pnpm exec playwright install-deps`) |
 
 ## Estado de los tests al cerrar
 
 - **Front:** typecheck, lint y build OK; 49 unit tests; `test:e2e` 5/5; `qa:e2e` 40/40 (axe, teclado y resiliencia); compra en Firefox OK.
 - **Back:** tipos (`tsc --noEmit`), lint, 69 unit tests y 96 e2e OK.
 
+## Verificación en Windows (20/11/2026)
+
+Se repitieron todas las mediciones en un segundo equipo (Windows 11, Node 24, pnpm 10.34, Docker Desktop), con una base nueva: migraciones versionadas, `pnpm seed` y `pnpm nutrition:examples --yes`. La migración de índices propuesta (P7) **no** se aplicó.
+
+- **Back:** tipos, lint y build OK; 69 unit tests y 96 e2e OK.
+- **Front:** typecheck, lint y build OK; 49 unit tests; `test:e2e` 5 OK (1 salteado a propósito); `qa:e2e` 40/40; compra en Firefox **y WebKit** OK.
+- **Lighthouse** (`docs/qa/lighthouse/windows/` y `windows-mediana/`): mismos resultados que en el informe. Accesibilidad y buenas prácticas, 100 en todas; SEO, 100 en las públicas. En móvil: Tienda 92, Ficha 89 (mediana de 3), Checkout 89-90, Preguntas 95, 404 95, Mis pedidos 93 y Home 3D 61. Una primera corrida de la Ficha dio 76 (TBT 472 ms), pero con mediana de 3 bajó a 19 ms: era carga de la máquina, no un problema de la página.
+
+Hallazgos nuevos, los dos de portabilidad y ya corregidos:
+
+| # | Severidad | Dónde | Qué pasaba | Cómo se arregló | Commit |
+|---|---|---|---|---|---|
+| W1 | Media | `pnpm qa:build` | `VITE_API_URL=/api vite build` es sintaxis POSIX: en Windows pnpm usa cmd y falla | `shellEmulator: true` en `pnpm-workspace.yaml` | `30bf2598` |
+| W2 | Media | `e2e/admin.spec.ts` | `execFileSync('pnpm')` da `ENOENT` en Windows (pnpm es un `.cmd`) | `shell` solo en Windows, con argumentos fijos | `30bf2598` |
+| W3 | Baja | `env.validation.spec.ts` (API) | El test de `UPLOADS_DIR` esperaba rutas POSIX literales | Compara con `path.resolve`. El código ya era correcto | `88173d89` |
+
 ## Pendiente
 
 1. **Probar con un lector de pantalla real** (lista en `accesibilidad-manual.md`).
 2. **Medir la Home con 3D en un teléfono con GPU** (Chrome DevTools → Performance, con throttling de CPU ×4), porque Lighthouse sin GPU no sirve para el TBT. Si se traba, habría que pausar la flotación cuando no hay interacción.
-3. **WebKit:** instalar las dependencias (`sudo pnpm --filter antua-web exec playwright install-deps webkit`) y correr `pnpm --filter antua-web exec playwright test --project=webkit`.
+3. ~~WebKit~~: resuelto en Windows (20/11). En Linux sigue haciendo falta `sudo pnpm --filter antua-web exec playwright install-deps webkit` antes de `playwright test --project=webkit`.
 4. **Leer y aplicar la migración de índices propuesta** (P7).
 5. **Decidir el borde del botón secundario** (A6).
 6. **Lighthouse sigue marcando detalles:**
@@ -132,5 +148,7 @@ QA_ADMIN_EMAIL=… QA_ADMIN_PASSWORD=… pnpm qa:e2e
 # Todo lo de siempre (test:e2e = flujos funcionales: compra y panel)
 pnpm typecheck && pnpm lint && pnpm build && pnpm test && pnpm test:e2e
 ```
+
+En PowerShell, las variables se definen antes del comando: `$env:QA_ADMIN_EMAIL='…'; $env:QA_ADMIN_PASSWORD='…'; pnpm qa:a11y`.
 
 Sin `QA_ADMIN_*`, las pruebas del panel se saltean. El admin de desarrollo se crea con `SEED_ADMIN_PASSWORD='…' pnpm --filter antua-api seed`.
