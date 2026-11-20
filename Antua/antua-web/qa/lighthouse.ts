@@ -112,7 +112,10 @@ async function main() {
         const profile = mkdtempSync(join(tmpdir(), 'antua-lh-'))
         const browser = await chromium.launchPersistentContext(profile, {
           executablePath: process.env.CHROME_PATH,
-          args: [`--remote-debugging-port=${PORT}`],
+          // QA_IGNORE_CERT_ERRORS=1: para medir el despliegue de prueba, que usa el certificado
+          // interno de Caddy (docs/despliegue.md). Las llamadas de Node a la API usan
+          // NODE_EXTRA_CA_CERTS con la CA exportada.
+          args: [`--remote-debugging-port=${PORT}`, ...(process.env.QA_IGNORE_CERT_ERRORS === '1' ? ['--ignore-certificate-errors'] : [])],
         })
         try {
           if (storage) {
