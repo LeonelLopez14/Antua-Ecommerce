@@ -54,6 +54,11 @@ import { AdminAccessGuard } from './admin/admin-access.guard';
         migrationsRun: false,
         // Sin `true`: registrar cada query dejaría datos personales (emails, direcciones) en el log.
         logging: ['error', 'warn', 'migration'],
+        // Si la base no responde al arrancar (por ejemplo, el contenedor todavía inicia), se
+        // reintenta 10 veces cada 3 s ("Unable to connect to the database. Retrying…") y después
+        // la API termina con el error. En Docker, `restart: unless-stopped` la vuelve a levantar.
+        retryAttempts: 10,
+        retryDelay: 3000,
       }),
     }),
 
