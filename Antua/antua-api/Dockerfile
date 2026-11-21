@@ -14,7 +14,7 @@
 ARG PNPM_VERSION=10.34.9
 
 # ---------- 1. Base: Node + pnpm ----------
-FROM node:24.22.3-alpine3.23 AS base
+FROM node:26.13.1-alpine3.23 AS base
 ARG PNPM_VERSION
 ENV CI=true
 RUN npm install -g "pnpm@${PNPM_VERSION}" --no-fund --no-audit
@@ -48,7 +48,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
 
 # ---------- 5. Imagen final ----------
 # Parte de Node limpio: sin pnpm, sin devDependencies y sin el código fuente.
-FROM node:24.22.3-alpine3.23 AS runtime
+FROM node:26.13.1-alpine3.23 AS runtime
 ENV NODE_ENV=production \
     UPLOADS_DIR=/data/uploads
 WORKDIR /app

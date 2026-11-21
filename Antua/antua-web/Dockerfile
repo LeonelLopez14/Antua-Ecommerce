@@ -13,7 +13,7 @@
 ARG PNPM_VERSION=10.34.9
 
 # ---------- 1. Build del front ----------
-FROM node:24.22.3-alpine3.23 AS build
+FROM node:26.13.1-alpine3.23 AS build
 ARG PNPM_VERSION
 ENV CI=true
 RUN npm install -g "pnpm@${PNPM_VERSION}" --no-fund --no-audit
