@@ -19,6 +19,8 @@ import {
 } from './moderation/admin-moderation.controller';
 import { AdminModerationService } from './moderation/admin-moderation.service';
 import { NotificationsModule } from 'src/notifications/notifications.module';
+import { AdminExportsController } from './exports/admin-exports.controller';
+import { AdminExportsService } from './exports/admin-exports.service';
 
 /** Panel de administración: todo lo que vive bajo /admin. */
 @Module({
@@ -32,6 +34,7 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
     AdminStatsController,
     AdminReviewsController,
     AdminUsersController,
+    AdminExportsController,
   ],
   providers: [
     AuditService,
@@ -39,6 +42,7 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
     AdminTagsService,
     AdminCouponsService,
     AdminOrdersService,
+    AdminExportsService,
     AdminStatsService,
     AdminModerationService,
   ],
