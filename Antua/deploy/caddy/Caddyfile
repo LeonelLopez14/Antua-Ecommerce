@@ -106,6 +106,13 @@ http://{$SITE_ADDRESS:localhost} {
 		reverse_proxy api:3000
 	}
 
+	# sitemap.xml y robots.txt los arma la API: necesitan la URL pública (PUBLIC_URL) y la lista
+	# de productos activos. Reemplazan al robots.txt estático del front (solo para desarrollo).
+	@seo path /sitemap.xml /robots.txt
+	handle @seo {
+		reverse_proxy api:3000
+	}
+
 	# --- Front ---
 	# Archivos con hash de Vite (/assets/index-AbC123.js): si cambian, cambia el nombre. Se
 	# guardan un año. Si no existen, 404 (nunca index.html: el navegador lo leería como JS).

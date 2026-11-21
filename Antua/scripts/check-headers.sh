@@ -90,6 +90,14 @@ check "200" "$h" '^HTTP/[0-9.]+ 200'
 check "JSON" "$h" '^content-type: application/json'
 check "nosniff (helmet)" "$h" '^x-content-type-options: nosniff'
 
+echo "SEO: $base/sitemap.xml y $base/robots.txt (los arma la API)"
+h=$(headers "$base/sitemap.xml")
+check "sitemap 200 en XML" "$h" '^content-type: application/xml'
+# shellcheck disable=SC2086
+robots=$(curl -sS $curl_opts "$base/robots.txt")
+check "robots.txt bloquea /admin" "$robots" '^Disallow: /admin'
+check "robots.txt apunta al sitemap con URL absoluta" "$robots" "^Sitemap: $base/sitemap.xml"
+
 if [ -n "${UPLOAD_PATH:-}" ]; then
   echo "Imagen subida: $base$UPLOAD_PATH"
   h=$(headers "$base$UPLOAD_PATH")
