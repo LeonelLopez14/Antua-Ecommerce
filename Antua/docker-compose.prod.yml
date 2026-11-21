@@ -1,0 +1,205 @@
+# Producción (o una prueba local que se le parece): base de datos, API y proxy con HTTPS.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Guía paso a paso y explicación de cada parte: antua-web/docs/despliegue.md.
+# El docker-compose.yml de la raíz es el de DESARROLLO: este archivo no lo reemplaza.
+#
+# Ningún secreto está escrito acá: todos salen de .env.prod (que nunca se versiona; plantilla en
+# .env.prod.example). `${VAR:?mensaje}` hace que compose se niegue a arrancar si falta.
+
+# Nombre fijo del proyecto: contenedores antojarte-db-1, antojarte-api-1… y volúmenes
+# antojarte_db_data… No chocan con los de desarrollo (antua-mysql). Para una prueba aparte en la
+# misma máquina, se cambia con -p (por ejemplo, -p antojarte-test).
+name: antojarte
+
+# Rotación de logs de Docker: hasta 5 archivos de 10 MB por contenedor. Sin esto, un log puede
+# crecer hasta llenar el disco del servidor.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '5'
+
+# Variables que comparten la API y los comandos puntuales (migrate, admin:create, seed).
+x-api-env: &api-env
+  NODE_ENV: production
+  DB_HOST: db
+  DB_PORT: '3306'
+  DB_DATABASE: ${DB_DATABASE:-antua_db}
+  DB_USERNAME: ${DB_APP_USER:-antua_app}
+  DB_PASSWORD: ${DB_APP_PASSWORD:?Definí DB_APP_PASSWORD en .env.prod}
+  JWT_SECRET: ${JWT_SECRET:?Definí JWT_SECRET en .env.prod}
+  JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+  SHIPPING_FLAT_RATE: ${SHIPPING_FLAT_RATE:?Definí SHIPPING_FLAT_RATE en .env.prod}
+  SHIPPING_ETA_DAYS: ${SHIPPING_ETA_DAYS:-}
+  FRONTEND_URL: ${FRONTEND_URL:?Definí FRONTEND_URL en .env.prod}
+  # Front y API en el mismo dominio (Caddy): no hace falta CORS. Solo si el front viviera en
+  # otro origen, se lista acá (nunca "*").
+  CORS_ORIGINS: ${CORS_ORIGINS:-}
+  # Hay exactamente un proxy (Caddy) delante de la API.
+  TRUST_PROXY: ${TRUST_PROXY:-1}
+  UPLOADS_DIR: /data/uploads
+  LOW_STOCK_THRESHOLD: ${LOW_STOCK_THRESHOLD:-5}
+  PAYMENT_CURRENCY: UYU
+
+services:
+  # ---------- Base de datos ----------
+  db:
+    image: mysql:8.4.13
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Definí MYSQL_ROOT_PASSWORD en .env.prod}
+      # root solo puede entrar desde adentro del contenedor (socket), nunca por la red.
+      MYSQL_ROOT_HOST: localhost
+      MYSQL_DATABASE: ${DB_DATABASE:-antua_db}
+      # Usuarios con mínimo privilegio: los crea deploy/mysql/initdb/01-create-users.sh.
+      MYSQL_APP_USER: ${DB_APP_USER:-antua_app}
+      MYSQL_APP_PASSWORD: ${DB_APP_PASSWORD:?Definí DB_APP_PASSWORD en .env.prod}
+      MYSQL_MIGRATION_USER: ${DB_MIGRATION_USER:-antua_migrator}
+      MYSQL_MIGRATION_PASSWORD: ${DB_MIGRATION_PASSWORD:?Definí DB_MIGRATION_PASSWORD en .env.prod}
+      MYSQL_BACKUP_USER: ${DB_BACKUP_USER:-antua_backup}
+      MYSQL_BACKUP_PASSWORD: ${DB_BACKUP_PASSWORD:?Definí DB_BACKUP_PASSWORD en .env.prod}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./deploy/mysql/initdb:/docker-entrypoint-initdb.d:ro
+    # SIN `ports`: la base no se publica en el host. Solo la ven los contenedores de `backend`.
+    networks:
+      - backend
+    healthcheck:
+      # Por TCP y sin contraseña: mysqladmin ping devuelve 0 si el servidor responde (aunque
+      # niegue el acceso). Durante la inicialización MySQL no escucha por TCP, así que recién
+      # queda "healthy" cuando está listo de verdad.
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEMORY_LIMIT:-1g}
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+  # ---------- API ----------
+  api:
+    build:
+      context: .
+      dockerfile: antua-api/Dockerfile
+    image: antojarte-api:${IMAGE_TAG:-local}
+    restart: unless-stopped
+    environment: *api-env
+    volumes:
+      - uploads_data:/data/uploads
+    # La API no publica puertos: solo le habla el proxy.
+    networks:
+      - backend
+      - frontend
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    # Sistema de archivos de solo lectura: la API solo escribe en el volumen de subidas y en /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: ${API_MEMORY_LIMIT:-512m}
+    logging: *logging
+
+  # ---------- Migraciones (se corren A MANO, nunca al arrancar) ----------
+  #   docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm migrate
+  # Usa el usuario de migraciones (puede cambiar el esquema); la API nunca lo usa.
+  # Por estar en el perfil `tools`, `up` no lo levanta.
+  migrate:
+    image: antojarte-api:${IMAGE_TAG:-local}
+    profiles: ['tools']
+    restart: 'no'
+    command: ['node', 'node_modules/typeorm/cli.js', 'migration:run', '-d', 'dist/database/data-source.js']
+    environment:
+      <<: *api-env
+      DB_USERNAME: ${DB_MIGRATION_USER:-antua_migrator}
+      DB_PASSWORD: ${DB_MIGRATION_PASSWORD:?Definí DB_MIGRATION_PASSWORD en .env.prod}
+    networks:
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+  # ---------- Proxy: front + HTTPS ----------
+  proxy:
+    build:
+      context: .
+      dockerfile: antua-web/Dockerfile
+      args:
+        VITE_API_URL: /api
+    image: antojarte-proxy:${IMAGE_TAG:-local}
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      HTTPS_MODE: ${HTTPS_MODE:-internal}
+      HTTP_PORT: ${HTTP_PORT:-80}
+      HTTPS_PORT: ${HTTPS_PORT:-443}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    # El ÚNICO servicio con puertos publicados. Por defecto solo en 127.0.0.1 (no se ve desde
+    # otras máquinas). Para la red local o internet: PROXY_BIND=0.0.0.0 (ver la guía).
+    # Adentro y afuera se usa el mismo número de puerto, así las redirecciones son correctas.
+    ports:
+      - '${PROXY_BIND:-127.0.0.1}:${HTTP_PORT:-80}:${HTTP_PORT:-80}'
+      - '${PROXY_BIND:-127.0.0.1}:${HTTPS_PORT:-443}:${HTTPS_PORT:-443}'
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    cap_drop:
+      - ALL
+    cap_add:
+      # Escuchar en puertos menores a 1024 (80 y 443).
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: ${PROXY_MEMORY_LIMIT:-256m}
+    logging: *logging
+
+networks:
+  # Red interna: sin salida a internet ni acceso desde el host. Base, API y migraciones.
+  backend:
+    internal: true
+  # Red del proxy con la API. El proxy necesita salida a internet solo en modo public
+  # (Let's Encrypt).
+  frontend: {}
+
+volumes:
+  # Datos de MySQL.
+  db_data:
+  # Imágenes subidas desde el panel (UPLOADS_DIR).
+  uploads_data:
+  # Certificados, claves y la CA interna de Caddy. Si se borra, Caddy genera certificados nuevos.
+  caddy_data:
+  caddy_config:

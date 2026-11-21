@@ -1,0 +1,18 @@
+# HTTPS_MODE=public: con un dominio real (SITE_ADDRESS=tienda.ejemplo.com).
+#
+# Caddy pide y renueva solo un certificado de Let's Encrypt. Requisitos (docs/despliegue.md):
+#   - el DNS del dominio apunta a la IP pública del servidor;
+#   - los puertos 80 y 443 del servidor llegan desde internet a Caddy (HTTP_PORT=80,
+#     HTTPS_PORT=443, PROXY_BIND=0.0.0.0).
+# Sin esto, la validación de Let's Encrypt falla y no hay certificado.
+#
+# Con un dominio público, Let's Encrypt es el comportamiento por defecto de Caddy. `tls` solo
+# indica el correo de la cuenta ACME (ACME_EMAIL, obligatorio en este modo: si falta, Caddy no
+# arranca y lo dice). Tiene que ser un correo real tuyo: Let's Encrypt rechaza dominios de
+# ejemplo como .example.
+tls {$ACME_EMAIL}
+
+# HSTS: el navegador recuerda durante un año que este sitio va solo por HTTPS. Sin `preload`
+# (sumarse a la lista precargada de los navegadores es difícil de deshacer) y sin
+# includeSubDomains (podría haber otros subdominios sin HTTPS).
+header Strict-Transport-Security "max-age=31536000"

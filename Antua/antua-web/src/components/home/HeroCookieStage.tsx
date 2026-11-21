@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { useWebGLSupport } from '../../hooks/useWebGLSupport'
+import { useAfterLoadIdle } from '../../hooks/useAfterLoadIdle'
 import { CookieFallback } from '../../three/cookie/CookieFallback'
 import { WebGLErrorBoundary } from '../../three/cookie/WebGLErrorBoundary'
 import type { CookieHandle } from '../../three/cookie/CookieRig'
@@ -20,9 +21,12 @@ interface HeroCookieStageProps {
 
 export function HeroCookieStage({ active, reducedMotion, paused, onReady, modelUrl }: HeroCookieStageProps) {
   const webgl = useWebGLSupport()
+  // La escena 3D (Three/R3F, ~880 kB) se monta recién con la página cargada y el navegador libre:
+  // así no compite con el texto del hero (el LCP). Mientras tanto se ve la galleta SVG, del mismo tamaño.
+  const idle = useAfterLoadIdle()
   const fallback = <CookieFallback className="flex size-full items-center justify-center p-8" />
 
-  if (!webgl) return fallback
+  if (!webgl || !idle) return fallback
 
   return (
     <WebGLErrorBoundary fallback={fallback}>

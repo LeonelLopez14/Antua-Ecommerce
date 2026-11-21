@@ -13,7 +13,7 @@ const PHONE_PATTERN = /^[0-9+() -]*$/
 
 /** Perfil: datos personales (GET/PATCH /users/me) y cambio de contraseña. */
 export default function Profile() {
-  usePageMeta('Mi perfil', 'Tus datos personales y tu contraseña en Antua.')
+  usePageMeta('Mi perfil', 'Tus datos personales y tu contraseña en Antojarte.')
   return (
     <div className="flex max-w-xl flex-col gap-6">
       <h2 className="font-display text-3xl font-semibold">Perfil</h2>

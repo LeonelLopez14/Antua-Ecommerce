@@ -16,7 +16,7 @@ export default function Orders() {
   const userId = useAuthStore((s) => s.user?.id ?? null)
   const { state, retry } = useResource(`pedidos-${userId ?? ''}`, fetchOrders)
 
-  usePageMeta('Mis pedidos', 'El estado y el detalle de tus pedidos en Antua.')
+  usePageMeta('Mis pedidos', 'El estado y el detalle de tus pedidos en Antojarte.')
 
   return (
     <section aria-labelledby="pedidos-title">

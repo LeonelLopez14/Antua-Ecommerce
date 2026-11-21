@@ -1,0 +1,18 @@
+{
+  "//": "Compila los scripts de operación (admin:create, seed, nutrición) a JS para la imagen de producción, que no tiene ts-node. `pnpm build:tools` → dist-tools/. Nest reescribe los imports `src/...`.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist-tools",
+    "incremental": false,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "src/**/*.ts",
+    "scripts/admin-create.ts",
+    "scripts/seed.ts",
+    "scripts/nutrition-examples.ts"
+  ],
+  "exclude": ["node_modules", "test", "dist", "dist-tools", "**/*.spec.ts"]
+}

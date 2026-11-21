@@ -7,7 +7,9 @@ interface AuthModalState {
   tab: AuthTab
   /** Elemento que abrió el modal, para devolverle el foco. */
   returnFocusTo: HTMLElement | null
-  open: (tab?: AuthTab, trigger?: HTMLElement | null) => void
+  /** Aviso arriba del formulario (ej.: "Tu sesión venció"). */
+  notice: string | null
+  open: (tab?: AuthTab, trigger?: HTMLElement | null, notice?: string | null) => void
   close: () => void
   setTab: (tab: AuthTab) => void
 }
@@ -17,7 +19,8 @@ export const useAuthModalStore = create<AuthModalState>()((set) => ({
   isOpen: false,
   tab: 'login',
   returnFocusTo: null,
-  open: (tab = 'login', trigger = null) => set({ isOpen: true, tab, returnFocusTo: trigger }),
-  close: () => set({ isOpen: false }),
+  notice: null,
+  open: (tab = 'login', trigger = null, notice = null) => set({ isOpen: true, tab, returnFocusTo: trigger, notice }),
+  close: () => set({ isOpen: false, notice: null }),
   setTab: (tab) => set({ tab }),
 }))

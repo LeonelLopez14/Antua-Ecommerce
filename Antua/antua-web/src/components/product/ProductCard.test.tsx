@@ -11,6 +11,7 @@ const product: Product = {
   description: 'La de siempre, con chips de chocolate.',
   ingredients: '',
   allergens: '',
+  nutritionInfo: null,
   basePrice: 2400,
   isActive: true,
   fromPrice: 2400,

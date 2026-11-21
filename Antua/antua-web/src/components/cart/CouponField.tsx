@@ -93,7 +93,7 @@ export function CouponField({ appliedCode }: CouponFieldProps) {
           onChange={(e) => setCode(e.target.value)}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className="min-w-0 flex-1 rounded-xl border border-text-main/40 bg-bg px-3 py-2.5 text-base uppercase placeholder:normal-case placeholder:text-text-main/50 dark:border-dark-text-secondary/60 dark:bg-dark-bg dark:text-dark-text-main dark:placeholder:text-dark-text-secondary/70"
+          className="min-w-0 flex-1 rounded-xl border border-text-main/60 bg-bg px-3 py-2.5 text-base uppercase placeholder:normal-case placeholder:text-text-main/50 dark:border-dark-text-secondary/60 dark:bg-dark-bg dark:text-dark-text-main dark:placeholder:text-dark-text-secondary/70"
         />
         <Button type="submit" variant="secondary" loading={pending === 'apply'} className="shrink-0 px-5">
           Aplicar

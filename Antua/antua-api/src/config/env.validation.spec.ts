@@ -1,4 +1,7 @@
+import { resolve } from 'node:path';
 import {
+  assertProductionEnv,
+  parseTrustProxy,
   parseLowStockThreshold,
   parseUploadsDir,
   parseCorsOrigins,
@@ -96,15 +99,107 @@ describe('validación del entorno', () => {
   });
 
   describe('UPLOADS_DIR', () => {
+    // Se compara con path.resolve para que el test pase igual en Linux
+    // (/app/uploads) y en Windows (d:\app\uploads).
     it('por defecto es uploads/ junto a la API', () => {
-      expect(parseUploadsDir(undefined, '/app')).toBe('/app/uploads');
+      expect(parseUploadsDir(undefined, '/app')).toBe(
+        resolve('/app', 'uploads'),
+      );
       expect(parseUploadsDir('/var/antua/imagenes', '/app')).toBe(
-        '/var/antua/imagenes',
+        resolve('/var/antua/imagenes'),
       );
     });
     it('rechaza carpetas dentro de src/', () => {
       expect(() => parseUploadsDir('src', '/app')).toThrow('src/');
       expect(() => parseUploadsDir('./src/../src/img', '/app')).toThrow('src/');
+    });
+  });
+
+  describe('TRUST_PROXY', () => {
+    it('por defecto no confía en ningún proxy', () => {
+      expect(parseTrustProxy(undefined)).toBe(false);
+      expect(parseTrustProxy('false')).toBe(false);
+    });
+    it('acepta una cantidad de proxies o una lista de redes', () => {
+      expect(parseTrustProxy('1')).toBe(1);
+      expect(parseTrustProxy('loopback, 172.16.0.0/12')).toEqual([
+        'loopback',
+        '172.16.0.0/12',
+      ]);
+    });
+    it('nunca acepta true ni valores raros', () => {
+      for (const invalid of ['true', '0', '9', 'cualquiera', '1.2.3.4; rm']) {
+        expect(() => parseTrustProxy(invalid)).toThrow('TRUST_PROXY');
+      }
+    });
+  });
+
+  describe('producción', () => {
+    const prod = {
+      NODE_ENV: 'production',
+      DB_HOST: 'db',
+      DB_PORT: '3306',
+      DB_USERNAME: 'antua_app',
+      DB_PASSWORD: 'f3a9c1d7e2b8a4c6d0e5f1a2',
+      DB_DATABASE: 'antua_db',
+      FRONTEND_URL: 'https://antojarte.lan',
+      JWT_SECRET: 'q8V2mK9xL4pR7tY1wZ3nB6cF0hJ5sD8gA2eU4iO7',
+    };
+
+    it('acepta una configuración completa con secretos fuertes', () => {
+      expect(() => assertProductionEnv(prod)).not.toThrow();
+    });
+    it('en desarrollo no aplica estas reglas', () => {
+      expect(() =>
+        assertProductionEnv({
+          ...prod,
+          NODE_ENV: 'development',
+          DB_USERNAME: 'root',
+        }),
+      ).not.toThrow();
+    });
+    it('falla si falta una variable obligatoria', () => {
+      expect(() => assertProductionEnv({ ...prod, DB_PASSWORD: '' })).toThrow(
+        'DB_PASSWORD',
+      );
+      expect(() =>
+        assertProductionEnv({ ...prod, FRONTEND_URL: undefined }),
+      ).toThrow('FRONTEND_URL');
+    });
+    it('no se conecta como root', () => {
+      expect(() =>
+        assertProductionEnv({ ...prod, DB_USERNAME: 'root' }),
+      ).toThrow('root');
+    });
+    it('rechaza secretos de ejemplo o débiles', () => {
+      const examples = [
+        'reemplazar_por_un_secreto_largo_y_aleatorio_de_al_menos_32_caracteres',
+        'EJEMPLO-jwt-no-usar-en-produccion-0000000000000000',
+        'a'.repeat(64),
+        'corto',
+      ];
+      for (const JWT_SECRET of examples) {
+        expect(() => assertProductionEnv({ ...prod, JWT_SECRET })).toThrow(
+          'JWT_SECRET',
+        );
+      }
+      for (const DB_PASSWORD of [
+        'tu_password',
+        '1234567890123456',
+        'abababababababab',
+      ]) {
+        expect(() => assertProductionEnv({ ...prod, DB_PASSWORD })).toThrow(
+          'DB_PASSWORD',
+        );
+      }
+    });
+    it('exige HTTPS en FRONTEND_URL y nada de SEED_ADMIN_PASSWORD', () => {
+      expect(() =>
+        assertProductionEnv({ ...prod, FRONTEND_URL: 'http://antojarte.lan' }),
+      ).toThrow('HTTPS');
+      expect(() =>
+        assertProductionEnv({ ...prod, SEED_ADMIN_PASSWORD: 'Admin123456' }),
+      ).toThrow('SEED_ADMIN_PASSWORD');
     });
   });
 

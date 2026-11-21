@@ -4,6 +4,7 @@ import { LayoutDashboard, LogOut, MapPin, Package, UserRound } from 'lucide-reac
 import { useAuthStore } from '../../stores/authStore'
 import { useAuthModalStore } from '../../stores/authModalStore'
 import { useCartStore } from '../../stores/cartStore'
+import { preloadAuthProps } from '../../lib/panels'
 
 const MENU_ITEM =
   'flex min-h-11 w-full items-center gap-2 rounded-full px-3 font-bold transition-[background-color] duration-200 ease-out hover:bg-accent-secondary dark:hover:bg-dark-bg'
@@ -69,6 +70,7 @@ export function AccountMenu({ buttonClassName }: AccountMenuProps) {
         aria-haspopup={loggedIn ? undefined : 'dialog'}
         aria-expanded={loggedIn ? expanded : undefined}
         aria-controls={loggedIn ? panelId : undefined}
+        {...(loggedIn ? {} : preloadAuthProps)}
         onClick={(event) => (loggedIn ? setOpen((v) => !v) : openAuth('login', event.currentTarget))}
         className={`${buttonClassName} ${expanded ? 'bg-accent-secondary dark:bg-dark-card' : ''}`}
       >

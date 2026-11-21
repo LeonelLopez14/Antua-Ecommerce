@@ -99,13 +99,11 @@ describe('panel: resumen, reseñas y usuarios', () => {
     expect(
       (await request(server()).get(`/products/${product.slug}/reviews`)).body,
     ).toEqual([]);
-    expect(
-      (
-        (await request(server()).get(`/products/${product.slug}`)).body as {
-          reviews: unknown[];
-        }
-      ).reviews,
-    ).toEqual([]);
+    // El detalle ya no trae reseñas (se piden aparte): el comentario oculto no aparece por ningún lado.
+    const detail = await request(server())
+      .get(`/products/${product.slug}`)
+      .expect(200);
+    expect(JSON.stringify(detail.body)).not.toContain('Spam spam spam');
     const hidden = await auth(
       request(server()).get('/admin/reviews?hidden=true'),
     ).expect(200);

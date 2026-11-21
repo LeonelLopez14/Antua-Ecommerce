@@ -23,6 +23,9 @@ services:
       dockerfile: antua-api/Dockerfile
     env_file: antua-api/.env
     environment:
+      # La imagen es la de producción (NODE_ENV=production). Este compose es de desarrollo: sin
+      # esto, la API exigiría la configuración estricta de producción (ver docker-compose.prod.yml).
+      NODE_ENV: development
       # Adentro de Docker la API llega a la base por el nombre del servicio.
       DB_HOST: db
       DB_PORT: '3306'
@@ -48,7 +51,7 @@ services:
     profiles: [web]
     build:
       context: .
-      dockerfile: antua-web/Dockerfile
+      dockerfile: antua-web/Dockerfile.dev
     environment:
       VITE_API_URL: http://api:3000
     ports:

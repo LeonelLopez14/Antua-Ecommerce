@@ -247,7 +247,7 @@ export default function Checkout() {
 
   usePageMeta(
     placedOrder ? `Pedido #${placedOrder.id} confirmado` : `Checkout: ${CHECKOUT_STEPS[step - 1] ?? ''}`,
-    'Finalizá tu compra en Antua: dirección, envío y confirmación. No hace falta una cuenta.',
+    'Finalizá tu compra en Antojarte: dirección, envío y confirmación. No hace falta una cuenta.',
   )
 
   // ---- Resumen (idéntico en los 4 pasos) ----

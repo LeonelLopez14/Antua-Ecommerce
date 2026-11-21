@@ -1,4 +1,4 @@
-# Antojarte (Antua)
+# Antojarte
 
 E-commerce de práctica de galletas caseras: catálogo con filtros, carrito para invitados y usuarios, checkout en 4 pasos, cuenta con pedidos y direcciones, reseñas, pagos de prueba con Mercado Pago y un panel de administración en `/admin`.
 
@@ -11,7 +11,7 @@ Es un monorepo con pnpm:
 
 ## Requisitos
 
-- Node.js 24 y pnpm 11 (`corepack enable`)
+- Node.js 24 y pnpm 10 (`npm i -g pnpm@10`; Docker y la CI usan 10.34.9)
 - Docker
 
 ## Correr todo desde cero
@@ -28,7 +28,9 @@ docker compose up -d db
 
 # 2. API
 cp antua-api/.env.example antua-api/.env   # completar DB_PASSWORD y JWT_SECRET
-pnpm --filter antua-api seed               # aplica las migraciones y carga los datos de prueba
+pnpm --filter antua-api migration:show     # qué migraciones faltan (leelas antes de aplicarlas)
+pnpm --filter antua-api migration:run      # aplica las pendientes: la API no lo hace sola
+pnpm --filter antua-api seed               # carga los datos de prueba
 pnpm dev:api                               # http://localhost:3000
 
 # 3. Front, en otra terminal
@@ -42,6 +44,8 @@ pnpm dev:web                               # http://localhost:5173
 cp .env.example .env
 cp antua-api/.env.example antua-api/.env
 docker compose --profile web up -d --build
+# La API no migra sola: aplicá las migraciones (después de leerlas) con el código compilado de la imagen
+docker compose run --rm api node node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js
 ```
 
 Los puertos son configurables en `.env` (`MYSQL_PORT`, `API_PORT`, `WEB_PORT`). El archivo `docker-compose.yml` no contiene credenciales.
@@ -49,6 +53,18 @@ Los puertos son configurables en `.env` (`MYSQL_PORT`, `API_PORT`, `WEB_PORT`). 
 Si ya tenés otro contenedor usando el 3307, detenelo o cambiá `MYSQL_PORT`.
 
 Para cargar los datos de prueba en la opción B, corré el seed desde tu máquina, apuntando al puerto publicado (`pnpm --filter antua-api seed`).
+
+### Producción (servidor con Docker y HTTPS)
+
+`docker-compose.prod.yml`: base privada, API y Caddy (front estático, `/api` y HTTPS), con usuarios de base de mínimo privilegio, respaldos automáticos y cabeceras de seguridad. La guía paso a paso, con la explicación de cada pieza, está en [`antua-web/docs/despliegue.md`](./antua-web/docs/despliegue.md).
+
+```bash
+cp .env.prod.example .env.prod && chmod 600 .env.prod
+./scripts/generate-secrets.sh                      # copiá los valores a .env.prod
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d db
+docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm migrate   # después de leer las migraciones
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+```
 
 ### Panel de administración
 
@@ -68,16 +84,20 @@ Las imágenes que se suben desde el panel van a `UPLOADS_DIR` (por defecto `antu
 
 ## Migraciones y datos de prueba
 
-El esquema se gestiona con migraciones de TypeORM (`antua-api/src/database/migrations`), que se aplican solas al arrancar la API.
+El esquema se gestiona con migraciones de TypeORM (`antua-api/src/database/migrations`). **La API no las aplica sola al arrancar** (`migrationsRun: false`). Una migración nueva se lee y recién después se aplica con `migration:run`. Si falta alguna, la API lo avisa en el log y el seed se niega a correr.
+
+**Por qué:** `migration:generate` puede escribir `DROP COLUMN` + `ADD COLUMN` cuando en realidad solo se amplía una columna, y eso borra datos. Con la aplicación automática y `pnpm dev` en modo watch, una migración recién generada llegaba a la base en segundos, antes de poder leerla. En la Fase 12 así se vaciaron los ingredientes y alérgenos (se restauraron desde un respaldo).
 
 | Comando (con `pnpm --filter antua-api`) | Qué hace |
 |---|---|
 | `migration:show` | Muestra qué migraciones faltan |
 | `migration:run` | Aplica las pendientes |
 | `migration:revert` | Revierte la última |
+| `migration:run:dist` | Igual que `migration:run`, pero con el código compilado (`dist/`). En producción se usa el servicio `migrate` (ver la guía de despliegue) |
 | `seed` | Carga productos, tags, cupones y usuarios de prueba. Se puede repetir. |
 | `seed:clean --yes` | Borra los datos de prueba, los pedidos que los incluyan y las imágenes subidas a esos productos |
 | `admin:create` | Crea el primer administrador (ver arriba) |
+| `nutrition:examples --yes` | Carga información nutricional de ejemplo en los campos vacíos (`--undo --yes` la quita) |
 
 Datos de prueba: cupones `SEED10` (−10 %, mínimo 5000), `SEEDFIJO` (−1000) y `SEEDVENCIDO`; usuario `seed.cliente@antua.test` con contraseña `SeedPass123!` (solo desarrollo; se cambia con `SEED_PASSWORD`).
 
@@ -110,7 +130,10 @@ DB_DATABASE=antua_test pnpm --filter antua-api migration:run
 │   ├── src/              ver CLAUDE.md para las convenciones
 │   ├── e2e/              flujo principal con Playwright
 │   └── docs/             progreso, estado y diseño de pagos
-└── docker-compose.yml    base de datos, API y front opcional
+├── deploy/             Caddy (proxy y HTTPS), usuarios de MySQL y timer de respaldos
+├── scripts/            secretos, respaldo/restauración y verificaciones (cabeceras, repo)
+├── docker-compose.yml  desarrollo: base de datos, API y front opcional
+└── docker-compose.prod.yml  producción: db privada, API y proxy con HTTPS
 ```
 
 ## Decisiones técnicas principales
@@ -123,5 +146,9 @@ DB_DATABASE=antua_test pnpm --filter antua-api migration:run
 - **Roles, no claves compartidas:** el panel exige un JWT con rol `admin`, leído de la base en cada request. Toda ruta `/admin` se niega por defecto, y un test recorre todas para verificarlo.
 - **Moneda única:** pesos uruguayos (UYU, `es-UY`) en toda la app y en los pagos.
 - **Secretos solo en `.env`,** que nunca se versiona. La API valida su configuración al arrancar y explica qué falta.
+
+Integración continua: `.github/workflows/ci.yml` (en la raíz del repo) verifica front, API, e2e de la API, imágenes y archivos prohibidos en cada PR; Dependabot propone actualizaciones cada semana.
+
+Control de calidad (Lighthouse, accesibilidad, resiliencia): [`antua-web/docs/qa/informe-qa.md`](./antua-web/docs/qa/informe-qa.md).
 
 Documentación de trabajo: [`progreso.md`](./antua-web/docs/progreso.md) (qué se hizo y por qué) y [`estado-frontend.md`](./antua-web/docs/estado-frontend.md) (foto actual).

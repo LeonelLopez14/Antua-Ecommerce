@@ -1,0 +1,45 @@
+# Lo que NO se manda a Docker al construir antua-api/Dockerfile (el contexto es la raíz del
+# monorepo). Docker usa este archivo en vez del .dockerignore de la raíz porque se llama igual
+# que el Dockerfile + ".dockerignore".
+#
+# Por qué importa: todo lo que entra al contexto puede terminar en una capa de la imagen.
+# Un .env copiado por error dejaría los secretos dentro, y cualquiera con la imagen los vería.
+
+# Secretos y configuración local
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.prod.example
+**/*.pem
+**/*.key
+**/*.crt
+
+# Dependencias y compilados locales: se instalan y compilan adentro
+**/node_modules
+**/dist
+**/dist-tools
+**/coverage
+**/*.tsbuildinfo
+
+# Datos: respaldos, volcados y subidas
+**/*.sql
+**/*.sql.gz
+**/*.tar.gz
+**/uploads
+**/backups
+**/respaldos
+
+# El front, la documentación y los reportes de QA no hacen falta para la API
+# (solo su package.json, que pnpm necesita para leer el workspace)
+antua-web
+!antua-web/package.json
+deploy
+Design
+Documentation
+
+# Git y herramientas
+.git
+**/.github
+**/.claude
+**/test-results
+**/playwright-report

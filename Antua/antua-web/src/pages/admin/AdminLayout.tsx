@@ -18,6 +18,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { useAuthModalStore } from '../../stores/authModalStore'
 import { useCartStore } from '../../stores/cartStore'
 import { usePageMeta } from '../../hooks/usePageMeta'
+import { useNoIndex } from '../../hooks/useNoIndex'
 import { Logo } from '../../components/layout/Logo'
 import { SkipLink } from '../../components/layout/SkipLink'
 import { ThemeToggle } from '../../components/layout/ThemeToggle'
@@ -50,16 +51,12 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
  * el encabezado fijo no tapa el elemento enfocado (scroll-padding-top).
  */
 function useAdminDocument() {
+  useNoIndex()
   useEffect(() => {
-    const meta = document.createElement('meta')
-    meta.name = 'robots'
-    meta.content = 'noindex, nofollow'
-    document.head.append(meta)
     const root = document.documentElement
     const previous = root.style.scrollPaddingTop
     root.style.scrollPaddingTop = '5rem'
     return () => {
-      meta.remove()
       root.style.scrollPaddingTop = previous
     }
   }, [])
@@ -103,7 +100,7 @@ export default function AdminLayout() {
   if (!loggedIn) {
     return (
       <CenteredMessage icon={<LockKeyhole aria-hidden="true" className="size-8 text-accent-main dark:text-dark-accent-main" />} title="Iniciá sesión para administrar">
-        <p className="mt-4 text-lg text-text-main/85 dark:text-dark-text-secondary">El panel es solo para el equipo de Antua.</p>
+        <p className="mt-4 text-lg text-text-main/85 dark:text-dark-text-secondary">El panel es solo para el equipo de <span translate="no">Antojarte</span>.</p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button onClick={(event) => openAuth('login', event.currentTarget)}>Iniciar sesión</Button>
           <ButtonLink to="/" variant="secondary">

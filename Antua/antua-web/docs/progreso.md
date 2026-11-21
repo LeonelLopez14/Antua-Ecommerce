@@ -898,3 +898,271 @@ curl -s -H "$A" 'localhost:3000/admin/users?q=gmail&role=customer'
    - las subidas se validan por contenido, tamaño y nombre generado.
 8. **`git ls-files`:** no hay `.env`, `node_modules`, respaldos, builds ni subidas versionados.
 9. **Entorno:** después de un reinicio de la máquina, se volvieron a levantar solo la API (pagos simulados) y el front de este repo. No se tocó ningún otro servicio ni contenedor. La base temporal `antua_migr_tmp` se borró.
+
+## 16/11/2026: Fase 13, contenido real y control de calidad (`docs/prompt-fase-13-contenido-qa.md`)
+
+### Paso 0: estado base
+
+- Rama `feat/fase-13-contenido-qa`, creada desde `origin/main` (que ya incluye la Fase 12, PR #2). Base (3307), API (3000, en modo de pagos simulados) y front (5173) respondiendo.
+- **Front:** typecheck, lint y build sin errores; 32 unit tests y 5 e2e de Playwright OK.
+- **Back:** build, lint, 67 unit tests y 95 e2e OK.
+- **`/web-interface-guidelines`:** el archivo `antua-web/.claude/commands/web-interface-guidelines.md` existe, pero el comando **no está disponible en esta sesión**. Claude Code se abrió en `antua-api` y solo carga los comandos de esa carpeta. Para usarlo, hay que abrir la sesión en `antua-web` (o en la raíz, con el comando copiado a `.claude/commands/`).
+
+### Las migraciones ya no se aplican solas
+
+**Qué pasaba:**
+- `src/app.module.ts` tenía `migrationsRun: true`: al arrancar, la API aplicaba todas las migraciones pendientes.
+- Con `pnpm dev` en modo watch, una migración recién generada se aplicaba en segundos.
+- `migration:generate` a veces escribe `DROP COLUMN` + `ADD COLUMN` (por ejemplo, al ampliar un `varchar`).
+- Así, en la Fase 12, se vaciaron los ingredientes y alérgenos antes de que nadie pudiera leer la migración.
+
+**Qué cambió:**
+- **`src/app.module.ts`:** `migrationsRun: false`. Las migraciones se aplican a mano, con `pnpm migration:run`, después de leerlas.
+- **`src/main.ts`:** al arrancar, si falta alguna migración, la API lo **avisa en el log**, pero no la aplica.
+- **`scripts/seed.ts`:** antes también llamaba a `runMigrations()` por su cuenta. Ahora se niega a correr si hay pendientes.
+- **`test/helpers.ts`:** los e2e migran explícitamente, y solo si la base es `antua_test`.
+- **`package.json`:** `migration:run:dist` aplica las migraciones con el código compilado, para Docker (`docker compose run --rm api pnpm migration:run:dist`).
+- **Documentación:** README de la raíz y de la API, `Dockerfile` y `CLAUDE.md`.
+
+**En simple:** antes, la API era como un empleado que firmaba cualquier papel que le dejaran en el escritorio apenas entraba. Ahora te avisa que hay un papel para firmar, y lo firmás vos después de leerlo.
+
+### 13.1: contenido de las páginas
+
+**Integrado** desde `docs/contenido-sitio.md`: Nosotros, Preguntas frecuentes, Contacto, Términos y Privacidad, con el `<h1>`, el `document.title` y la meta description del archivo. Se sacó la marca de "Texto provisorio" de las cinco, porque las cinco quedaron integradas.
+- **`ContentPage`:** ya no muestra el aviso provisorio. Acepta un aviso, una bajada y una nota al pie.
+- **`LegalPage` (nuevo), para Términos y Privacidad:**
+  - aviso **"Borrador de práctica"** siempre visible;
+  - índice "Contenido" con anclas a cada `h2` (que tiene `scroll-margin-top`);
+  - fecha de última actualización en `<time>`: 16/11/2026, la fecha real de integración (`LEGAL_UPDATED_AT` en `src/data/site.ts`).
+- **Preguntas frecuentes:** acordeón nativo con `<details>`/`<summary>`. Funciona con teclado y el navegador anuncia si está abierto o cerrado. Los temas son `h2`.
+- **Contacto:** solo datos, sin formulario (no hay endpoint).
+- **Email:** `contacto@antojarte.example` en Contacto, footer, Privacidad, Términos, Preguntas y en la pantalla de error. Se quitó `hola@antua.com.ar`.
+- **Footer:** suma la nota "Antojarte es una marca ficticia creada para un proyecto de práctica.".
+- **Navbar:** en escritorio, un menú **"Ayuda"** (disclosure, como el de cuenta: Escape y clic afuera lo cierran y devuelven el foco) con las cinco páginas; antes había solo dos links. En mobile ya estaban las cinco en el menú.
+
+**Lo que cambié del texto porque no coincidía con la app:**
+
+| Página | Texto original | Qué hace la app | Cómo quedó |
+|---|---|---|---|
+| Nosotros | Categoría "De temporada" y "galletas… de temporada" | La tienda tiene 5 tags: Clásicas, Sin gluten, Veganas, Sin azúcar y Packs | Se quitó "De temporada" |
+| Nosotros | "Packs de 1, 6 y 12 unidades" | Son variantes de cada galleta (1, caja de 6 y caja de 12) | "Cada galleta viene de a 1, en caja de 6 o en caja de 12" |
+| Preguntas | Pagos: variante A o B | Sin credenciales de Mercado Pago (tu `.env`), los pagos están deshabilitados y el pedido se registra | **Variante B** (pago a coordinar) |
+| Preguntas | "Te mandamos un enlace…" | El enlace se genera, pero `MailService` solo lo escribe en el log (no hay SMTP) | Se agregó "(En este proyecto de práctica el correo todavía no se envía de verdad.)" |
+| Preguntas | Plazo de entrega | `SHIPPING_ETA_DAYS` no está en tu `.env`, así que hoy no se muestra | Coincide con el texto ("si todavía no lo ves, escribinos"): sin cambio |
+| Privacidad | Contraseña "guardada de forma cifrada" | Se guarda un hash bcrypt (no se puede descifrar) | "Protegida con un algoritmo de hash" |
+| Privacidad | Cuenta: nombre, correo y contraseña | También teléfono (opcional) y direcciones guardadas | Se agregaron |
+| Privacidad | "Identificador de carrito y tu sesión en el almacenamiento local, y tu tema" | No hay cookies. `localStorage` guarda `antua.auth` (token, nombre, email, rol), `antua.guestToken` y el tema; `sessionStorage` guarda la referencia del último pedido (id y token de invitado) | Se detalló, aclarando que no hay cookies |
+| Privacidad | Comparte con "el servicio de envío de correos" | No hay SMTP ni proveedor de pagos conectados | "Cuando estén activos… Hoy ninguno de los dos está conectado" |
+| Términos | "La información nutricional puede ser orientativa" | Los valores cargados son inventados | "La información nutricional que se muestra hoy es de ejemplo" |
+
+**Verificado y sin cambios:**
+- envío con costo fijo visible antes de confirmar;
+- aviso y reconfirmación si cambia el precio (409 `PRICE_CHANGED`);
+- reglas de cupón (mínimo, vencimiento y límite);
+- solo se reseña lo comprado **y entregado** (`reviews.service.ts`, `hasPurchased`);
+- reseñas que se pueden ocultar (panel);
+- límite de intentos en el login;
+- precios en UYU;
+- no se guardan datos de tarjeta.
+
+**Pendiente de decidir:** el logo y el footer dicen "Antua", y los textos nuevos, "Antojarte". DESIGN.md los da como alias, pero el sitio debería usar uno solo.
+
+**Información nutricional:**
+- No hizo falta ninguna migración: `products.nutrition_info` ya existía (texto, Fase 12).
+- **Formato de tabla:** una fila por línea, con las columnas separadas por `|`; la primera línea es el encabezado.
+  - `src/lib/nutrition.ts` lo convierte en una tabla accesible en la Ficha (`caption`, `th scope`, región con scroll), siempre con la nota "Información nutricional de ejemplo (proyecto de práctica). No corresponde a un producto real.".
+  - Si el texto no tiene ese formato, se muestra como párrafo.
+  - Sin datos, dice "Todavía no cargamos…" en vez de "Pronto…".
+  - El formulario del panel explica el formato.
+- **Script `antua-api/scripts/nutrition-examples.ts` (`pnpm nutrition:examples`):**
+  - completa **solo campos vacíos** (información nutricional y, si estuvieran vacíos, ingredientes y alérgenos) con los valores de §6;
+  - la categoría sale de los tags, con esta prioridad: sin azúcar > sin gluten > veganas > clásicas; "de temporada" usa los valores de clásicas;
+  - los productos que solo son "Packs" (la caja surtida) o que no tienen tags quedan sin tocar;
+  - `--dry-run` muestra lo que haría, `--yes` aplica y `--undo --yes` deshace, pero solo lo que sigue igual a lo que cargó el script: si alguien lo editó después, se respeta;
+  - cada cambio queda en `admin_audit_log` como `product.nutrition_example` (sin admin);
+  - las funciones puras están en `src/products/nutrition-examples.ts`, con unit tests: valores por 100 g = valor por unidad × 2,5.
+- **Aplicado en `antua_db`:**
+  - respaldo previo en `~/respaldos/antua_db_20261116_1903_antes-nutricion.sql`;
+  - se completaron 11 productos (solo `nutrition_info`: todos ya tenían ingredientes y alérgenos);
+  - se probó deshacer (volvió a 0) y aplicar de nuevo.
+
+**Hallazgo de calidad:** el e2e del panel dejaba **activos en la Tienda** sus productos de prueba (`seed-e2e-*`, sin tags).
+- Se desactivaron los 13 que había, por `PATCH /admin/products/:id`: queda en la auditoría y se puede revertir.
+- `e2e/admin.spec.ts` ahora desactiva su producto al terminar.
+
+### 13.2: control de calidad con herramientas reales
+
+Informe completo en [`docs/qa/informe-qa.md`](./qa/informe-qa.md), Lighthouse antes y después en [`docs/qa/lighthouse-resumen.md`](./qa/lighthouse-resumen.md) y el recorrido de accesibilidad en [`docs/qa/accesibilidad-manual.md`](./qa/accesibilidad-manual.md).
+
+**Herramientas** (scripts en `package.json`):
+- **`qa:build` / `qa:preview`:** build de producción con `VITE_API_URL=/api`, servido por `vite preview` con un proxy `/api` → API. Se mide el build, no el servidor de desarrollo.
+- **`qa:lighthouse` (`qa/lighthouse.ts`, Lighthouse 13.0.3).**
+  - Mide móvil y escritorio. Cada medición usa un perfil nuevo, así que arranca con la caché vacía.
+  - Prepara el estado (carrito, sesión de cliente, sesión de admin) sin precargar la app.
+  - Falla si la página medida redirige.
+  - Con `--runs=3` toma la mediana.
+  - Guarda JSON sin capturas.
+  - Se usa la 13.0.3 porque `lighthouse` 13.4 y 13.5 dependen de `zod@^4.6.5`, que no está publicado.
+  - **Falla corregida durante la fase:** al principio el carrito y la sesión preparados no llegaban a la pestaña de Lighthouse (Playwright crea un contexto aislado), y el "Checkout" que se medía en realidad era la Tienda. Se pasó a un perfil persistente compartido, y se volvió a medir el commit original para tener un "antes" válido.
+- **`qa:a11y` (`e2e/a11y.spec.ts`, `@axe-core/playwright` 4.14.0):** 150 análisis, con 0 violaciones.
+- **`qa:keyboard` (`e2e/keyboard.spec.ts`):** 10 pruebas de teclado, foco, zoom, movimiento, tema y respaldo sin WebGL.
+- **`qa:resilience` (`e2e/resilience.spec.ts`):** red lenta, API caída o con error 500, 404, sesión vencida y carrito vacío, más la compra en Firefox.
+- **`test:e2e`** sigue con los flujos funcionales (compra y panel, desktop y mobile). **`qa:e2e`** corre axe, teclado y resiliencia en serie (`--workers=1`): en paralelo saturaban la máquina y la prueba de red lenta y axe superaban sus límites de tiempo. Firefox y WebKit son proyectos aparte.
+
+**Arreglos del front** (detalle y commits en el informe):
+- contraste de bordes;
+- reflow de la Ficha y de la Navbar a 320 px;
+- foco de los diálogos condicionales;
+- sesión vencida en el checkout;
+- carrito y AuthModal diferidos (chunk principal de 413 a 321 kB);
+- fuentes propias con `preload` y respaldos ajustados;
+- CLS;
+- 3D diferido;
+- `canonical`, Open Graph, JSON-LD y `noindex`.
+
+**Cambios en el backend, explicados:**
+- **`src/app.setup.ts` (línea 15), gzip.**
+  - *Qué faltaba:* la API mandaba el JSON sin comprimir.
+  - *Qué cambió:* se agregó el middleware `compression` (un middleware es una función por la que pasa cada request antes de llegar al controller). Comprime con gzip las respuestas de más de 1 kB cuando el navegador lo acepta, y saltea las imágenes, que ya vienen comprimidas.
+  - *Por qué:* el catálogo pasa de 12,5 a 2,3 kB, y en una red móvil eso se nota.
+  - *Test:* `test/security.e2e-spec.ts`, "comprime con gzip las respuestas grandes".
+  - Las imágenes subidas ya tenían caché larga e `immutable` (Fase 12): sus nombres son aleatorios, así que un archivo nunca cambia de contenido.
+- **`src/products/products.service.ts` (`findOne`), reseñas duplicadas.**
+  - *Qué pasaba:* `GET /products/:slug` pedía la relación `reviews`, y TypeORM traía todas las reseñas del producto. El front no las usaba: las pedía de nuevo en `GET /products/:slug/reviews`. Se cargaban dos veces en cada visita a la Ficha.
+  - *Qué cambió:* se sacó la relación. El test de reseñas ocultas ahora verifica que el comentario oculto no aparece en el detalle.
+- **`src/database/proposed/1794900000000-OrdersIndexes.ts`, índices. PROPUESTA, sin aplicar.**
+  - *Qué es un índice:* como el índice de un libro. Sin él, MySQL lee todas las filas para encontrar las que busca, y además ordena en memoria (el `filesort` que muestra `EXPLAIN`).
+  - *Qué encontré con `EXPLAIN`:*
+    - "Mis pedidos" (`WHERE userId = ? ORDER BY created_at`) ordenaba en memoria;
+    - los rangos de fechas del panel y del resumen recorrían toda la tabla (`type=ALL`);
+    - el vencimiento de pagos también.
+  - *Qué propone:* tres índices sobre `orders`: `(userId, created_at)`, `(created_at)` y `(status, payment_status, payment_expires_at)`. Se probaron en una copia temporal de la base (ya borrada): las tres consultas pasan a usar índice.
+  - *Por qué no se aplicó:* la regla de la fase es que leas toda migración antes. Está fuera de `src/database/migrations/`, así que no la ve ni la API, ni `migration:run`, ni los e2e. El archivo explica cómo aplicarla y qué `@Index` agregar después a la entidad.
+- **Sin otros cambios en el backend.** El resto de las consultas que se revisaron (catálogo, detalle, carrito, pedidos del cliente) ya usaban índice. El carrito no tiene N+1: los dos bucles que hay hacen cálculos en memoria o corren solo cuando cambió un precio.
+
+**Sesiones interrumpidas.** Esta fase se cortó varias veces. Una de las sesiones cortadas dejó el commit `7292c1ca` (spec de axe y contraste de bordes) y un ajuste sin commit en la Navbar (`f519db1c`, que se verificó antes de commitear). También dejó la API y el front detenidos: se volvieron a levantar solo los procesos de este repo.
+
+## 20/11/2026: Fase 13, verificación en un segundo equipo (Windows)
+
+Se retomó la fase en otro equipo (Windows 11) para revisar qué faltaba del prompt. El equipo estaba vacío: sin contenedor, sin `.env` y sin dependencias.
+
+**Entorno que se armó (solo de este repo):**
+- pnpm 10.34.9 global (`npm i -g pnpm@10`) y Docker Desktop iniciado;
+- contenedor `antua-mysql` (MySQL 8) en `127.0.0.1:3307`, con volumen propio;
+- `.env` locales (ignorados por git) con contraseñas aleatorias y pagos simulados;
+- `pnpm migration:run` sobre la base vacía: solo las 8 migraciones ya versionadas. La propuesta de índices **no** se aplicó;
+- `pnpm seed`, respaldo en `~/respaldos/antua_db_20261119_2355_antes-nutricion.sql` y `pnpm nutrition:examples --yes` (11 productos).
+
+**Resultado:** todo pasa igual que en el informe. Detalle en [`qa/informe-qa.md`](./qa/informe-qa.md#verificación-en-windows-20112026). Lo nuevo:
+- **WebKit:** la compra pasa (en Windows no necesita `install-deps`). Es el pendiente 3 del informe.
+- Tres problemas que solo aparecían en Windows, ya corregidos (W1 a W3): `qa:build`, el e2e del panel y un test de la API.
+
+**Cambio en el backend, explicado (solo un test):**
+- **`antua-api/src/config/env.validation.spec.ts`, línea 99.**
+  - *Qué pasaba:* el test esperaba `'/app/uploads'` escrito a mano. La función usa `path.resolve`, que arma la ruta según el sistema operativo: en Windows da `d:\app\uploads`.
+  - *Qué cambió:* el test calcula el valor esperado con `path.resolve`.
+  - *Por qué:* la función estaba bien; el test asumía Linux. No cambió el comportamiento de la API.
+
+**`/web-interface-guidelines`:** el archivo `antua-web/.claude/commands/web-interface-guidelines.md` **no existe** en este equipo, y nunca se versionó en git. El comando no está disponible y la revisión con el comando real sigue pendiente. Para hacerla, hay que copiar el archivo al repo (o a `~/.claude/commands/`) y abrir la sesión en `antua-web`.
+
+---
+
+## 20/11/2026: Fase 14, despliegue de prueba, respaldos y CI (`docs/prompt-fase-14-despliegue.md`)
+
+Guía completa y explicación de cada pieza: [`despliegue.md`](./despliegue.md).
+
+### Paso 0: estado base
+
+- Rama `feat/fase-14-despliegue`, creada desde `feat/fase-13-contenido-qa` (todavía no se mezcló a `main`).
+- **Front:** typecheck, lint y build OK; 49 unit tests.
+- **Back:** tipos, lint y build OK (compilado a una carpeta temporal: `pnpm build` borra `dist/` y la API de desarrollo corre desde ahí); 69 unit tests y 96 e2e.
+- El e2e del front **no** se corrió contra desarrollo: crea pedidos en `antua_db` y la regla de la fase es no tocar ese entorno. Se corrió contra `antojarte-test`.
+
+### 14.1: finales de línea
+
+- `.gitattributes` en la raíz del repo: `* text=auto`, y LF fijo para `.sh`, Dockerfiles, Caddyfile, systemd, YAML y archivos de Git. Los scripts tienen el bit de ejecución en Git (`100755`).
+- **Hallazgo:** seis PDF de `Design/` y `Documentation/` se habían detectado como texto. En Windows el checkout les metía CRLF y quedaban corruptos en la copia de trabajo (en el repo estaban bien). Ahora son `binary`, y se restauraron desde `HEAD` byte a byte.
+
+### 14.2 a 14.6: qué se hizo
+
+- **Imágenes:**
+  - API multi-etapa: usuario `node`, solo lectura, sin devDependencies ni npm.
+  - Proxy: Vite + Caddy, que valida el Caddyfile al construir.
+  - Versiones fijas: `node:24.22.3-alpine3.23`, `caddy:2.11.9-alpine`, `mysql:8.4.13` y pnpm 10.34.9.
+  - `Dockerfile.dockerignore` por paquete.
+  - El servidor de desarrollo del front pasó a `Dockerfile.dev`.
+- **`docker-compose.prod.yml`:**
+  - base sin puertos, en una red interna;
+  - solo el proxy publica, por defecto en 127.0.0.1;
+  - volúmenes, rotación de logs, healthchecks, límites de memoria y `cap_drop`;
+  - servicio `migrate` a mano.
+- **Caddy:**
+  - `/api` al mismo dominio y fallback de SPA;
+  - HTTPS `internal` o `public` (con HSTS, sin preload);
+  - CSP sin `unsafe-*` (el script del tema pasó a `public/theme-init.js`) y cabeceras de seguridad;
+  - zstd/gzip y caché inmutable de `/assets` y de las subidas.
+- **Base:** usuarios `antua_app` (datos), `antua_migrator` (esquema) y `antua_backup` (lectura). root, solo en `localhost`.
+- **Secretos:** `.env.prod.example`, `scripts/generate-secrets.sh` y validación estricta en producción.
+- **Respaldos:** `scripts/backup-db.sh` y `scripts/restore-db.sh`, más un timer de systemd. Prueba de restauración completa (abajo).
+- **CI:**
+  - `.github/workflows/ci.yml`: guardia del repo, front, API, e2e de la API con MySQL, imágenes y e2e opcional del front;
+  - Dependabot;
+  - acciones fijadas por SHA, verificado con `actionlint`.
+- **Pruebas del despliegue:**
+  - `e2e/env.ts` y `playwright.config.ts` aceptan otra URL; `pnpm test:e2e:deploy`;
+  - specs nuevos: `account-checkout.spec.ts` (compra con cuenta) y `csp.spec.ts`;
+  - `scripts/check-headers.sh`.
+- **Marca "Antojarte":** en todo el sitio (decisión del prompt). Debajo de 360 px el logo va sin ícono: con el nombre más largo, la Navbar desbordaba 32 px a 320 px.
+
+### Cambios en el backend, explicados
+
+- **`antua-api/src/config/env.validation.ts`, línea 236 (`parseTrustProxy`), y `src/app.setup.ts`, línea 21.**
+  - *Qué faltaba:* detrás de Caddy todas las requests llegan desde la IP del proxy. El límite de intentos (por ejemplo, 10 logins por minuto) contaba a **todos** los clientes como uno: bastaba con que una persona se equivocara diez veces para que nadie más pudiera iniciar sesión.
+  - *Qué cambió:* `TRUST_PROXY=1` le dice a Express que hay un proxy delante. Entonces toma la IP del cliente del header `X-Forwarded-For` que agrega Caddy. Nunca se acepta `true` (confiaría en cualquier header y se podría inventar una IP en cada intento).
+  - *Probado:* e2e `test/trust-proxy.e2e-spec.ts`. Además, contra el despliegue, 12 intentos con `X-Forwarded-For` falsos distintos dieron 429 desde el 11.º: falsificar la IP no saltea el límite.
+- **`env.validation.ts`, líneas 276 a 341 (`assertProductionEnv`).**
+  - *Qué faltaba:* nada impedía arrancar en producción con el `JWT_SECRET` de ejemplo. Con ese secreto, cualquiera puede fabricarse un token de admin.
+  - *Qué cambió:* con `NODE_ENV=production` la API no arranca si:
+    - faltan `DB_*` o `FRONTEND_URL`;
+    - se conecta como `root`;
+    - `JWT_SECRET` (32+) o `DB_PASSWORD` (16+) son de ejemplo, repetitivos o solo dígitos;
+    - `FRONTEND_URL` no es HTTPS;
+    - queda `SEED_ADMIN_PASSWORD`.
+
+    En desarrollo no cambia nada.
+  - *En simple:* es un portero que revisa que las llaves no sean las de fábrica antes de abrir.
+- **`src/app.module.ts`, línea 60 (`retryAttempts`, `retryDelay`).** Antes eran los valores por defecto de TypeORM, implícitos. Ahora están escritos: 10 intentos cada 3 s si la base no responde al arrancar. Después la API termina y Docker la vuelve a levantar.
+- **`src/main.ts`, línea 18.** Con el usuario de solo datos, `showMigrations()` falla en una base nueva, porque no puede crear la tabla `migrations`. Ahora el error explica que falta correr `migrate`, en vez de mostrar un `CREATE command denied` suelto.
+- **`scripts/seed.ts`, línea 76 (`--catalog-only`), y `scripts/nutrition-examples.ts`, línea 31 (`--allow-production`).** Permiten mostrar la tienda con productos de ejemplo en un servidor **sin** crear cuentas con contraseña conocida. El seed completo sigue negándose a correr en producción. `seed:clean` no se habilitó en producción: también borra pedidos.
+- **`tsconfig.tools.json` y `pnpm build:tools`:** compilan esos scripts a `dist-tools/`, porque la imagen de producción no tiene ts-node. Se compila con `nest build` porque reescribe los imports `src/...`; `tsc` solo los deja rotos.
+- **`package.json`:** `lint:check` (ESLint sin `--fix`, para la CI).
+
+No se tocaron Payments ni el webhook. La migración de índices propuesta sigue sin aplicar: queda como paso opcional en la guía.
+
+### Prueba de restauración
+
+En `antojarte-test`, con 15 productos, 8 usuarios, 6 pedidos y 2 imágenes:
+1. respaldo;
+2. se **borraron los volúmenes** de la base y de las subidas;
+3. se levantó una base vacía;
+4. se restauró.
+
+Los 15 conteos por tabla, los hashes de usuarios y pedidos, una consulta de ejemplo y el hash de la imagen quedaron **idénticos**, y el admin restaurado inicia sesión. También se probó que no pisa una base con datos sin `--force`, que rechaza un respaldo truncado, y que `--force` hace antes un respaldo de seguridad.
+
+### Check final
+
+- **Contra el despliegue** (Caddy, HTTPS interno en 8443):
+  - `test:e2e:deploy` 5/5;
+  - axe y teclado 34/34, con 0 violaciones;
+  - `check-headers.sh` "todo cumple";
+  - CSP sin violaciones, incluida la Home con Three.js;
+  - subidas que sobreviven a `restart` y a `down` + `up`;
+  - arranques fallidos con mensajes claros.
+- **Lighthouse por el proxy** (mediana de 3, móvil): Tienda 90 → 98, Ficha 89 → 97 y Home 60 → 67. El LCP móvil baja de ~3,2 s a ~2,3 s por la compresión y HTTP/2 de Caddy.
+- **Imágenes:** sin secretos en las capas ni en el contenido.
+- **`/web-interface-guidelines`:** primero no estaba disponible. Hasta ese momento se revisó a mano con las reglas del archivo, y así salió el `translate="no"` de la marca. En la última parte de la sesión el comando sí apareció y se ejecutó **con el comando real** sobre los archivos de `src/` modificados.
+  - Arreglado: "Mercado Pago" sin `translate="no"` en `PaymentResult.tsx`.
+  - Pendiente (preexistente): Perfil no avisa al salir con cambios sin guardar.
+- **Entorno de desarrollo:** durante una interrupción de la sesión se cerró Docker Desktop. `antua-mysql` quedó detenido (no tiene política de reinicio), y la API, el front y el preview dejaron de correr. No se reiniciaron desde acá: quedan para que los levante el usuario.
+
+---

@@ -4,6 +4,8 @@ import { Menu, ShoppingBag, X } from 'lucide-react'
 import { Logo } from './Logo'
 import { galletas } from '../../lib/format'
 import { ThemeToggle } from './ThemeToggle'
+import { InfoMenu } from './InfoMenu'
+import { preloadCartProps } from '../../lib/panels'
 import { categoryHref, homeCategories } from '../../data/categories'
 import { infoPages } from '../../data/infoPages'
 import { selectItemCount, useCartStore } from '../../stores/cartStore'
@@ -26,7 +28,7 @@ export function Navbar() {
 
   return (
     <header className="relative z-20 bg-surface shadow-soft dark:bg-dark-surface dark:shadow-none">
-      <nav aria-label="Principal" className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
+      <nav aria-label="Principal" className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
         <Logo />
 
         <ul className="ml-6 hidden items-center gap-1 md:flex">
@@ -37,14 +39,10 @@ export function Navbar() {
               </Link>
             </li>
           ))}
-          {/* Institucionales: solo desde lg, donde entran sin apretar las categorías. */}
-          {infoPages.slice(0, 2).map(({ to, label }) => (
-            <li key={to} className="hidden lg:block">
-              <Link to={to} className={navLink}>
-                {label}
-              </Link>
-            </li>
-          ))}
+          {/* Las cinco institucionales, en un panel: entran sin apretar las categorías. */}
+          <li>
+            <InfoMenu buttonClassName={navLink} />
+          </li>
         </ul>
 
         <div className="ml-auto flex items-center gap-1">
@@ -54,6 +52,7 @@ export function Navbar() {
             type="button"
             aria-label={cartLabel}
             aria-haspopup="dialog"
+            {...preloadCartProps}
             onClick={(event) => openCart(event.currentTarget)}
             className={`${iconButton} relative`}
           >
@@ -103,7 +102,7 @@ export function Navbar() {
             </li>
           ))}
         </ul>
-        <ul aria-label="Sobre Antua" className="mt-2 flex flex-col gap-1 border-t border-text-main/10 pt-2 dark:border-dark-text-main/10">
+        <ul aria-label="Sobre Antojarte" className="mt-2 flex flex-col gap-1 border-t border-text-main/10 pt-2 dark:border-dark-text-main/10">
           {infoPages.map(({ to, label }) => (
             <li key={to}>
               <Link to={to} onClick={() => setMenuOpen(false)} className={`${navLink} flex min-h-11 items-center text-base`}>

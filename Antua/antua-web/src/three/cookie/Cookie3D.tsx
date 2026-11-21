@@ -40,7 +40,8 @@ export default function Cookie3D({
   return (
     <div aria-hidden="true" className={className}>
       <Canvas
-        dpr={[1, 2]}
+        // Hasta 1,5×: en pantallas densas, 2× casi duplica el trabajo por cuadro sin una mejora visible.
+        dpr={[1, 1.5]}
         frameloop={frameloop}
         camera={{ fov: camera.fov, position: camera.position }}
         gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}

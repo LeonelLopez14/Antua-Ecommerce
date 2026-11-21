@@ -60,11 +60,27 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 *.sql.gz
 
 # Cualquier otra variante de .env (los .env.example sí se versionan)
+# .env.prod (los secretos del servidor) queda ignorado por esta regla.
 .env.*
 !.env.example
+!.env.prod.example
+
+# Despliegue (Fase 14): scripts compilados, certificados, claves y respaldos
+/antua-api/dist-tools
+*.pem
+*.key
+*.crt
+*.p12
+*.tar.gz
+backups/
+respaldos/
 
 # Imágenes subidas desde el panel (UPLOADS_DIR): son datos, no código
 uploads/
 
 # Artefactos de playwright-cli
 .playwright-cli/
+
+# Reportes HTML de Lighthouse (pesados): en docs/qa solo van los JSON sin capturas y los resúmenes
+*.report.html
+antua-web/docs/qa/**/*.html

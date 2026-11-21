@@ -1,28 +1,44 @@
 import { ContentPage } from '../../components/layout/ContentPage'
 import { ButtonLink } from '../../components/ui/ButtonLink'
+import { FICTIONAL_BRAND_NOTE } from '../../data/site'
 
-// TODO(contenido): reemplazar por la historia real de la marca.
+// Texto: docs/contenido-sitio.md §1. Adaptado a la tienda real (ver progreso.md, Fase 13).
 export default function About() {
   return (
-    <ContentPage title="Nosotros" intro="Hechas para darte un gustito: galletas caseras, horneadas en tandas chicas.">
-      <h2>Cómo empezamos</h2>
+    <ContentPage
+      title="Galletas hechas para darte un gustito"
+      description="Conocé Antojarte: galletas caseras artesanales, con opciones sin gluten, veganas y sin azúcar, hechas en tandas chicas."
+      footnote={FICTIONAL_BRAND_NOTE}
+    >
       <p>
-        <span translate="no">Antua</span> nació en una cocina chica, con una receta de galletas con chips que pasó de mano en mano. Al principio horneábamos para
-        amigos; después, para los amigos de los amigos.
+        <span translate="no">Antojarte</span> nació en una cocina de barrio, con una idea simple: que todas las personas puedan darse el gusto de una buena
+        galleta, sin importar qué comen.
       </p>
-      <h2>Cómo horneamos</h2>
       <p>
-        Hacemos galletas grandes, de a pocas por tanda, con manteca de verdad y sin apuros. Tenemos opciones sin gluten, veganas y sin azúcar,
-        preparadas por separado para cuidar a quienes las necesitan.
+        Empezamos horneando tandas chicas para amigos y familia. Había quien no podía comer gluten, quien no come productos de origen animal y quien cuida
+        el azúcar. Así que aprendimos a hacer galletas para cada uno, sin que ninguna se sienta “la opción de menos sabor”.
       </p>
-      <h2>Qué nos importa</h2>
+      <h2>Cómo trabajamos</h2>
       <ul>
-        <li>Ingredientes simples y que se puedan nombrar.</li>
-        <li>Tandas chicas, para que lleguen frescas.</li>
-        <li>Que cada caja se sienta como un regalo, aunque sea para vos.</li>
+        <li>
+          <strong>Tandas chicas.</strong> Horneamos pocas galletas a la vez, para que lleguen frescas.
+        </li>
+        <li>
+          <strong>Ingredientes que podés leer.</strong> Cada producto muestra sus ingredientes y alérgenos completos. Si no lo entendés, no lo ponemos.
+        </li>
+        <li>
+          <strong>Opciones para más gente.</strong> Tenemos galletas clásicas, sin gluten, veganas y sin azúcar.
+        </li>
+        <li>
+          <strong>Regalar también es parte del antojo.</strong> Cada galleta viene de a 1, en caja de 6 o en caja de 12, para compartir o para regalar.
+        </li>
       </ul>
-      <div className="mt-6">
-        <ButtonLink to="/tienda">Ver galletas</ButtonLink>
+      <p>
+        <strong>Nuestras categorías:</strong> Clásicas, Sin gluten, Veganas, Sin azúcar y Packs.
+      </p>
+      <blockquote className="border-l-4 border-accent-main pl-4 font-display text-2xl dark:border-dark-accent-main">Date un gustito, llevate un antojo.</blockquote>
+      <div className="mt-4">
+        <ButtonLink to="/tienda">Ver las galletas</ButtonLink>
       </div>
     </ContentPage>
   )

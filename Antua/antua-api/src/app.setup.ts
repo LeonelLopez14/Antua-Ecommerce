@@ -6,11 +6,25 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import helmet from 'helmet';
+import compression from 'compression';
 import { static as serveStatic } from 'express';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import type { TrustProxy } from './config/env.validation';
 
 /** Configuración global de la app. La comparten main.ts y los tests e2e. */
 export function configureApp(app: INestApplication): void {
+  // Detrás de Caddy: la IP real del cliente sale de X-Forwarded-For (ver parseTrustProxy).
+  // Sin esto, el límite de intentos vería a todos los clientes con la IP del proxy.
+  const trustProxy = app.get(ConfigService).get<TrustProxy>('TRUST_PROXY');
+  if (trustProxy !== undefined && trustProxy !== false) {
+    // La app siempre corre sobre Express (@nestjs/platform-express).
+    (app as NestExpressApplication).set('trust proxy', trustProxy);
+  }
+
   app.use(helmet());
+  // gzip para respuestas de texto de más de 1 kB (JSON del catálogo, por ejemplo). Las imágenes ya
+  // vienen comprimidas: compression las saltea por su Content-Type.
+  app.use(compression({ threshold: 1024 }));
 
   // Solo los orígenes de CORS_ORIGINS. Vacío: sin CORS (en desarrollo, Vite hace de proxy).
   const origins = app.get(ConfigService).get<string[]>('CORS_ORIGINS') ?? [];

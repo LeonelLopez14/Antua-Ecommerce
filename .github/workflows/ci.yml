@@ -1,0 +1,221 @@
+# Integración continua: verifica cada cambio. NO despliega nada ni usa secretos reales.
+#
+# - En cada pull request y en cada push a main: guardia del repo, front, back, e2e de la API
+#   contra un MySQL de prueba, y build de las imágenes de Docker.
+# - El e2e del front (Playwright) corre en los push a main o a mano (Actions → CI → Run workflow).
+#
+# Explicación de cada parte: Antua/antua-web/docs/despliegue.md, "Integración continua".
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Permisos mínimos: el workflow solo lee el código. No puede escribir en el repo, ni comentar,
+# ni publicar paquetes.
+permissions:
+  contents: read
+
+# Si llega un push nuevo a la misma rama o PR, se cancela la corrida vieja.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# El monorepo vive en Antua/ (la raíz del repo tiene además Design/ y Documentation/).
+defaults:
+  run:
+    working-directory: Antua
+
+env:
+  # Misma versión de pnpm que los Dockerfiles.
+  PNPM_VERSION: 10.34.9
+  NODE_VERSION: 24.22.3
+
+jobs:
+  guard:
+    name: Archivos prohibidos y secretos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Acciones fijadas por SHA (el comentario dice la versión): un tag se puede mover, un SHA no.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Revisar el repo
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+        run: ./scripts/check-repo.sh "$BASE_REF"
+
+  web:
+    name: Front (tipos, lint, tests, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: Antua/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter antua-web typecheck
+      - run: pnpm --filter antua-web lint
+      - run: pnpm --filter antua-web test
+      - run: pnpm --filter antua-web build
+        env:
+          VITE_API_URL: /api
+
+  api:
+    name: API (tipos, lint, tests, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: Antua/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Tipos
+        working-directory: Antua/antua-api
+        run: pnpm exec tsc --noEmit
+      - run: pnpm --filter antua-api lint:check
+      - run: pnpm --filter antua-api test
+      - run: pnpm --filter antua-api build
+      - run: pnpm --filter antua-api build:tools
+
+  api-e2e:
+    name: API e2e (MySQL de prueba)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      # MySQL descartable, solo para este job. La contraseña es de prueba y vive solo acá.
+      mysql:
+        image: mysql:8.4.13
+        env:
+          MYSQL_ROOT_PASSWORD: ci-solo-pruebas
+          MYSQL_DATABASE: antua_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      # Valores de prueba (no son secretos). test/setup-env.ts completa el resto.
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_USERNAME: root
+      DB_PASSWORD: ci-solo-pruebas
+      DB_DATABASE: antua_test
+      JWT_SECRET: ci-jwt-de-prueba-que-no-sirve-fuera-de-ci-0123456789
+      JWT_EXPIRES_IN: 1h
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: Antua/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # Los e2e aplican las migraciones solos, y solo sobre antua_test (test/helpers.ts).
+      - run: pnpm --filter antua-api test:e2e
+
+  docker:
+    name: Imágenes de Docker (build, sin publicar)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: API
+        run: docker build -f antua-api/Dockerfile -t antojarte-api:ci .
+      - name: Proxy (front + Caddy, valida el Caddyfile)
+        run: docker build -f antua-web/Dockerfile -t antojarte-proxy:ci .
+      - name: El compose de producción es válido
+        run: docker compose -f docker-compose.prod.yml --env-file .env.prod.example config --quiet
+
+  web-e2e:
+    name: Front e2e (Playwright)
+    # Opcional: más lento. Corre en main o a mano.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: [web, api]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.4.13
+        env:
+          MYSQL_ROOT_PASSWORD: ci-solo-pruebas
+          MYSQL_DATABASE: antua_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_USERNAME: root
+      DB_PASSWORD: ci-solo-pruebas
+      DB_DATABASE: antua_db
+      JWT_SECRET: ci-jwt-de-prueba-que-no-sirve-fuera-de-ci-0123456789
+      JWT_EXPIRES_IN: 1h
+      SHIPPING_FLAT_RATE: '1500'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: Antua/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Base, datos de prueba y API en :3000
+        working-directory: Antua/antua-api
+        run: |
+          pnpm migration:run
+          pnpm seed
+          pnpm build
+          nohup node dist/main > api.log 2>&1 &
+          for _ in $(seq 1 30); do curl -sf http://127.0.0.1:3000/health && break; sleep 2; done
+          # Si después de un minuto no respondió, el paso falla (y el log queda en el reporte).
+          curl -sf http://127.0.0.1:3000/health
+      - name: Navegador
+        working-directory: Antua/antua-web
+        run: pnpm exec playwright install --with-deps chromium
+      - name: e2e (compra de invitado, con cuenta y panel)
+        working-directory: Antua/antua-web
+        run: pnpm test:e2e
+      - name: Reporte si falló
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright
+          path: |
+            Antua/antua-web/test-results
+            Antua/antua-api/api.log
+          retention-days: 7

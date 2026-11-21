@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { API } from './env'
 
 /**
  * Panel de administración de punta a punta. Requiere la API en :3000 (antua_db).
@@ -10,10 +11,16 @@ import { expect, test, type Page } from '@playwright/test'
  * - Todo lo que crea usa el prefijo seed (seed.e2e-…@antua.test, seed-e2e-…, SEEDE2E…):
  *   `pnpm --filter antua-api seed:clean --yes` lo borra.
  */
-const API = 'http://localhost:3000'
+// URL de la API: e2e/env.ts (por defecto, la de desarrollo).
 // Único por proceso: los proyectos desktop y mobile corren en paralelo, cada uno con su admin y su cliente.
 const RUN = `${Date.now().toString(36)}${randomBytes(2).toString('hex')}`
-const ADMIN = { email: `seed.e2e-admin-${RUN}@antua.test`, password: `E2e${randomBytes(6).toString('hex')}9` }
+// Contra un despliegue (docker-compose.prod.yml) el admin ya existe: se crea en el servidor con
+// `admin:create` y se pasa con E2E_ADMIN_EMAIL y E2E_ADMIN_PASSWORD. Sin esas variables, el spec
+// crea uno propio en la base de desarrollo, como siempre.
+const PRESET_ADMIN = process.env.E2E_ADMIN_EMAIL && process.env.E2E_ADMIN_PASSWORD
+const ADMIN = PRESET_ADMIN
+  ? { email: process.env.E2E_ADMIN_EMAIL ?? '', password: process.env.E2E_ADMIN_PASSWORD ?? '' }
+  : { email: `seed.e2e-admin-${RUN}@antua.test`, password: `E2e${randomBytes(6).toString('hex')}9` }
 const CUSTOMER = { email: `seed.e2e-cliente-${RUN}@antua.test`, password: 'ClienteE2e123' }
 const SLUG = `seed-e2e-${RUN}`
 const COUPON = `SEEDE2E${RUN.toUpperCase()}`
@@ -24,11 +31,16 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 test.describe.configure({ mode: 'serial' })
 
 test.beforeAll(async ({ request }) => {
-  execFileSync('pnpm', ['--filter', 'antua-api', 'admin:create'], {
-    cwd: '..',
-    env: { ...process.env, ADMIN_EMAIL: ADMIN.email, ADMIN_NAME: 'Admin E2E', ADMIN_PASSWORD: ADMIN.password },
-    stdio: 'pipe',
-  })
+  if (!PRESET_ADMIN) {
+    execFileSync('pnpm', ['--filter', 'antua-api', 'admin:create'], {
+      cwd: '..',
+      // En Windows pnpm es un .cmd, y Node solo lo ejecuta con shell. Los argumentos son fijos y la
+      // contraseña va por variable de entorno, así que el shell no recibe nada externo.
+      shell: process.platform === 'win32',
+      env: { ...process.env, ADMIN_EMAIL: ADMIN.email, ADMIN_NAME: 'Admin E2E', ADMIN_PASSWORD: ADMIN.password },
+      stdio: 'pipe',
+    })
+  }
   const res = await request.post(`${API}/auth/register`, {
     data: { full_name: 'Cliente E2E', email: CUSTOMER.email, password: CUSTOMER.password },
   })
@@ -82,6 +94,7 @@ test('un admin crea un producto con variante e imagen, un cupón, y cancela un p
   await page.getByRole('button', { name: 'Crear producto' }).click()
   await expect(page.getByText('Producto creado (inactivo)')).toBeVisible()
   await expect(page).toHaveURL(/\/admin\/productos\/\d+/)
+  const productId = Number(/\/admin\/productos\/(\d+)/.exec(page.url())?.[1])
 
   const variantForm = page.getByRole('form', { name: 'Agregar variante' })
   await variantForm.getByLabel('Precio ($U)').fill('-5')
@@ -159,4 +172,9 @@ test('un admin crea un producto con variante e imagen, un cupón, y cancela un p
   await expect(page.getByRole('img', { name: /Ventas por día/ })).toBeVisible()
   await page.getByRole('navigation', { name: 'Secciones del panel' }).getByRole('link', { name: 'Auditoría' }).click()
   await expect(page.getByRole('cell', { name: 'Cambió el estado de un pedido' }).first()).toBeVisible()
+
+  // Limpieza: el producto de prueba no queda a la venta en la tienda (tiene un pedido, así que se desactiva).
+  const token = await page.evaluate(() => (JSON.parse(localStorage.getItem('antua.auth') ?? '{}') as { state?: { token?: string } }).state?.token)
+  const off = await request.delete(`${API}/admin/products/${productId}`, { headers: { Authorization: `Bearer ${token}` } })
+  expect(await off.json()).toMatchObject({ deactivated: true })
 })

@@ -27,7 +27,11 @@ export interface ValidatedEnv extends Record<string, unknown> {
   PAYMENTS: PaymentsConfig;
   UPLOADS_DIR: string;
   LOW_STOCK_THRESHOLD: number;
+  TRUST_PROXY: TrustProxy;
 }
+
+/** `false`: no hay proxy. Un número: cuántos proxies hay delante. Una lista: IPs, redes o nombres de Express. */
+export type TrustProxy = false | number | string[];
 
 export function parseShippingFlatRate(raw: unknown): number {
   const text = typeof raw === 'string' ? raw.trim() : '';
@@ -221,7 +225,120 @@ export function parseLowStockThreshold(raw: unknown): number {
   return value;
 }
 
+/**
+ * Detrás de un proxy (Caddy), todas las requests llegan desde la IP del proxy. Sin `trust proxy`,
+ * el límite de intentos contaría a todos los clientes como uno solo. Con `trust proxy`, Express
+ * toma la IP del cliente del header X-Forwarded-For que agrega el proxy.
+ *
+ * Nunca `true`: confiaría en cualquier X-Forwarded-For, y cualquiera podría inventarse una IP
+ * nueva en cada intento para saltear el límite.
+ */
+export function parseTrustProxy(raw: unknown): TrustProxy {
+  const text = textOf(raw);
+  if (text === '' || text === 'false') return false;
+  if (/^\d+$/.test(text)) {
+    const hops = Number(text);
+    if (hops >= 1 && hops <= 5) return hops;
+  } else if (text !== 'true') {
+    const list = text
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const named = ['loopback', 'linklocal', 'uniquelocal'];
+    const ipOrCidr = /^[\d.]+(\/\d{1,2})?$|^[\da-f:]+(\/\d{1,3})?$/i;
+    if (list.every((item) => named.includes(item) || ipOrCidr.test(item))) {
+      return list;
+    }
+  }
+  throw new Error(
+    `TRUST_PROXY tiene que ser false, la cantidad de proxies delante de la API (1 a 5) o una lista de IPs/redes (recibido: ${JSON.stringify(raw)}). Nunca "true".`,
+  );
+}
+
+/** Fragmentos que delatan un valor copiado de un .env de ejemplo. */
+const EXAMPLE_MARKERS = [
+  'reemplazar',
+  'ejemplo',
+  'example',
+  'changeme',
+  'cambiame',
+  'placeholder',
+  'tu_password',
+  'password',
+  'secreto',
+];
+
+/**
+ * Rechaza secretos vacíos, cortos, de ejemplo, repetitivos ("aaaa…") o solo con dígitos
+ * ("1234567890123456"). Un valor aleatorio de scripts/generate-secrets.sh siempre pasa: tiene
+ * 48 caracteres o más y usa casi todos los símbolos posibles.
+ */
+function assertStrongSecret(
+  name: string,
+  raw: unknown,
+  minLength: number,
+): void {
+  const value = textOf(raw);
+  const lower = value.toLowerCase();
+  const weak =
+    value.length < minLength ||
+    EXAMPLE_MARKERS.some((marker) => lower.includes(marker)) ||
+    /^\d+$/.test(value) ||
+    new Set(value).size < 10;
+  if (weak) {
+    throw new Error(
+      `${name} es débil o de ejemplo: en producción tiene que ser aleatoria, de ${minLength} caracteres o más. Generala con scripts/generate-secrets.sh.`,
+    );
+  }
+}
+
+/**
+ * Reglas extra con NODE_ENV=production. En desarrollo no se aplican, para no romper los .env
+ * locales; en producción un secreto de ejemplo es una puerta abierta.
+ */
+export function assertProductionEnv(config: Record<string, unknown>): void {
+  if (config.NODE_ENV !== 'production') return;
+
+  const missing = [
+    'DB_HOST',
+    'DB_PORT',
+    'DB_USERNAME',
+    'DB_PASSWORD',
+    'DB_DATABASE',
+    'FRONTEND_URL',
+  ].filter((name) => textOf(config[name]) === '');
+  if (missing.length > 0) {
+    throw new Error(
+      `Faltan variables obligatorias en producción: ${missing.join(', ')}. Ver .env.prod.example.`,
+    );
+  }
+  const port = Number(textOf(config.DB_PORT));
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    throw new Error(
+      `DB_PORT no es un puerto válido (recibido: ${textOf(config.DB_PORT)}).`,
+    );
+  }
+  if (textOf(config.DB_USERNAME).toLowerCase() === 'root') {
+    throw new Error(
+      'En producción la API no se conecta como root: usá el usuario de aplicación (DB_USERNAME=antua_app), que solo lee y escribe datos.',
+    );
+  }
+  assertStrongSecret('JWT_SECRET', config.JWT_SECRET, 32);
+  assertStrongSecret('DB_PASSWORD', config.DB_PASSWORD, 16);
+  if (new URL(parseFrontendUrl(config.FRONTEND_URL)).protocol !== 'https:') {
+    throw new Error(
+      'En producción FRONTEND_URL tiene que ser HTTPS (los links de los mails apuntan ahí).',
+    );
+  }
+  if (textOf(config.SEED_ADMIN_PASSWORD) !== '') {
+    throw new Error(
+      'SEED_ADMIN_PASSWORD es solo para desarrollo: borrala en producción. El primer admin se crea con admin:create.',
+    );
+  }
+}
+
 export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
+  assertProductionEnv(config);
   return {
     ...config,
     SHIPPING_FLAT_RATE: parseShippingFlatRate(config.SHIPPING_FLAT_RATE),
@@ -233,5 +350,6 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     PAYMENTS: parsePaymentsConfig(config),
     UPLOADS_DIR: parseUploadsDir(config.UPLOADS_DIR),
     LOW_STOCK_THRESHOLD: parseLowStockThreshold(config.LOW_STOCK_THRESHOLD),
+    TRUST_PROXY: parseTrustProxy(config.TRUST_PROXY),
   };
 }

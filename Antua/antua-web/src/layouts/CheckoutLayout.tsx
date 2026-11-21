@@ -3,9 +3,12 @@ import { Outlet } from 'react-router-dom'
 import { PageSkeleton } from '../components/layout/PageSkeleton'
 import { Logo } from '../components/layout/Logo'
 import { SkipLink } from '../components/layout/SkipLink'
+import { useNoIndex } from '../hooks/useNoIndex'
 
 /** Checkout: navbar mínima con solo el logo (DESIGN.md §4, Navbar) para no distraer de la compra. */
 export function CheckoutLayout() {
+  // Checkout y retorno de pago: privados, no se indexan (robots.txt también los excluye).
+  useNoIndex()
   return (
     <>
       <SkipLink />

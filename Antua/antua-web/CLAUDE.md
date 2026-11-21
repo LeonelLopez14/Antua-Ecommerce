@@ -32,7 +32,7 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 ### Entorno de desarrollo
 - La base es MySQL 8 en el contenedor `antua-mysql` (`127.0.0.1:3307`). El 3306 es un MariaDB del sistema: no se toca.
 - **Nunca detener, reiniciar ni modificar servicios, contenedores o procesos que no sean de este repo** (por ejemplo, otros proyectos de Docker). Si hay un conflicto de puertos, usar otro puerto o preguntar.
-- `pnpm dev` de la API corre con `--watch` y aplica las migraciones al arrancar: una migración nueva en `src/database/migrations/` llega a `antua_db` en segundos. Generarla fuera de `src` (o con la API detenida), revisarla y recién después moverla.
+- **La API no aplica migraciones al arrancar** (`migrationsRun: false`, desde la Fase 13). Se aplican a mano con `pnpm migration:run`, **solo después de que el usuario las lea**. Nunca correr `migration:run` sobre `antua_db` con una migración que el usuario no aprobó. Generarlas igual fuera de `src` y revisar que no haya `DROP COLUMN` + `ADD`.
 
 ### Backend (`../antua-api`)
 - El esquema se cambia solo con migraciones: `pnpm migration:generate src/database/migrations/Nombre`. Antes de tocarlo, hacer un respaldo fuera del repo. `synchronize` está apagado.
@@ -76,6 +76,22 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 ### Tests
 - `pnpm test`: Vitest + Testing Library. Los archivos van junto al código (`*.test.ts(x)`) y la API se simula con `vi.mock('../api/…')`.
 - `pnpm test:e2e`: Playwright (`e2e/`). Necesita la API con los datos de prueba.
+
+### Calidad (Fase 13)
+- Medir siempre el build de producción (`pnpm qa:build && pnpm qa:preview`), nunca el servidor de desarrollo. Comandos y criterios en `docs/qa/informe-qa.md`.
+- Cada UI nueva tiene que pasar `pnpm qa:a11y` (axe en 375/1280 px, claro y oscuro) sin violaciones serias, y no desbordar a 320 px.
+- Nada de trucos para el puntaje (por ejemplo, detectar el navegador de Lighthouse): se arregla el problema o se documenta.
+- Los textos institucionales salen de `docs/contenido-sitio.md` y cada afirmación se verifica contra la app. El contacto es `contacto@antojarte.example` (`src/data/site.ts`).
+- Componentes que se abren pocas veces y pesan (drawer, modal) se cargan al abrirse (`components/layout/LazyPanels.tsx`, `lib/panels.ts`).
+- Mientras corre `pnpm dev` de la API, no correr `pnpm build` de la API: borra `dist/` y la API de desarrollo se cae. Para chequear tipos, `npx tsc --noEmit`.
+
+### Despliegue (Fase 14)
+- Guía y explicación de cada pieza: `docs/despliegue.md`. Producción es `docker-compose.prod.yml` (`name: antojarte`); el `docker-compose.yml` de la raíz es de desarrollo.
+- **CSP del proxy sin `unsafe-inline` ni `unsafe-eval`:** nada de `<script>` en línea en `index.html` (va en `public/`), ni `eval` o `new Function`, ni `<style>` inyectado. Imágenes solo del mismo origen, `data:` o `blob:`. Si algo nuevo lo necesita, cambiarlo en `deploy/caddy/Caddyfile` y documentar por qué. `e2e/csp.spec.ts` lo verifica.
+- Marca visible: **Antojarte**, con `translate="no"` en el texto. Las claves internas (`antua.auth`, `antua.theme`, `antua.guestToken`) no se renombran: se perderían sesiones y carritos.
+- Pruebas del despliegue: siempre en un proyecto aparte (`-p antojarte-test`), con puertos propios (8080/8443) y un `.env` fuera del repo. Nunca contra el entorno de desarrollo. `pnpm test:e2e:deploy` con `E2E_BASE_URL`, `E2E_API_URL`, `E2E_IGNORE_HTTPS_ERRORS=1` y `E2E_ADMIN_*`.
+- En producción la API usa `antua_app` (solo datos): las migraciones van por `run --rm migrate`, a mano. La migración de `database/proposed/` no se aplica sin que el usuario la lea.
+- Scripts de operación en `../scripts/` (bash comentado, LF por `.gitattributes`, con `git update-index --chmod=+x`). Antes de un commit: `../scripts/check-repo.sh`.
 
 ### Registro de trabajo
 - `docs/progreso.md`: qué se hizo en cada fase, commits, decisiones y pendientes.

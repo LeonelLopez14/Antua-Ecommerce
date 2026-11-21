@@ -32,20 +32,20 @@ export interface ApiProductImage {
   sort_order: number
 }
 
-/** GET /products/:slug incluye `reviews` (sin usuario). GET /products no las incluye. */
+/** GET /products y GET /products/:slug. Las reseñas se piden aparte (GET /products/:slug/reviews). */
 export interface ApiProduct {
   id: number
   name: string
   slug: string
   ingredients: string
   allergens: string
+  nutrition_info?: string | null
   description: string
   base_price: ApiDecimal
   is_active: boolean
   variants: ApiProductVariant[]
   images: ApiProductImage[]
   productTags: ApiProductTag[]
-  reviews?: ApiReviewBase[]
 }
 
 export interface ApiReviewBase {
@@ -88,6 +88,8 @@ export interface Product {
   description: string
   ingredients: string
   allergens: string
+  /** Texto de products.nutrition_info; lib/nutrition.ts lo convierte en tabla. */
+  nutritionInfo: string | null
   basePrice: number
   /** GET /products/:slug ya responde 404 para inactivos; el front igual los trata como 404 por si llega uno. */
   isActive: boolean

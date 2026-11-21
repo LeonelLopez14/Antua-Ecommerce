@@ -20,7 +20,7 @@ const toValue = (input: string): number | null => {
 }
 
 const inputClass =
-  'w-full min-w-0 rounded-xl border border-text-main/40 bg-bg px-3 py-2.5 text-base tabular-nums text-text-main ' +
+  'w-full min-w-0 rounded-xl border border-text-main/60 bg-bg px-3 py-2.5 text-base tabular-nums text-text-main ' +
   'placeholder:text-text-main/50 dark:border-dark-text-secondary/60 dark:bg-dark-bg dark:text-dark-text-main dark:placeholder:text-dark-text-secondary/70'
 
 export function PriceRangeFilter({ min, max, bounds, onChange }: PriceRangeFilterProps) {

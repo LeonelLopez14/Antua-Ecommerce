@@ -14,7 +14,10 @@ Copiá `.env.example` a `.env`. La única variable es `VITE_API_URL` (por defect
 | `pnpm typecheck` / `pnpm lint` | Chequeos |
 | `pnpm build` | Build de producción en `dist/` |
 | `pnpm test` / `pnpm test:watch` | Unitarios con Vitest y Testing Library |
-| `pnpm test:e2e` | Flujo de compra y del panel con Playwright. Requiere la API con los datos de prueba (el e2e del panel crea su admin con `admin:create`). La primera vez: `pnpm exec playwright install chromium` |
+| `pnpm qa:build` / `pnpm qa:preview` | Build de producción servido en `:4173` con proxy a la API, para medir |
+| `pnpm qa:lighthouse` / `qa:a11y` / `qa:keyboard` / `qa:resilience` | Mediciones de calidad: ver [`docs/qa/informe-qa.md`](./docs/qa/informe-qa.md) |
+| `pnpm test:e2e:deploy` | Los mismos recorridos (invitado, con cuenta y panel) y la CSP, contra un despliegue con Caddy: ver [`docs/despliegue.md`](./docs/despliegue.md#verificar-el-despliegue) |
+| `pnpm test:e2e` | Flujo de compra (invitado y con cuenta) y del panel con Playwright. Requiere la API con los datos de prueba (el e2e del panel crea su admin con `admin:create`). La primera vez: `pnpm exec playwright install chromium` |
 
 ## Estructura y convenciones
 
@@ -27,4 +30,6 @@ La estructura de `src/`, las reglas de rutas, montos, errores y accesibilidad es
 | [`docs/estado-frontend.md`](./docs/estado-frontend.md) | Qué está hecho, qué falta y decisiones abiertas |
 | [`docs/progreso.md`](./docs/progreso.md) | Registro por fase: qué cambió y por qué |
 | [`docs/payments-design.md`](./docs/payments-design.md) | Diseño de pagos y cómo probar con Mercado Pago |
+| [`docs/qa/informe-qa.md`](./docs/qa/informe-qa.md) | Control de calidad: Lighthouse, axe, teclado, resiliencia, hallazgos y cómo repetirlo |
+| [`docs/despliegue.md`](./docs/despliegue.md) | Despliegue en un servidor: Docker, Caddy y HTTPS, usuarios de base, secretos, respaldos, CI y la guía paso a paso |
 | [`docs/admin.md`](./docs/admin.md) | Panel de administración: roles, primer admin, rutas, endpoints y estados de pedidos |

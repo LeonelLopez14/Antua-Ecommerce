@@ -34,7 +34,13 @@ export async function createTestApp(): Promise<{
   const app: TestApp = moduleRef.createNestApplication();
   configureApp(app);
   await app.init();
-  return { app, db: app.get(DataSource) };
+  const db = app.get(DataSource);
+  // La API ya no migra sola: los e2e migran a mano, y solo su propia base.
+  if (db.options.database !== 'antua_test') {
+    throw new Error('Los e2e solo corren contra antua_test.');
+  }
+  await db.runMigrations();
+  return { app, db };
 }
 
 /** Vacía la base de tests. El candado evita vaciar otra base por un .env mal configurado. */

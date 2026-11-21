@@ -1,0 +1,129 @@
+# Caddy: el único servicio que se ve desde afuera.
+#
+# - Sirve el front (archivos estáticos que generó Vite, en /srv).
+# - Reenvía /api/* a la API (sin el prefijo /api) por la red interna de Docker.
+# - Gestiona HTTPS: certificado interno (modo `internal`) o Let's Encrypt (modo `public`).
+#
+# Variables (vienen de .env.prod, vía docker-compose.prod.yml):
+#   SITE_ADDRESS  dominio o nombre de host del sitio (por defecto localhost)
+#   HTTPS_MODE    internal | public (ver modes/*.caddy)
+#   HTTP_PORT / HTTPS_PORT  puertos en los que escucha Caddy (iguales a los publicados)
+#   ACME_EMAIL    solo modo public, obligatorio: correo de la cuenta de Let's Encrypt
+#
+# {$VAR:defecto} se reemplaza antes de leer el archivo, así que también vale dentro de `import`.
+{
+	# Puertos de escucha. Coinciden con los publicados en el host, así la redirección de HTTP a
+	# HTTPS apunta al puerto correcto (por ejemplo, 8080 → 8443 en las pruebas locales).
+	http_port {$HTTP_PORT:80}
+	https_port {$HTTPS_PORT:443}
+
+	# La API de administración de Caddy no hace falta: se apaga.
+	admin off
+
+	# Con `tls internal`, Caddy intentaría instalar su CA en el sistema del contenedor: no sirve.
+	# La CA se instala a mano en el navegador o el sistema de quien prueba (docs/despliegue.md).
+	skip_install_trust
+
+	# Solo HTTP/1.1 y HTTP/2 (TCP). HTTP/3 usa UDP y habría que publicar otro puerto.
+	servers {
+		protocols h1 h2
+	}
+}
+
+# Cabeceras de seguridad para las páginas del front (no para /api: ahí las pone la API con helmet,
+# y las imágenes subidas llevan una CSP propia, más estricta).
+(security_headers) {
+	header {
+		# Qué puede cargar la página. Todo sale del mismo origen; no hace falta 'unsafe-inline'
+		# ni 'unsafe-eval' (el script del tema está en /theme-init.js, no en línea).
+		#   img-src data: → imágenes de ejemplo del seed (SVG en data:)
+		#   img-src blob: → vista previa de una imagen antes de subirla en el panel
+		#   style-src 'self' → React, GSAP y Three cambian estilos por el DOM (style.x = …),
+		#                      que la CSP no bloquea; no hay <style> en línea
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		# El navegador no adivina tipos: un archivo es lo que dice su Content-Type.
+		X-Content-Type-Options "nosniff"
+		# A otros sitios solo se les manda el origen, nunca la ruta (que puede tener ids).
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# APIs del navegador que el sitio no usa: apagadas.
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+		# Nadie puede meter el sitio en un iframe (clickjacking). frame-ancestors hace lo mismo
+		# en navegadores modernos; X-Frame-Options cubre a los viejos.
+		X-Frame-Options "DENY"
+		Cross-Origin-Opener-Policy "same-origin"
+	}
+}
+
+# Chequeo de salud del propio Caddy (lo usa el healthcheck de Docker). Solo escucha adentro del
+# contenedor: no se publica.
+http://127.0.0.1:2080 {
+	bind 127.0.0.1
+	respond /healthz "ok" 200
+}
+
+# HTTP → HTTPS. Caddy lo hace solo, pero asume que afuera se usa el 443: con HTTPS_PORT=8443
+# mandaría a https://host/ (puerto 443) en vez de https://host:8443/. Esta redirección explícita
+# usa siempre el puerto configurado. Los desafíos de Let's Encrypt por HTTP (modo public) los
+# atiende Caddy antes de llegar acá.
+http://{$SITE_ADDRESS:localhost} {
+	redir https://{host}:{$HTTPS_PORT:443}{uri} permanent
+}
+
+{$SITE_ADDRESS:localhost} {
+	# HTTPS: `tls internal` o Let's Encrypt + HSTS, según HTTPS_MODE.
+	import modes/{$HTTPS_MODE:internal}.caddy
+
+	# Compresión: zstd si el navegador la acepta; si no, gzip. Lo que ya viene comprimido
+	# (por ejemplo, el JSON que comprime la API) no se vuelve a comprimir.
+	encode zstd gzip
+
+	# El header "Server: Caddy" no aporta nada a quien visita.
+	header -Server
+
+	# Registro de accesos en JSON, por la salida estándar (Docker lo rota: ver compose).
+	log {
+		output stdout
+		format json
+	}
+
+	# --- API ---
+	# /api/productos → http://api:3000/productos. La API solo se ve a través de acá.
+	handle_path /api/* {
+		# Las subidas del panel son de 2 MB como máximo (MAX_IMAGE_BYTES); con margen para el
+		# resto del formulario. La API valida el tamaño igual.
+		request_body {
+			max_size 4MB
+		}
+		# Imágenes subidas: tienen nombre aleatorio, así que nunca cambian. Caché de un año.
+		@uploads path /uploads/*
+		header @uploads >Cache-Control "public, max-age=31536000, immutable"
+		reverse_proxy api:3000
+	}
+
+	# Por compatibilidad, /uploads/* también va a la API (las URLs del front usan /api/uploads).
+	handle /uploads/* {
+		header >Cache-Control "public, max-age=31536000, immutable"
+		reverse_proxy api:3000
+	}
+
+	# --- Front ---
+	# Archivos con hash de Vite (/assets/index-AbC123.js): si cambian, cambia el nombre. Se
+	# guardan un año. Si no existen, 404 (nunca index.html: el navegador lo leería como JS).
+	handle /assets/* {
+		import security_headers
+		root * /srv
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Todo lo demás: archivos de public/ (robots.txt, favicon, theme-init.js) y, si no existe
+	# un archivo, index.html (fallback de SPA: /tienda, /cuenta/pedidos… los resuelve React).
+	# Sin caché: así un deploy nuevo se ve enseguida.
+	handle {
+		import security_headers
+		root * /srv
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

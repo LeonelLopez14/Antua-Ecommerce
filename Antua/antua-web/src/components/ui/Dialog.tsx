@@ -118,6 +118,23 @@ export function Dialog({
     }
   }, [open, mounted, reduced, placement, returnFocusTo])
 
+  // Si el que lo usa lo desmonta directamente al cerrar (render condicional), la animación de salida
+  // no llega a devolver el foco y quedaría en <body>: se devuelve al desmontar.
+  const returnFocusToRef = useRef(returnFocusTo)
+  useEffect(() => {
+    returnFocusToRef.current = returnFocusTo
+  }, [returnFocusTo])
+  useEffect(
+    () => () => {
+      const target = returnFocusToRef.current ?? previousFocus.current
+      queueMicrotask(() => {
+        const lost = document.activeElement === null || document.activeElement === document.body
+        if (lost && target?.isConnected) target.focus({ preventScroll: true })
+      })
+    },
+    [],
+  )
+
   // Escape cierra y el fondo no scrollea mientras el panel está abierto.
   useEffect(() => {
     if (!open) return

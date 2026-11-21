@@ -2,8 +2,9 @@ import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useCartStore } from '../stores/cartStore'
 import { useAuthStore } from '../stores/authStore'
-import { AuthModal } from '../components/auth/AuthModal'
-import { CartDrawer } from '../components/cart/CartDrawer'
+import { useAuthModalStore } from '../stores/authModalStore'
+import { SESSION_EXPIRED, SESSION_EXPIRED_EVENT } from '../api/client'
+import { LazyPanels } from '../components/layout/LazyPanels'
 
 /**
  * Raíz de todas las rutas: valida la sesión, carga el carrito y monta los paneles globales
@@ -19,6 +20,19 @@ export function RootLayout() {
     void verifySession().then(loadCart)
   }, [verifySession, loadCart])
 
+  // Sesión vencida a mitad de algo: se cierra, el carrito vuelve a ser de invitado y se ofrece
+  // iniciar sesión de nuevo en el mismo lugar (al volver, AuthModal recupera el carrito de la cuenta).
+  useEffect(() => {
+    const onExpired = () => {
+      if (!useAuthStore.getState().token) return
+      useAuthStore.getState().clearSession()
+      void useCartStore.getState().reset()
+      useAuthModalStore.getState().open('login', null, SESSION_EXPIRED)
+    }
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired)
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired)
+  }, [])
+
   // Al cambiar de página, arrancar arriba (el hash #contenido del skip link no cambia el pathname).
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -27,8 +41,7 @@ export function RootLayout() {
   return (
     <>
       <Outlet />
-      <CartDrawer />
-      <AuthModal />
+      <LazyPanels />
     </>
   )
 }

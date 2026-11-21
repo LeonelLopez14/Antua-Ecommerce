@@ -1,0 +1,65 @@
+# Dependabot: propone (NO aplica) actualizaciones de dependencias, una vez por semana.
+# Cada propuesta es un pull request que pasa por la CI y que revisás y mezclás a mano.
+# No hay merges automáticos.
+version: 2
+updates:
+  # Paquetes de npm del monorepo (pnpm-lock.yaml de Antua/).
+  - package-ecosystem: npm
+    directory: /Antua
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Montevideo
+    open-pull-requests-limit: 5
+    # Menores y parches agrupados en un solo PR por tipo. Las versiones mayores llegan de a una:
+    # pueden romper cosas y conviene leer sus notas.
+    groups:
+      produccion:
+        dependency-type: production
+        update-types: [minor, patch]
+      desarrollo:
+        dependency-type: development
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps
+
+  # Imágenes base de los Dockerfiles (node, caddy).
+  - package-ecosystem: docker
+    directories:
+      - /Antua/antua-api
+      - /Antua/antua-web
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Montevideo
+    groups:
+      imagenes-base:
+        patterns: ['*']
+    commit-message:
+      prefix: deps
+
+  # Imágenes de los compose (mysql).
+  - package-ecosystem: docker-compose
+    directory: /Antua
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Montevideo
+    groups:
+      compose:
+        patterns: ['*']
+    commit-message:
+      prefix: deps
+
+  # Acciones de GitHub (fijadas por SHA en ci.yml): Dependabot actualiza el SHA y el comentario.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Montevideo
+    groups:
+      acciones:
+        patterns: ['*']
+    commit-message:
+      prefix: ci

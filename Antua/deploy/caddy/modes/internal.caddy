@@ -1,0 +1,9 @@
+# HTTPS_MODE=internal: sin dominio público (red local, pruebas, un nombre como antojarte.lan).
+#
+# Caddy crea su propia autoridad certificadora (CA) y firma el certificado del sitio. El
+# navegador no la conoce, así que avisa "conexión no privada" hasta que instales la CA raíz
+# (docs/despliegue.md, "HTTPS en modo interno"). No sale nada a internet.
+#
+# Sin HSTS: si después cambiás de nombre o de modo, el navegador no queda "atado" a este
+# certificado.
+tls internal

@@ -29,7 +29,7 @@ export default function Shop() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const notice = noticeFrom(useLocation().state)
 
-  usePageMeta('Tienda', 'Todas las galletas de Antua: clásicas, sin gluten, veganas y sin azúcar. Filtrá por categoría y precio.')
+  usePageMeta('Tienda', 'Todas las galletas de Antojarte: clásicas, sin gluten, veganas y sin azúcar. Filtrá por categoría y precio.')
 
   const result = data.status === 'ready' ? data.result : null
   const counts = result?.facets.tagCounts ?? {}
@@ -108,7 +108,11 @@ export default function Shop() {
                 {result ? galletas(result.total) : ''}
               </p>
             </div>
-            <SortSelect value={query.sort} onChange={setSort} />
+            {/* En móvil, siempre en su propia línea: si dependiera del ancho del contador o de la
+                fuente, la barra cambiaba de alto al cargar y movía la grilla (CLS). */}
+            <div className="w-full sm:w-auto">
+              <SortSelect value={query.sort} onChange={setSort} />
+            </div>
           </div>
 
           <div className="mt-6" aria-busy={data.status === 'loading'}>
