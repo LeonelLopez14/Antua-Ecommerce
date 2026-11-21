@@ -18,10 +18,11 @@ import {
   AdminUsersController,
 } from './moderation/admin-moderation.controller';
 import { AdminModerationService } from './moderation/admin-moderation.service';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 /** Panel de administración: todo lo que vive bajo /admin. */
 @Module({
-  imports: [TypeOrmModule.forFeature([AdminAuditLog])],
+  imports: [TypeOrmModule.forFeature([AdminAuditLog]), NotificationsModule],
   controllers: [
     AdminAuditController,
     AdminProductsController,

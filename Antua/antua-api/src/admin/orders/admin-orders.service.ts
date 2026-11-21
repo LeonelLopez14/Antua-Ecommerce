@@ -1,3 +1,4 @@
+import { OrderNotificationsService } from 'src/notifications/order-notifications.service';
 import {
   BadRequestException,
   ConflictException,
@@ -26,6 +27,7 @@ export class AdminOrdersService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly audit: AuditService,
+    private readonly notifications: OrderNotificationsService,
   ) {}
 
   async findPage(query: AdminOrderQueryDto) {
@@ -268,6 +270,9 @@ export class AdminOrdersService {
         return refund;
       },
     );
+
+    // Con el cambio ya guardado: avisa al cliente sin esperar (un correo que falla no lo revierte).
+    void this.notifications.statusChanged(id, to, refundRequired);
 
     return {
       ...(await this.findOne(id)),

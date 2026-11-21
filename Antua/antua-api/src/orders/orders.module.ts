@@ -7,12 +7,14 @@ import { OrdersController } from './orders.controller';
 import { OrderItem } from './entities/order-item.entity';
 import { CartModule } from 'src/cart/cart.module';
 import { ConfigModule } from '@nestjs/config';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, OrderItem, OrderStatusHistory]),
     CartModule,
     ConfigModule,
+    NotificationsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

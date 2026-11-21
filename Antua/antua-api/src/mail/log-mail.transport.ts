@@ -8,8 +8,11 @@ const maskEmail = (email: string): string => {
 };
 
 /**
- * Transporte de desarrollo: escribe el mensaje en el log en vez de enviarlo, porque no hay SMTP.
- * El cuerpo incluye el link de recuperación, así que en producción se niega a funcionar.
+ * Transporte de desarrollo (MAIL_TRANSPORT=log): no envía nada. Escribe en el log el
+ * destinatario enmascarado, el asunto y los enlaces del correo (para poder seguir, por
+ * ejemplo, el de recuperación de contraseña). El cuerpo NO va al log: tiene nombres y
+ * direcciones. Para ver el correo completo, usá Mailpit (perfil `mail` del compose de desarrollo).
+ * En producción se niega a funcionar.
  */
 @Injectable()
 export class LogMailTransport implements MailTransport {
@@ -18,10 +21,13 @@ export class LogMailTransport implements MailTransport {
   send({ to, subject, text }: MailMessage): Promise<void> {
     if (process.env.NODE_ENV === 'production') {
       return Promise.reject(
-        new Error('Falta configurar un proveedor de email real.'),
+        new Error('MAIL_TRANSPORT=log no envía correos en producción.'),
       );
     }
-    this.logger.log(`Para: ${maskEmail(to)} | ${subject}\n${text}`);
+    const links = text.match(/https?:\/\/\S+/g) ?? [];
+    this.logger.log(
+      [`Para: ${maskEmail(to)} | ${subject}`, ...links].join('\n'),
+    );
     return Promise.resolve();
   }
 }

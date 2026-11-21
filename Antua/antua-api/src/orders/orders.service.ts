@@ -10,6 +10,7 @@ import { Order, OrderStatus } from './entities/order.entity';
 import { DataSource, Repository } from 'typeorm';
 import { CartService } from 'src/cart/cart.service';
 import { ConfigService } from '@nestjs/config';
+import { OrderNotificationsService } from 'src/notifications/order-notifications.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ProductVariant } from 'src/products/entities/product-variant.entity';
 import { CartItem } from 'src/cart/entities/cart-item.entity';
@@ -56,6 +57,7 @@ export class OrdersService {
     private readonly dataSource: DataSource,
     private readonly cartService: CartService,
     private readonly configService: ConfigService,
+    private readonly notifications: OrderNotificationsService,
   ) {}
 
   async createOrder(
@@ -78,7 +80,10 @@ export class OrdersService {
     }
     //transaccion
     try {
-      return await this.placeOrder(fullCart, userId, dto);
+      const placed = await this.placeOrder(fullCart, userId, dto);
+      // Con la transacción ya confirmada: el correo no se espera ni puede deshacer el pedido.
+      void this.notifications.orderPlaced(placed.order.id, placed.accessToken);
+      return placed;
     } catch (error) {
       if (!(error instanceof PriceChangedError)) throw error;
       // La transacción ya se revirtió. Recién ahora se guardan los precios nuevos,

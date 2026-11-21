@@ -50,8 +50,8 @@ export class PasswordResetService {
       expires_at: new Date(Date.now() + TOKEN_LIFETIME_MINUTES * 60_000),
     });
 
-    const frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
-    const link = `${frontendUrl}/restablecer-contrasena?token=${token}`;
+    const siteUrl = this.configService.getOrThrow<string>('PUBLIC_URL');
+    const link = `${siteUrl}/restablecer-contrasena?token=${token}`;
     await this.mailService.sendPasswordReset(
       user.email,
       link,

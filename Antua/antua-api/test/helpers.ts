@@ -6,7 +6,11 @@ import { DataSource } from 'typeorm';
 import { AppModule } from 'src/app.module';
 import { configureApp } from 'src/app.setup';
 import { Coupon } from 'src/coupons/entities/coupon.entity';
-import { MAIL_TRANSPORT, MailMessage } from 'src/mail/mail.types';
+import {
+  MAIL_RETRY_DELAY_MS,
+  MAIL_TRANSPORT,
+  MailMessage,
+} from 'src/mail/mail.types';
 import { Product } from 'src/products/entities/product.entity';
 import { ProductVariant } from 'src/products/entities/product-variant.entity';
 import { User, UserRole } from 'src/users/entities/user.entity';
@@ -15,6 +19,9 @@ export type TestApp = INestApplication<App>;
 
 /** Mails capturados en los e2e, en lugar de escribirlos en el log. */
 export const sentMails: MailMessage[] = [];
+
+/** Con `down = true`, el transporte falso falla como un proveedor caído (y cuenta los intentos). */
+export const mailFailures = { down: false, attempts: 0 };
 
 export async function createTestApp(): Promise<{
   app: TestApp;
@@ -26,10 +33,22 @@ export async function createTestApp(): Promise<{
     .overrideProvider(MAIL_TRANSPORT)
     .useValue({
       send: (message: MailMessage) => {
+        if (mailFailures.down) {
+          mailFailures.attempts++;
+          return Promise.reject(
+            Object.assign(new Error(`550 <${message.to}> rechazado`), {
+              code: 'EENVELOPE',
+              responseCode: 550,
+            }),
+          );
+        }
         sentMails.push(message);
         return Promise.resolve();
       },
     })
+    // Sin esperar entre el intento y el reintento.
+    .overrideProvider(MAIL_RETRY_DELAY_MS)
+    .useValue(0)
     .compile();
   const app: TestApp = moduleRef.createNestApplication();
   configureApp(app);

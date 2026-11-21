@@ -2,6 +2,8 @@ import { resolve } from 'node:path';
 import {
   assertProductionEnv,
   parseTrustProxy,
+  parseMailConfig,
+  validateEnv,
   parseLowStockThreshold,
   parseUploadsDir,
   parseCorsOrigins,
@@ -164,7 +166,15 @@ describe('validación del entorno', () => {
       );
       expect(() =>
         assertProductionEnv({ ...prod, FRONTEND_URL: undefined }),
-      ).toThrow('FRONTEND_URL');
+      ).toThrow('PUBLIC_URL');
+      // PUBLIC_URL reemplaza a FRONTEND_URL; con cualquiera de las dos alcanza.
+      expect(() =>
+        assertProductionEnv({
+          ...prod,
+          FRONTEND_URL: undefined,
+          PUBLIC_URL: 'https://antojarte.lan',
+        }),
+      ).not.toThrow();
     });
     it('no se conecta como root', () => {
       expect(() =>
@@ -200,6 +210,72 @@ describe('validación del entorno', () => {
       expect(() =>
         assertProductionEnv({ ...prod, SEED_ADMIN_PASSWORD: 'Admin123456' }),
       ).toThrow('SEED_ADMIN_PASSWORD');
+    });
+  });
+
+  describe('correo', () => {
+    const smtp = {
+      MAIL_TRANSPORT: 'smtp',
+      MAIL_HOST: 'smtp.proveedor.test',
+      MAIL_PORT: '587',
+      MAIL_FROM: 'Antojarte <pedidos@antojarte.example>',
+      MAIL_USER: 'usuario',
+      MAIL_PASSWORD: 'clave',
+    };
+
+    it('por defecto escribe en el log', () => {
+      expect(parseMailConfig({})).toEqual({ transport: 'log' });
+    });
+    it('con smtp completo arma la configuración', () => {
+      expect(parseMailConfig(smtp)).toEqual({
+        transport: 'smtp',
+        host: 'smtp.proveedor.test',
+        port: 587,
+        secure: false,
+        auth: { user: 'usuario', pass: 'clave' },
+        from: 'Antojarte <pedidos@antojarte.example>',
+      });
+      expect(parseMailConfig({ ...smtp, MAIL_PORT: '465' })).toMatchObject({
+        secure: true,
+      });
+    });
+    it('falla con un mensaje claro si falta algo', () => {
+      expect(() => parseMailConfig({ ...smtp, MAIL_HOST: '' })).toThrow(
+        'MAIL_HOST',
+      );
+      expect(() =>
+        parseMailConfig({ ...smtp, MAIL_FROM: 'no-es-un-correo' }),
+      ).toThrow('MAIL_FROM');
+      expect(() => parseMailConfig({ ...smtp, MAIL_PASSWORD: '' })).toThrow(
+        'juntas',
+      );
+      expect(() => parseMailConfig({ MAIL_TRANSPORT: 'sendgrid' })).toThrow(
+        'MAIL_TRANSPORT',
+      );
+    });
+    it('en producción usuario y contraseña son obligatorios', () => {
+      const local = { ...smtp, MAIL_USER: '', MAIL_PASSWORD: '' };
+      expect(parseMailConfig(local)).toMatchObject({ auth: null });
+      expect(() =>
+        parseMailConfig({ ...local, NODE_ENV: 'production' }),
+      ).toThrow('MAIL_USER, MAIL_PASSWORD');
+    });
+    it('PUBLIC_URL usa FRONTEND_URL si no se define', () => {
+      const base = {
+        SHIPPING_FLAT_RATE: '1500',
+        JWT_SECRET: 'x'.repeat(32),
+        JWT_EXPIRES_IN: '7d',
+      };
+      expect(
+        validateEnv({ ...base, FRONTEND_URL: 'https://a.test/' }).PUBLIC_URL,
+      ).toBe('https://a.test');
+      expect(
+        validateEnv({
+          ...base,
+          FRONTEND_URL: 'https://a.test',
+          PUBLIC_URL: 'https://b.test',
+        }).PUBLIC_URL,
+      ).toBe('https://b.test');
     });
   });
 

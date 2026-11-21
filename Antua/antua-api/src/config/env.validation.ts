@@ -21,6 +21,9 @@ export interface ValidatedEnv extends Record<string, unknown> {
   SHIPPING_FLAT_RATE: number;
   SHIPPING_ETA_DAYS: number | null;
   FRONTEND_URL: string;
+  /** URL pública del sitio: arma los enlaces de los correos. Igual a FRONTEND_URL si no se define. */
+  PUBLIC_URL: string;
+  MAIL: MailConfig;
   CORS_ORIGINS: string[];
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
@@ -32,6 +35,19 @@ export interface ValidatedEnv extends Record<string, unknown> {
 
 /** `false`: no hay proxy. Un número: cuántos proxies hay delante. Una lista: IPs, redes o nombres de Express. */
 export type TrustProxy = false | number | string[];
+
+/** Cómo salen los correos: al log (desarrollo) o por SMTP (producción, o Mailpit en desarrollo). */
+export type MailConfig =
+  | { transport: 'log' }
+  | {
+      transport: 'smtp';
+      host: string;
+      port: number;
+      secure: boolean;
+      /** null: servidor sin autenticación (solo desarrollo, por ejemplo Mailpit). */
+      auth: { user: string; pass: string } | null;
+      from: string;
+    };
 
 export function parseShippingFlatRate(raw: unknown): number {
   const text = typeof raw === 'string' ? raw.trim() : '';
@@ -73,6 +89,67 @@ export function parseFrontendUrl(raw: unknown): string {
     throw new Error(`FRONTEND_URL no es una URL válida (recibido: ${value}).`);
   }
   return value.replace(/\/+$/, '');
+}
+
+/** PUBLIC_URL o, para no romper un .env anterior, FRONTEND_URL. */
+const siteUrlOf = (config: Record<string, unknown>): unknown =>
+  textOf(config.PUBLIC_URL) || config.FRONTEND_URL;
+
+/**
+ * MAIL_TRANSPORT=log (por defecto) o smtp. Con smtp hacen falta MAIL_HOST, MAIL_PORT y MAIL_FROM;
+ * MAIL_USER y MAIL_PASSWORD van juntas y en producción son obligatorias. Si falta algo, la API no
+ * arranca y dice qué: es mejor que descubrir en un pedido real que los correos no salen.
+ */
+export function parseMailConfig(config: Record<string, unknown>): MailConfig {
+  const transport = textOf(config.MAIL_TRANSPORT) || 'log';
+  if (transport === 'log') return { transport };
+  if (transport !== 'smtp') {
+    throw new Error(
+      `MAIL_TRANSPORT tiene que ser log o smtp (recibido: ${transport}).`,
+    );
+  }
+  const production = config.NODE_ENV === 'production';
+  const required = ['MAIL_HOST', 'MAIL_PORT', 'MAIL_FROM'];
+  if (production) required.push('MAIL_USER', 'MAIL_PASSWORD');
+  const missing = required.filter((name) => textOf(config[name]) === '');
+  if (missing.length > 0) {
+    throw new Error(
+      `Con MAIL_TRANSPORT=smtp faltan: ${missing.join(', ')}. Ver .env.prod.example.`,
+    );
+  }
+  const port = Number(textOf(config.MAIL_PORT));
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    throw new Error(
+      `MAIL_PORT no es un puerto válido (recibido: ${textOf(config.MAIL_PORT)}).`,
+    );
+  }
+  const secureText = textOf(config.MAIL_SECURE);
+  if (!['', 'true', 'false'].includes(secureText)) {
+    throw new Error('MAIL_SECURE tiene que ser true o false.');
+  }
+  const from = textOf(config.MAIL_FROM);
+  // "Antojarte <pedidos@dominio>" o "pedidos@dominio".
+  if (!/^([^<>]*<[^@\s<>]+@[^@\s<>]+>|[^@\s<>]+@[^@\s<>]+)$/.test(from)) {
+    throw new Error(
+      `MAIL_FROM tiene que ser un correo, por ejemplo "Antojarte <pedidos@tu-dominio.com>" (recibido: ${from}).`,
+    );
+  }
+  const user = textOf(config.MAIL_USER);
+  const pass = textOf(config.MAIL_PASSWORD);
+  if ((user === '') !== (pass === '')) {
+    throw new Error(
+      'MAIL_USER y MAIL_PASSWORD van juntas (o ninguna, solo en desarrollo).',
+    );
+  }
+  return {
+    transport,
+    host: textOf(config.MAIL_HOST),
+    port,
+    // Sin MAIL_SECURE: TLS directo en el 465; en los demás, STARTTLS si el servidor lo ofrece.
+    secure: secureText === '' ? port === 465 : secureText === 'true',
+    auth: user ? { user, pass } : null,
+    from,
+  };
 }
 
 /** Lista separada por comas. Nunca acepta `*`: las credenciales del front irían a cualquier sitio. */
@@ -305,8 +382,8 @@ export function assertProductionEnv(config: Record<string, unknown>): void {
     'DB_USERNAME',
     'DB_PASSWORD',
     'DB_DATABASE',
-    'FRONTEND_URL',
   ].filter((name) => textOf(config[name]) === '');
+  if (textOf(siteUrlOf(config)) === '') missing.push('PUBLIC_URL');
   if (missing.length > 0) {
     throw new Error(
       `Faltan variables obligatorias en producción: ${missing.join(', ')}. Ver .env.prod.example.`,
@@ -325,9 +402,9 @@ export function assertProductionEnv(config: Record<string, unknown>): void {
   }
   assertStrongSecret('JWT_SECRET', config.JWT_SECRET, 32);
   assertStrongSecret('DB_PASSWORD', config.DB_PASSWORD, 16);
-  if (new URL(parseFrontendUrl(config.FRONTEND_URL)).protocol !== 'https:') {
+  if (new URL(parseFrontendUrl(siteUrlOf(config))).protocol !== 'https:') {
     throw new Error(
-      'En producción FRONTEND_URL tiene que ser HTTPS (los links de los mails apuntan ahí).',
+      'En producción PUBLIC_URL tiene que ser HTTPS (los enlaces de los correos apuntan ahí).',
     );
   }
   if (textOf(config.SEED_ADMIN_PASSWORD) !== '') {
@@ -343,7 +420,9 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     ...config,
     SHIPPING_FLAT_RATE: parseShippingFlatRate(config.SHIPPING_FLAT_RATE),
     SHIPPING_ETA_DAYS: parseShippingEtaDays(config.SHIPPING_ETA_DAYS),
-    FRONTEND_URL: parseFrontendUrl(config.FRONTEND_URL),
+    FRONTEND_URL: parseFrontendUrl(siteUrlOf(config)),
+    PUBLIC_URL: parseFrontendUrl(siteUrlOf(config)),
+    MAIL: parseMailConfig(config),
     CORS_ORIGINS: parseCorsOrigins(config.CORS_ORIGINS),
     JWT_SECRET: parseJwtSecret(config.JWT_SECRET),
     JWT_EXPIRES_IN: parseJwtExpiresIn(config.JWT_EXPIRES_IN),
