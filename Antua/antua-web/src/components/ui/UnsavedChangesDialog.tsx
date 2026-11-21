@@ -1,5 +1,5 @@
 import type { Blocker } from 'react-router-dom'
-import { ConfirmDialog } from '../ui/ConfirmDialog'
+import { ConfirmDialog } from './ConfirmDialog'
 
 /** Diálogo del useUnsavedChanges: la acción segura (seguir editando) va primero. */
 export function UnsavedChangesDialog({ blocker }: { blocker: Blocker }) {

@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useEffect, useId, useState, type FormEvent } from 'react'
 import { isAxiosError } from 'axios'
 import { changePassword, updateProfile } from '../../api/auth'
 import { getApiErrorMessage } from '../../api/client'
@@ -7,23 +7,39 @@ import { usePageMeta } from '../../hooks/usePageMeta'
 import { useAuthStore } from '../../stores/authStore'
 import { FormField } from '../../components/ui/FormField'
 import { Button } from '../../components/ui/Button'
+import { UnsavedChangesDialog } from '../../components/ui/UnsavedChangesDialog'
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges'
 
 const CARD = 'rounded-card bg-surface p-6 shadow-soft sm:p-8 dark:bg-dark-card dark:shadow-none'
 const PHONE_PATTERN = /^[0-9+() -]*$/
 
-/** Perfil: datos personales (GET/PATCH /users/me) y cambio de contraseña. */
+/**
+ * Perfil: datos personales (GET/PATCH /users/me) y cambio de contraseña.
+ * Si alguno de los dos formularios tiene cambios sin guardar, se avisa antes de salir (navegar
+ * dentro de la app o cerrar la pestaña). React Router admite un solo bloqueo a la vez: por eso el
+ * estado de los dos formularios se junta acá.
+ */
 export default function Profile() {
   usePageMeta('Mi perfil', 'Tus datos personales y tu contraseña en Antojarte.')
+  const [personalDirty, setPersonalDirty] = useState(false)
+  const [passwordDirty, setPasswordDirty] = useState(false)
+  const { blocker } = useUnsavedChanges(personalDirty || passwordDirty)
   return (
     <div className="flex max-w-xl flex-col gap-6">
       <h2 className="font-display text-3xl font-semibold">Perfil</h2>
-      <PersonalDataForm />
-      <PasswordForm />
+      <PersonalDataForm onDirtyChange={setPersonalDirty} />
+      <PasswordForm onDirtyChange={setPasswordDirty} />
+      <UnsavedChangesDialog blocker={blocker} />
     </div>
   )
 }
 
-function PersonalDataForm() {
+interface DirtyProps {
+  /** Avisa a la página si el formulario tiene cambios sin guardar. */
+  onDirtyChange: (dirty: boolean) => void
+}
+
+function PersonalDataForm({ onDirtyChange }: DirtyProps) {
   const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
   const baseId = useId()
@@ -33,6 +49,9 @@ function PersonalDataForm() {
   const [pending, setPending] = useState(false)
   const [status, setStatus] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
+  // Distinto de lo guardado: al guardar, setUser actualiza el usuario y deja de estar "sucio".
+  const dirty = fullName !== (user?.full_name ?? '') || phone !== (user?.phone ?? '')
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -104,7 +123,7 @@ function PersonalDataForm() {
 
 type PasswordField = 'current' | 'next' | 'confirm'
 
-function PasswordForm() {
+function PasswordForm({ onDirtyChange }: DirtyProps) {
   const setSession = useAuthStore((s) => s.setSession)
   const baseId = useId()
   // `formKey` remonta los campos para vaciarlos después de cambiar la contraseña.
@@ -146,6 +165,7 @@ function PasswordForm() {
     try {
       setSession(await changePassword(current, next))
       setFormKey((k) => k + 1)
+      onDirtyChange(false)
       setStatus('Cambiamos tu contraseña. Cerramos las sesiones de otros dispositivos.')
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 401) showErrors({ current: 'Esa no es tu contraseña actual. Revisala y probá de nuevo.' })
@@ -156,7 +176,15 @@ function PasswordForm() {
   }
 
   return (
-    <form key={formKey} noValidate onSubmit={(event) => void submit(event)} aria-labelledby={`${baseId}-title`} className={`flex flex-col gap-4 ${CARD}`}>
+    <form
+      key={formKey}
+      noValidate
+      onSubmit={(event) => void submit(event)}
+      // Los campos no son controlados: hay cambios si alguno de los tres tiene texto.
+      onInput={(event) => onDirtyChange([...new FormData(event.currentTarget).values()].some((value) => value !== ''))}
+      aria-labelledby={`${baseId}-title`}
+      className={`flex flex-col gap-4 ${CARD}`}
+    >
       <h3 id={`${baseId}-title`} className="font-display text-xl font-semibold">
         Cambiar contraseña
       </h3>
