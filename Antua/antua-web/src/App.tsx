@@ -15,6 +15,7 @@ const Checkout = lazy(() => import('./pages/Checkout'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Orders = lazy(() => import('./pages/account/Orders'))
 const OrderDetail = lazy(() => import('./pages/account/OrderDetail'))
+const GuestOrder = lazy(() => import('./pages/GuestOrder'))
 const Addresses = lazy(() => import('./pages/account/Addresses'))
 const Profile = lazy(() => import('./pages/account/Profile'))
 const PaymentResult = lazy(() => import('./pages/PaymentResult'))
@@ -80,6 +81,8 @@ const router = createBrowserRouter([
           { path: '/contacto', element: <Contact /> },
           { path: '/terminos', element: <Terms /> },
           { path: '/privacidad', element: <Privacy /> },
+          // Enlace del correo de confirmación de un invitado: /pedido/:id#t=<token>.
+          { path: '/pedido/:id', element: <GuestOrder /> },
           { path: '*', element: <NotFound /> },
         ],
       },
