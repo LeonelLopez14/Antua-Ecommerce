@@ -1,6 +1,6 @@
 # Se construye desde la raíz del monorepo. Corre el servidor de desarrollo de Vite,
 # que hace de proxy hacia la API (la API no necesita CORS en este modo).
-FROM node:24-alpine
+FROM node:26-alpine
 WORKDIR /app
 RUN corepack enable
 
