@@ -7,6 +7,8 @@ Proyecto de práctica: **solo credenciales y cuentas de prueba, nada de dinero r
 | Dato | Fuente |
 |---|---|
 | Firma: `x-signature` = `ts=…,v1=…`; HMAC-SHA256 en hexadecimal sobre `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`. Un par sin valor se omite. Comparación en tiempo constante. | Código del SDK oficial `mercadopago@3.6.1` (`WebhookSignatureValidator`), repositorio `mercadopago/sdk-nodejs` |
+| Credenciales de prueba: se crean con la aplicación (selector **Prueba** → Credenciales). El Access Token de prueba **empieza con `APP_USR-`**, igual que el de producción: por el prefijo no se distinguen. Revisado el 21/11/2026. | [Credenciales (Uruguay)](https://www.mercadopago.com.uy/developers/es/docs/your-integrations/credentials) |
+| Webhook: *Tus integraciones → app → Webhooks → Configurar notificaciones*, "URL modo pruebas", evento **Pagos**; al guardar se genera la clave secreta ("Restablecer" la cambia). Revisado el 21/11/2026. | [Webhooks (Uruguay)](https://www.mercadopago.com.uy/developers/es/docs/your-integrations/notifications/webhooks) |
 | `data.id` se lee de la query string; el aviso llega por POST en JSON con `type: "payment"`, `action`, `data.id`. Responder 200 o 201 dentro de 22 segundos; si no, reintenta cada 15 minutos. | [Webhooks](https://www.mercadopago.com.ar/developers/es/docs/your-integrations/notifications/webhooks) |
 | `POST /checkout/preferences` con `Authorization: Bearer`; campos `items`, `back_urls`, `auto_return`, `external_reference`, `notification_url`, `expires`, `expiration_date_to`, `date_of_expiration`; respuesta con `init_point` y `sandbox_init_point`. | Tipos y código del SDK oficial |
 | `back_urls` no acepta `localhost` ni `127.0.0.1`. `auto_return` documenta el valor `approved`. | [Back URLs](https://www.mercadopago.com.ar/developers/en/docs/checkout-pro-preferences/configure-back-urls) |
@@ -16,7 +18,9 @@ Proyecto de práctica: **solo credenciales y cuentas de prueba, nada de dinero r
 | Estados: `approved`, `authorized`, `in_process`, `pending`, `cancelled`, `charged_back`, `in_mediation`, `refunded`, `rejected`. | [Estado del pago](https://www.mercadopago.com.ar/developers/en/docs/checkout-api-payments/response-handling/query-results) |
 
 **No se pudo confirmar en la documentación (verificarlo con la primera prueba real):**
-- Si `sandbox_init_point` sigue siendo la URL correcta con las cuentas de prueba actuales. El código usa solo esa, justamente para que nunca se redirija a la de producción.
+- Si `sandbox_init_point` sigue siendo la URL correcta con las cuentas de prueba actuales. El código usa solo esa, justamente para que nunca se redirija a la de producción. Al 21/11/2026, las páginas de Checkout Pro de Uruguay no mencionan ni `sandbox_init_point` ni `init_point`.
+- Cómo se arma la cadena firmada del webhook: la página de Webhooks muestra el formato de `x-signature` pero no el *manifest*; el que se usa sale del SDK oficial.
+- Si con un vendedor de prueba hay que usar sus credenciales de producción en vez de las de prueba de la aplicación.
 - La unidad de `ts`: el SDK la trata como segundos y un ejemplo de la documentación tiene 13 dígitos. Por eso **no se valida la antigüedad del aviso**. La repetición de un aviso se neutraliza de otra forma: es idempotente y el estado siempre se consulta al proveedor.
 - Reglas propias de la moneda `UYU`. Las páginas consultadas no las detallan.
 
@@ -93,13 +97,4 @@ Una fila por pago del proveedor: `transaction_ref`, `status`, `amount`, `currenc
 pnpm payments:simulate <idPedido> approved    # también: pending, rejected, mismatch
 ```
 
-**De punta a punta con Mercado Pago (cuando lo decidas; no se abrió ningún túnel):**
-1. En *Tus integraciones*, creá una aplicación con Checkout Pro y copiá las credenciales de prueba.
-2. Creá las cuentas de prueba (vendedor y comprador).
-3. Levantá la API y el front, y exponelos con un túnel HTTPS (por ejemplo `cloudflared tunnel --url http://localhost:3000`, y otro para el `5173`).
-4. Completá `MP_ACCESS_TOKEN`, `MP_PUBLIC_API_URL` y `MP_PUBLIC_FRONTEND_URL`.
-5. En *Tus integraciones → Webhooks*, cargá `https://<tunel-api>/payments/webhook`, elegí el evento de pagos y copiá la clave secreta a `MP_WEBHOOK_SECRET`.
-6. Reiniciá la API, comprá con la cuenta compradora de prueba y verificá el estado en "Mis pedidos".
-7. Cerrá el túnel al terminar.
-
-Según la documentación, los pagos hechos con credenciales de prueba pueden no disparar notificaciones; en ese caso, usá la simulación de *Tus integraciones* o el retorno a `/pago/exitoso`, que consulta el estado al proveedor.
+**De punta a punta con Mercado Pago (cuando lo decidas):** seguí [`mercadopago-prueba.md`](./mercadopago-prueba.md): credenciales de prueba, cuentas de prueba, un túnel temporal hacia el front (Vite reenvía `/api`), el webhook y su clave, `pnpm payments:check` para revisar la configuración sin conectarse, la compra con las tarjetas de prueba oficiales, qué comprobar y cómo volver al modo simulado.

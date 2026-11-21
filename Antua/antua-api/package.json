@@ -28,6 +28,7 @@
     "migration:run:dist": "typeorm migration:run -d dist/database/data-source.js",
     "migration:generate": "pnpm typeorm migration:generate -d src/database/data-source.ts -p",
     "payments:simulate": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/simulate-mp-webhook.ts",
+    "payments:check": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/payments-check.ts",
     "admin:create": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/admin-create.ts",
     "nutrition:examples": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/nutrition-examples.ts",
     "seed": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed.ts",
