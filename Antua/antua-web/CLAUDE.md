@@ -85,6 +85,14 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 - Componentes que se abren pocas veces y pesan (drawer, modal) se cargan al abrirse (`components/layout/LazyPanels.tsx`, `lib/panels.ts`).
 - Mientras corre `pnpm dev` de la API, no correr `pnpm build` de la API: borra `dist/` y la API de desarrollo se cae. Para chequear tipos, `npx tsc --noEmit`.
 
+### Despliegue (Fase 14)
+- Guía y explicación de cada pieza: `docs/despliegue.md`. Producción es `docker-compose.prod.yml` (`name: antojarte`); el `docker-compose.yml` de la raíz es de desarrollo.
+- **CSP del proxy sin `unsafe-inline` ni `unsafe-eval`:** nada de `<script>` en línea en `index.html` (va en `public/`), ni `eval` o `new Function`, ni `<style>` inyectado. Imágenes solo del mismo origen, `data:` o `blob:`. Si algo nuevo lo necesita, cambiarlo en `deploy/caddy/Caddyfile` y documentar por qué. `e2e/csp.spec.ts` lo verifica.
+- Marca visible: **Antojarte**, con `translate="no"` en el texto. Las claves internas (`antua.auth`, `antua.theme`, `antua.guestToken`) no se renombran: se perderían sesiones y carritos.
+- Pruebas del despliegue: siempre en un proyecto aparte (`-p antojarte-test`), con puertos propios (8080/8443) y un `.env` fuera del repo. Nunca contra el entorno de desarrollo. `pnpm test:e2e:deploy` con `E2E_BASE_URL`, `E2E_API_URL`, `E2E_IGNORE_HTTPS_ERRORS=1` y `E2E_ADMIN_*`.
+- En producción la API usa `antua_app` (solo datos): las migraciones van por `run --rm migrate`, a mano. La migración de `database/proposed/` no se aplica sin que el usuario la lea.
+- Scripts de operación en `../scripts/` (bash comentado, LF por `.gitattributes`, con `git update-index --chmod=+x`). Antes de un commit: `../scripts/check-repo.sh`.
+
 ### Registro de trabajo
 - `docs/progreso.md`: qué se hizo en cada fase, commits, decisiones y pendientes.
 - `docs/estado-frontend.md`: foto actual y cómo correr todo.

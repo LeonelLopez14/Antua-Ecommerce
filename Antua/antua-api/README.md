@@ -15,6 +15,7 @@ Copiá `.env.example` a `.env`. La API valida el entorno al arrancar (`src/confi
 | `SHIPPING_ETA_DAYS` | No | Plazo estimado en días; vacía, no se muestra |
 | `FRONTEND_URL` | No | Links de los mails. Por defecto, `http://localhost:5173` |
 | `CORS_ORIGINS` | No | Orígenes permitidos, separados por coma; nunca `*` |
+| `TRUST_PROXY` | No | Proxies delante de la API (`1` detrás de Caddy) o lista de redes; nunca `true`. Así el límite de intentos usa la IP real del cliente |
 | `UPLOADS_DIR` | No | Carpeta de las imágenes del panel. Por defecto `uploads/` (en `.gitignore`); nunca dentro de `src/` |
 | `LOW_STOCK_THRESHOLD` | No | Umbral de "stock bajo" del panel. Por defecto `5` |
 | `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` | No | Credenciales **de prueba** de Mercado Pago. Sin ellas, los pagos quedan deshabilitados |
@@ -22,12 +23,16 @@ Copiá `.env.example` a `.env`. La API valida el entorno al arrancar (`src/confi
 | `PAYMENT_CURRENCY`, `PAYMENT_EXPIRATION_HOURS` | No | Por defecto, `UYU` y `48` |
 | `PAYMENTS_SIMULATED` | No | Solo desarrollo: pagos simulados, sin internet |
 
+**Con `NODE_ENV=production`** (la imagen de Docker ya lo trae) las reglas se endurecen: `DB_*` y `FRONTEND_URL` (HTTPS) son obligatorias, `DB_USERNAME` no puede ser `root`, `JWT_SECRET` y `DB_PASSWORD` no pueden ser de ejemplo ni débiles, y `SEED_ADMIN_PASSWORD` tiene que estar vacía. Despliegue: [`antua-web/docs/despliegue.md`](../antua-web/docs/despliegue.md).
+
 ## Comandos
 
 | Comando | Qué hace |
 |---|---|
 | `pnpm dev` | Levanta la API en modo watch (`:3000`) |
 | `pnpm build` | Compila a `dist/` |
+| `pnpm build:tools` | Compila `admin:create`, el seed y la nutrición a `dist-tools/` (los usa la imagen de producción, que no tiene ts-node) |
+| `pnpm lint:check` | ESLint sin `--fix` (el de la CI) |
 | `pnpm test` / `pnpm test:e2e` | Unitarios / e2e contra la base `antua_test` |
 | `pnpm migration:generate src/database/migrations/Nombre` | Genera una migración desde los cambios en las entidades |
 | `pnpm migration:run` / `:revert` / `:show` | Aplica, revierte o muestra migraciones. **La API no migra sola**: leé la migración y aplicala con `migration:run` |
@@ -35,6 +40,7 @@ Copiá `.env.example` a `.env`. La API valida el entorno al arrancar (`src/confi
 | `pnpm admin:create` | Crea un administrador (pide los datos o usa `ADMIN_EMAIL`, `ADMIN_NAME` y `ADMIN_PASSWORD`). `--promote` asciende una cuenta existente |
 | `pnpm nutrition:examples --dry-run` / `--yes` / `--undo --yes` | Carga (o deshace) información nutricional de ejemplo, solo en campos vacíos |
 | `pnpm seed` / `pnpm seed:clean --yes` | Carga o borra los datos de prueba (con `SEED_ADMIN_PASSWORD`, también un admin de desarrollo) |
+| `pnpm seed --catalog-only` | Solo tags y productos, sin usuarios, cupones ni reseñas. Es el único modo que corre en producción |
 | `pnpm payments:simulate <pedido> <estado>` | Envía un webhook firmado a una API simulada |
 
 ## Endpoints

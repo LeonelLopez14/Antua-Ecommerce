@@ -1066,3 +1066,103 @@ Se retomó la fase en otro equipo (Windows 11) para revisar qué faltaba del pro
 **`/web-interface-guidelines`:** el archivo `antua-web/.claude/commands/web-interface-guidelines.md` **no existe** en este equipo, y nunca se versionó en git. El comando no está disponible y la revisión con el comando real sigue pendiente. Para hacerla, hay que copiar el archivo al repo (o a `~/.claude/commands/`) y abrir la sesión en `antua-web`.
 
 ---
+
+## 20/11/2026: Fase 14, despliegue de prueba, respaldos y CI (`docs/prompt-fase-14-despliegue.md`)
+
+Guía completa y explicación de cada pieza: [`despliegue.md`](./despliegue.md).
+
+### Paso 0: estado base
+
+- Rama `feat/fase-14-despliegue`, creada desde `feat/fase-13-contenido-qa` (todavía no se mezcló a `main`).
+- **Front:** typecheck, lint y build OK; 49 unit tests.
+- **Back:** tipos, lint y build OK (compilado a una carpeta temporal: `pnpm build` borra `dist/` y la API de desarrollo corre desde ahí); 69 unit tests y 96 e2e.
+- El e2e del front **no** se corrió contra desarrollo: crea pedidos en `antua_db` y la regla de la fase es no tocar ese entorno. Se corrió contra `antojarte-test`.
+
+### 14.1: finales de línea
+
+- `.gitattributes` en la raíz del repo: `* text=auto`, y LF fijo para `.sh`, Dockerfiles, Caddyfile, systemd, YAML y archivos de Git. Los scripts tienen el bit de ejecución en Git (`100755`).
+- **Hallazgo:** seis PDF de `Design/` y `Documentation/` se habían detectado como texto. En Windows el checkout les metía CRLF y quedaban corruptos en la copia de trabajo (en el repo estaban bien). Ahora son `binary`, y se restauraron desde `HEAD` byte a byte.
+
+### 14.2 a 14.6: qué se hizo
+
+- **Imágenes:**
+  - API multi-etapa: usuario `node`, solo lectura, sin devDependencies ni npm.
+  - Proxy: Vite + Caddy, que valida el Caddyfile al construir.
+  - Versiones fijas: `node:24.22.3-alpine3.23`, `caddy:2.11.9-alpine`, `mysql:8.4.13` y pnpm 10.34.9.
+  - `Dockerfile.dockerignore` por paquete.
+  - El servidor de desarrollo del front pasó a `Dockerfile.dev`.
+- **`docker-compose.prod.yml`:**
+  - base sin puertos, en una red interna;
+  - solo el proxy publica, por defecto en 127.0.0.1;
+  - volúmenes, rotación de logs, healthchecks, límites de memoria y `cap_drop`;
+  - servicio `migrate` a mano.
+- **Caddy:**
+  - `/api` al mismo dominio y fallback de SPA;
+  - HTTPS `internal` o `public` (con HSTS, sin preload);
+  - CSP sin `unsafe-*` (el script del tema pasó a `public/theme-init.js`) y cabeceras de seguridad;
+  - zstd/gzip y caché inmutable de `/assets` y de las subidas.
+- **Base:** usuarios `antua_app` (datos), `antua_migrator` (esquema) y `antua_backup` (lectura). root, solo en `localhost`.
+- **Secretos:** `.env.prod.example`, `scripts/generate-secrets.sh` y validación estricta en producción.
+- **Respaldos:** `scripts/backup-db.sh` y `scripts/restore-db.sh`, más un timer de systemd. Prueba de restauración completa (abajo).
+- **CI:**
+  - `.github/workflows/ci.yml`: guardia del repo, front, API, e2e de la API con MySQL, imágenes y e2e opcional del front;
+  - Dependabot;
+  - acciones fijadas por SHA, verificado con `actionlint`.
+- **Pruebas del despliegue:**
+  - `e2e/env.ts` y `playwright.config.ts` aceptan otra URL; `pnpm test:e2e:deploy`;
+  - specs nuevos: `account-checkout.spec.ts` (compra con cuenta) y `csp.spec.ts`;
+  - `scripts/check-headers.sh`.
+- **Marca "Antojarte":** en todo el sitio (decisión del prompt). Debajo de 360 px el logo va sin ícono: con el nombre más largo, la Navbar desbordaba 32 px a 320 px.
+
+### Cambios en el backend, explicados
+
+- **`antua-api/src/config/env.validation.ts`, línea 236 (`parseTrustProxy`), y `src/app.setup.ts`, línea 21.**
+  - *Qué faltaba:* detrás de Caddy todas las requests llegan desde la IP del proxy. El límite de intentos (por ejemplo, 10 logins por minuto) contaba a **todos** los clientes como uno: bastaba con que una persona se equivocara diez veces para que nadie más pudiera iniciar sesión.
+  - *Qué cambió:* `TRUST_PROXY=1` le dice a Express que hay un proxy delante. Entonces toma la IP del cliente del header `X-Forwarded-For` que agrega Caddy. Nunca se acepta `true` (confiaría en cualquier header y se podría inventar una IP en cada intento).
+  - *Probado:* e2e `test/trust-proxy.e2e-spec.ts`. Además, contra el despliegue, 12 intentos con `X-Forwarded-For` falsos distintos dieron 429 desde el 11.º: falsificar la IP no saltea el límite.
+- **`env.validation.ts`, líneas 276 a 341 (`assertProductionEnv`).**
+  - *Qué faltaba:* nada impedía arrancar en producción con el `JWT_SECRET` de ejemplo. Con ese secreto, cualquiera puede fabricarse un token de admin.
+  - *Qué cambió:* con `NODE_ENV=production` la API no arranca si:
+    - faltan `DB_*` o `FRONTEND_URL`;
+    - se conecta como `root`;
+    - `JWT_SECRET` (32+) o `DB_PASSWORD` (16+) son de ejemplo, repetitivos o solo dígitos;
+    - `FRONTEND_URL` no es HTTPS;
+    - queda `SEED_ADMIN_PASSWORD`.
+
+    En desarrollo no cambia nada.
+  - *En simple:* es un portero que revisa que las llaves no sean las de fábrica antes de abrir.
+- **`src/app.module.ts`, línea 60 (`retryAttempts`, `retryDelay`).** Antes eran los valores por defecto de TypeORM, implícitos. Ahora están escritos: 10 intentos cada 3 s si la base no responde al arrancar. Después la API termina y Docker la vuelve a levantar.
+- **`src/main.ts`, línea 18.** Con el usuario de solo datos, `showMigrations()` falla en una base nueva, porque no puede crear la tabla `migrations`. Ahora el error explica que falta correr `migrate`, en vez de mostrar un `CREATE command denied` suelto.
+- **`scripts/seed.ts`, línea 76 (`--catalog-only`), y `scripts/nutrition-examples.ts`, línea 31 (`--allow-production`).** Permiten mostrar la tienda con productos de ejemplo en un servidor **sin** crear cuentas con contraseña conocida. El seed completo sigue negándose a correr en producción. `seed:clean` no se habilitó en producción: también borra pedidos.
+- **`tsconfig.tools.json` y `pnpm build:tools`:** compilan esos scripts a `dist-tools/`, porque la imagen de producción no tiene ts-node. Se compila con `nest build` porque reescribe los imports `src/...`; `tsc` solo los deja rotos.
+- **`package.json`:** `lint:check` (ESLint sin `--fix`, para la CI).
+
+No se tocaron Payments ni el webhook. La migración de índices propuesta sigue sin aplicar: queda como paso opcional en la guía.
+
+### Prueba de restauración
+
+En `antojarte-test`, con 15 productos, 8 usuarios, 6 pedidos y 2 imágenes:
+1. respaldo;
+2. se **borraron los volúmenes** de la base y de las subidas;
+3. se levantó una base vacía;
+4. se restauró.
+
+Los 15 conteos por tabla, los hashes de usuarios y pedidos, una consulta de ejemplo y el hash de la imagen quedaron **idénticos**, y el admin restaurado inicia sesión. También se probó que no pisa una base con datos sin `--force`, que rechaza un respaldo truncado, y que `--force` hace antes un respaldo de seguridad.
+
+### Check final
+
+- **Contra el despliegue** (Caddy, HTTPS interno en 8443):
+  - `test:e2e:deploy` 5/5;
+  - axe y teclado 34/34, con 0 violaciones;
+  - `check-headers.sh` "todo cumple";
+  - CSP sin violaciones, incluida la Home con Three.js;
+  - subidas que sobreviven a `restart` y a `down` + `up`;
+  - arranques fallidos con mensajes claros.
+- **Lighthouse por el proxy** (mediana de 3, móvil): Tienda 90 → 98, Ficha 89 → 97 y Home 60 → 67. El LCP móvil baja de ~3,2 s a ~2,3 s por la compresión y HTTP/2 de Caddy.
+- **Imágenes:** sin secretos en las capas ni en el contenido.
+- **`/web-interface-guidelines`:** primero no estaba disponible. Hasta ese momento se revisó a mano con las reglas del archivo, y así salió el `translate="no"` de la marca. En la última parte de la sesión el comando sí apareció y se ejecutó **con el comando real** sobre los archivos de `src/` modificados.
+  - Arreglado: "Mercado Pago" sin `translate="no"` en `PaymentResult.tsx`.
+  - Pendiente (preexistente): Perfil no avisa al salir con cambios sin guardar.
+- **Entorno de desarrollo:** durante una interrupción de la sesión se cerró Docker Desktop. `antua-mysql` quedó detenido (no tiene política de reinicio), y la API, el front y el preview dejaron de correr. No se reiniciaron desde acá: quedan para que los levante el usuario.
+
+---
