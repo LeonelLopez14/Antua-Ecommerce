@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios'
 import { api, imageUrl } from './client'
 import type {
   AdminCoupon,
@@ -236,4 +237,47 @@ export async function fetchAdminUsers(query: Query, signal?: AbortSignal): Promi
 export async function fetchAudit(query: Query, signal?: AbortSignal): Promise<Page<AuditEntry>> {
   const { data } = await api.get<Page<AuditEntry>>('/admin/audit', { params: clean(query), signal })
   return data
+}
+
+// ---------- Exportaciones (CSV) ----------
+
+export type CsvSeparator = 'semicolon' | 'comma'
+
+export interface CsvDownload {
+  blob: Blob
+  filename: string
+  /** Filas exportadas (header X-Export-Rows). */
+  rows: number
+}
+
+/**
+ * Descarga un CSV del panel. Con responseType 'blob', un error de la API (400, 422) también llega
+ * como Blob: se lee el JSON para que getApiErrorMessage muestre el motivo real.
+ */
+async function downloadCsv(path: string, params: Query, fallbackName: string): Promise<CsvDownload> {
+  try {
+    const res = await api.get<Blob>(path, { params: clean(params), responseType: 'blob', timeout: 60_000 })
+    const disposition = String(res.headers['content-disposition'] ?? '')
+    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallbackName
+    return { blob: res.data, filename, rows: Number(res.headers['x-export-rows'] ?? 0) }
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.data instanceof Blob) {
+      try {
+        error.response.data = JSON.parse(await error.response.data.text()) as unknown
+      } catch {
+        // Sin JSON: queda el mensaje genérico.
+      }
+    }
+    throw error
+  }
+}
+
+/** GET /admin/exports/orders.csv: rango obligatorio (from/to) y los filtros del listado. */
+export function downloadOrdersCsv(query: { from: string; to: string; status?: string; payment_status?: string; separator: CsvSeparator }) {
+  return downloadCsv('/admin/exports/orders.csv', query, 'pedidos.csv')
+}
+
+/** GET /admin/exports/products.csv: una fila por variante, con stock. */
+export function downloadProductsCsv(separator: CsvSeparator) {
+  return downloadCsv('/admin/exports/products.csv', { separator }, 'productos.csv')
 }

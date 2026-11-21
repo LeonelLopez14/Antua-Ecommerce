@@ -73,6 +73,8 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   'review.hide': 'Ocultó una reseña',
   'review.show': 'Volvió a mostrar una reseña',
   'review.delete': 'Borró una reseña',
+  'export.orders': 'Exportó pedidos (CSV)',
+  'export.products': 'Exportó el catálogo (CSV)',
 }
 
 export const AUDIT_ENTITY_LABEL: Record<string, string> = {

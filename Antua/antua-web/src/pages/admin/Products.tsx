@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { fetchAdminProducts, fetchAdminTags } from '../../api/admin'
+import { fetchAdminProducts, fetchAdminTags, downloadProductsCsv } from '../../api/admin'
 import { useResource } from '../../hooks/useResource'
 import { usePageMeta } from '../../hooks/usePageMeta'
 import { formatExactPrice, variantLabel } from '../../lib/format'
 import type { AdminProductListItem } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
+import { ExportCsv } from '../../components/admin/ExportCsv'
 import { DataTable, type Column } from '../../components/admin/DataTable'
 import { LoadingRows } from '../../components/admin/LoadingRows'
 import { ResultCount } from '../../components/admin/ResultCount'
@@ -116,6 +117,10 @@ export default function Products() {
           </ButtonLink>
         }
       />
+
+      <section aria-label="Exportar catálogo" className="mb-4">
+        <ExportCsv what="variantes" onExport={downloadProductsCsv} />
+      </section>
 
       <div className="mb-4 grid gap-4 rounded-card bg-surface p-4 sm:grid-cols-2 lg:grid-cols-4 dark:bg-dark-card">
         <SearchField id="buscar-producto" label="Buscar" value={query.get('q')} placeholder="Nombre, slug o SKU…" onSearch={(q) => query.set({ q })} />
