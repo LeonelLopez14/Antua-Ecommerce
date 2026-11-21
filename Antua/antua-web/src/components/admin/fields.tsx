@@ -2,7 +2,7 @@ import type { ReactNode, Ref, SelectHTMLAttributes, TextareaHTMLAttributes } fro
 
 const control = (error?: string) =>
   `mt-1 w-full rounded-xl border bg-bg px-3 py-2.5 text-base text-text-main placeholder:text-text-main/50 dark:bg-dark-bg dark:text-dark-text-main dark:placeholder:text-dark-text-secondary/70 ${
-    error ? 'border-accent-main dark:border-dark-accent-main' : 'border-text-main/60 dark:border-dark-text-secondary/60'
+    error ? 'border-accent-main dark:border-dark-accent-main' : 'border-border-control dark:border-dark-border-control'
   }`
 
 function Feedback({ id, error, hint }: { id: string; error?: string; hint?: string }) {

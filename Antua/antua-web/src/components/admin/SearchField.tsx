@@ -46,7 +46,7 @@ export function SearchField({ id, label, value, placeholder, onSearch }: SearchF
             setDraft(event.target.value)
             debounced(event.target.value.trim())
           }}
-          className="min-h-11 w-full rounded-xl border border-text-main/60 bg-bg py-2.5 pr-3 pl-9 text-base text-text-main placeholder:text-text-main/50 dark:border-dark-text-secondary/60 dark:bg-dark-bg dark:text-dark-text-main dark:placeholder:text-dark-text-secondary/70"
+          className="min-h-11 w-full rounded-xl border border-border-control bg-bg py-2.5 pr-3 pl-9 text-base text-text-main placeholder:text-text-main/50 dark:border-dark-border-control dark:bg-dark-bg dark:text-dark-text-main dark:placeholder:text-dark-text-secondary/70"
         />
       </div>
     </form>

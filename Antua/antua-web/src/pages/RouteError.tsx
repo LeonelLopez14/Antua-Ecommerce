@@ -37,7 +37,7 @@ export default function RouteError() {
         {/* <a> y no <Link>: el router puede estar en un estado roto, así que se recarga desde cero. */}
         <a
           href="/"
-          className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-accent-tertiary px-6 py-3 font-bold transition-[background-color] duration-200 ease-out hover:bg-accent-secondary dark:border-dark-text-secondary dark:hover:bg-dark-card"
+          className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-border-control px-6 py-3 font-bold transition-[background-color] duration-200 ease-out hover:bg-accent-secondary dark:border-dark-border-control dark:hover:bg-dark-card"
         >
           Ir al inicio
         </a>
