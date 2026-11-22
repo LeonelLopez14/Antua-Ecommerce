@@ -84,7 +84,7 @@ export function orderConfirmationMail(
     preheader: `Pedido #${data.orderId}: ${formatMoney(data.total)}`,
     body: [
       paragraph(
-        `Recibimos tu pedido #${data.orderId} el ${formatDateTime(data.createdAt)}.`,
+        `Recibimos tu pedido #${data.orderId} (${formatDateTime(data.createdAt)}).`,
       ),
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0">${rows}</table>`,
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">`,
