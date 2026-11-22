@@ -109,7 +109,7 @@ export default function GuestOrder() {
               <h2 id="envio-title" className="font-bold">
                 Envío a
               </h2>
-              <p className="mt-1">{order.shipping.fullName}</p>
+              <p className="mt-1 break-words">{order.shipping.fullName}</p>
               <p className="break-words">{order.shipping.street}</p>
               <p>
                 {order.shipping.city} ({order.shipping.postalCode})
