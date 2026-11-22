@@ -81,9 +81,22 @@ http://{$SITE_ADDRESS:localhost} {
 	header -Server
 
 	# Registro de accesos en JSON, por la salida estándar (Docker lo rota: ver compose).
+	# Sin llaves de acceso en el log: el token del pedido de invitado (X-Order-Token), el del
+	# carrito (X-Guest-Token, también en la respuesta) y el token de recuperación de contraseña
+	# (?token= en la URL). Caddy ya oculta Authorization y las cookies.
 	log {
 		output stdout
-		format json
+		format filter {
+			wrap json
+			fields {
+				request>headers>X-Order-Token delete
+				request>headers>X-Guest-Token delete
+				resp_headers>X-Guest-Token delete
+				request>uri query {
+					delete token
+				}
+			}
+		}
 	}
 
 	# --- API ---
