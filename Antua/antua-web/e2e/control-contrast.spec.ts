@@ -34,7 +34,7 @@ function contrastIn(page: Page, selector: string) {
       }
       return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
     }
-    return [...document.querySelectorAll(sel)]
+    return Array.from(document.querySelectorAll(sel))
       .filter((el) => (el as HTMLElement).offsetParent !== null)
       .map((el) => {
         const bg = background(el.parentElement)
