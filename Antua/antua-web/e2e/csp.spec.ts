@@ -36,6 +36,9 @@ test('la CSP permite todo lo que usa el sitio y no hay errores en la consola', a
   expect(csp).not.toMatch(/unsafe-inline|unsafe-eval/)
 
   const problems = await watch(page)
+  // El Chromium de las pruebas no tiene GPU: sin esto la Home muestra el poster. Acá se quiere
+  // comprobar que Three.js funciona con la CSP, así que se fuerza la escena (marca de herramienta).
+  await page.addInitScript(() => localStorage.setItem('antua.force3d', '1'))
 
   // Home: la escena 3D se monta cuando la página terminó de cargar (canvas de Three.js).
   await page.goto('/')

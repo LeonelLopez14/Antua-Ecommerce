@@ -16,6 +16,8 @@ export interface Cookie3DProps {
   animated?: boolean
   /** Flotación automática. false = pausada por el usuario (el giro con el scroll sigue). */
   floating?: boolean
+  /** Equipo modesto (lib/deviceTier.ts): densidad de píxeles 1×. */
+  lowEnd?: boolean
   config?: CookieConfig
   onReady?: (handle: CookieHandle) => void
   className?: string
@@ -30,6 +32,7 @@ export default function Cookie3D({
   active = true,
   animated = true,
   floating = true,
+  lowEnd = false,
   config = cookieConfig,
   onReady,
   className,
@@ -41,7 +44,8 @@ export default function Cookie3D({
     <div aria-hidden="true" className={className}>
       <Canvas
         // Hasta 1,5×: en pantallas densas, 2× casi duplica el trabajo por cuadro sin una mejora visible.
-        dpr={[1, 1.5]}
+        // En equipos modestos, 1× (la mitad de píxeles o menos que 1,5×).
+        dpr={lowEnd ? 1 : [1, 1.5]}
         frameloop={frameloop}
         camera={{ fov: camera.fov, position: camera.position }}
         gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}

@@ -176,6 +176,10 @@ test('prefers-reduced-motion: sin pin del hero ni flotación', async ({ page }) 
   await page.reload()
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await expect(page.locator('.pin-spacer')).toHaveCount(0)
+  // Con movimiento reducido, solo el poster: la escena 3D (y su chunk) no se carga.
+  await page.waitForTimeout(2500)
+  await expect(page.locator('[data-hero-stage] canvas')).toHaveCount(0)
+  await expect(page.locator('[data-hero-stage] img')).toBeVisible()
 })
 
 test('prefers-color-scheme: oscuro aplica color-scheme y theme-color', async ({ page }) => {
@@ -185,7 +189,7 @@ test('prefers-color-scheme: oscuro aplica color-scheme y theme-color', async ({ 
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(21, 21, 21)')
 })
 
-test('Home sin WebGL: se ve la galleta de respaldo, sin errores', async ({ baseURL }) => {
+test('Home sin WebGL: se ve el poster de la galleta, sin errores', async ({ baseURL }) => {
   const browser = await chromium.launch({ args: ['--disable-3d-apis', '--disable-webgl'] })
   const page = await browser.newPage()
   const errors: string[] = []
@@ -194,7 +198,11 @@ test('Home sin WebGL: se ve la galleta de respaldo, sin errores', async ({ baseU
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await page.waitForTimeout(2500)
   expect(await page.locator('canvas').count()).toBe(0)
-  expect(await page.locator('main svg').count()).toBeGreaterThan(0)
+  // El poster cargó de verdad (no una imagen rota) y no hay botón de pausa (no hay animación).
+  const poster = page.locator('[data-hero-stage] img')
+  await expect(poster).toBeVisible()
+  expect(await poster.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
+  await expect(page.getByRole('button', { name: /animación de la galleta/ })).toHaveCount(0)
   expect(errors).toEqual([])
   await browser.close()
 })
