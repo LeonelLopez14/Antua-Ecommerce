@@ -36,7 +36,7 @@ Severidad: **alta** (impide usar algo o incumple WCAG AA), **media** (molesta o 
 | A3 | Media | Navbar a 320 px | 2 px de desborde horizontal, con el menú "Ayuda" | `gap-2` en pantallas angostas | `f519db1c` |
 | A4 | Alta | Diálogos del panel (mover stock, editar variante, editar tag) | Al cerrar con Escape, el foco quedaba en `<body>` (se desmontan sin animación de salida) | `Dialog` devuelve el foco al disparador también al desmontarse | `2250dffc` |
 | A5 | Alta | Checkout con la sesión vencida | Mostraba "No pudimos confirmar tu pedido: Unauthorized", en inglés y sin salida, y seguía con la sesión muerta | Ante un 401 con sesión (salvo login y cambio de contraseña) se cierra la sesión y se abre el AuthModal con "Tu sesión venció…" | `4ac91a77` |
-| A6 | Baja | Botón secundario | Borde `#A8B89A` sobre `#FFFBE9`: 2,03:1 | **No se cambió.** El botón se identifica por su texto (13:1), así que no incumple, pero es una decisión de diseño abierta (DESIGN.md §12.4) | — |
+| A6 | Baja | Botón secundario | Borde `#A8B89A` sobre `#FFFBE9`: 2,03:1 | **Resuelto en la Fase 15:** token `border-control` (`#7E8A74`, 3,50:1) y `dark-border-control` (`#8A8378`, 3,92:1 en el peor caso), medidos con `qa/contrast.ts` y en el navegador con `e2e/control-contrast.spec.ts` | Fase 15 |
 
 ### Rendimiento
 
@@ -102,17 +102,44 @@ Hallazgos nuevos, los dos de portabilidad y ya corregidos:
 | W2 | Media | `e2e/admin.spec.ts` | `execFileSync('pnpm')` da `ENOENT` en Windows (pnpm es un `.cmd`) | `shell` solo en Windows, con argumentos fijos | `30bf2598` |
 | W3 | Baja | `env.validation.spec.ts` (API) | El test de `UPLOADS_DIR` esperaba rutas POSIX literales | Compara con `path.resolve`. El código ya era correcto | `88173d89` |
 
+## Fase 15 (21/11/2026)
+
+Medido contra el despliegue de prueba (Caddy con HTTPS interno, build de producción), mediana de 3 corridas. Resultados en `lighthouse/fase15-antes/` y `lighthouse/fase15-despues/`.
+
+| Página | Dispositivo | Antes | Después |
+|---|---|---|---|
+| Home | móvil | 67 · LCP 2,5 s · TBT 4407 ms | **96** · LCP 2,5 s · TBT 49 ms |
+| Home | escritorio | 99 · TBT 108 ms | 100 · TBT 35 ms |
+| Tienda | móvil | 97 · LCP 2,3 s | 97 · LCP 2,2 s |
+| Tienda | escritorio | 100 | 100 |
+
+Accesibilidad, buenas prácticas y SEO: 100 antes y después. CLS 0 en todas.
+
+**Qué cambió en la Home** (detalle en `progreso.md`):
+- Se muestra de inmediato un **poster**: una captura de la escena real (`public/hero-cookie.webp`, 33 kB, generada con `qa/hero-poster.ts`), con `width`/`height` y `fetchpriority="high"`. Ocupa el mismo tamaño y lugar que la escena, así que el cambio no se nota y no hay CLS.
+- La escena 3D se monta encima con la página cargada, el navegador libre y el hero en pantalla. Se pausa con la pestaña oculta, usa `dpr` 1 en equipos modestos y no se carga con `prefers-reduced-motion`.
+- **WebGL por software** (SwiftShader, llvmpipe) ahora se detecta por el nombre del renderer y muestra solo el poster: ahí cada cuadro de la escena es una tarea larga.
+
+**Cómo leer el 96:** el Chrome de Lighthouse no tiene GPU, así que ahora recibe el poster, como cualquier visitante con WebGL por software. El salto de TBT (4,4 s → 49 ms) es real para esos equipos. **El costo de la escena en un teléfono con GPU no lo mide este número** y sigue pendiente (punto 2 de abajo). No se usó ninguna detección de Lighthouse: la condición es la misma para cualquier navegador.
+
+**Otros resultados de la fase:**
+- axe: 0 hallazgos en todos los niveles (375/1280 px, claro y oscuro, panel con exportación incluido). Teclado, 34/34.
+- Bordes de controles medidos en el navegador: claro 3,50/3,37, oscuro 4,87/4,49 (`e2e/control-contrast.spec.ts`).
+- Resiliencia 6/6. Compra en Firefox y WebKit: OK. Una corrida, justo después de la suite de resiliencia, falló una vez y no se repitió en 4 intentos (intermitente).
+- Correos con Mailpit: confirmación y cambio de estado, HTML en claro y oscuro, nombre con HTML inyectado sin ejecutarse (`e2e/mail.spec.ts`).
+- **Hallazgo de seguridad, corregido:** el log de accesos de Caddy guardaba en claro `X-Order-Token`, `X-Guest-Token` y el `?token=` de recuperación. Ahora los filtra (`deploy/caddy/Caddyfile`).
+
 ## Pendiente
 
 1. **Probar con un lector de pantalla real** (lista en `accesibilidad-manual.md`).
 2. **Medir la Home con 3D en un teléfono con GPU** (Chrome DevTools → Performance, con throttling de CPU ×4), porque Lighthouse sin GPU no sirve para el TBT. Si se traba, habría que pausar la flotación cuando no hay interacción.
 3. ~~WebKit~~: resuelto en Windows (20/11). En Linux sigue haciendo falta `sudo pnpm --filter antua-web exec playwright install-deps webkit` antes de `playwright test --project=webkit`.
 4. **Leer y aplicar la migración de índices propuesta** (P7).
-5. **Decidir el borde del botón secundario** (A6).
+5. ~~Borde del botón secundario (A6)~~: resuelto en la Fase 15.
 6. **Lighthouse sigue marcando detalles:**
-   - el CSS propio (11 kB) bloquea el render: la alternativa es extraer el CSS crítico en línea;
+   - el CSS propio (11 kB) bloquea el render. Extraer el CSS crítico en línea **no se hace**: la CSP prohíbe estilos en línea (`style-src 'self'`), y eso pesa más que 11 kB;
    - quedan ~43 kB de React y React Router sin usar en cada página;
-   - faltan los *source maps* de Three en la Home.
+   - ~~faltan los source maps de Three en la Home~~: Lighthouse ya no baja Three (recibe el poster).
 
    Ninguno impide llegar a los objetivos.
 7. **Las imágenes que suben los admins no se convierten a WebP en el servidor:** se aceptan JPEG y PNG tal cual. Para convertirlas haría falta `sharp`.

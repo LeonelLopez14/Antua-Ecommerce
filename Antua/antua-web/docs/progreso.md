@@ -1166,3 +1166,153 @@ Los 15 conteos por tabla, los hashes de usuarios y pedidos, una consulta de ejem
 - **Entorno de desarrollo:** durante una interrupción de la sesión se cerró Docker Desktop. `antua-mysql` quedó detenido (no tiene política de reinicio), y la API, el front y el preview dejaron de correr. No se reiniciaron desde acá: quedan para que los levante el usuario.
 
 ---
+
+## 21/11/2026: Fase 15, correos, exportaciones, Home 3D y pulido (`docs/prompt-fase-15-pulido.md`)
+
+### Paso 0: estado base
+
+- Rama `feat/fase-15-pulido`, creada desde `feat/fase-14-despliegue` (todavía no se mezcló a `main`).
+- **Trabajo en un git worktree aparte** (`D:/Antua/Antua-Ecommerce-f15`). Tu API corre con `nest start --watch` y el front con Vite: cualquier cambio en la carpeta del repo los habría recompilado y reiniciado solos. En el worktree, tu entorno no se enteró de nada.
+- **Línea base:**
+  - Front: typecheck, lint y build OK; 49 unit tests.
+  - Back: tipos, lint y build OK; 78 unit tests y **98/98 e2e**. Los e2e de la API eran el pendiente de la Fase 14.
+- Durante la fase el equipo se apagó o reinició (cambió la fecha). Tu `antua-mysql`, la API y el front quedaron detenidos: no lo causé yo y no los volví a levantar. Desde ahí, los e2e de la API corrieron contra una base de prueba propia (`antojarte-f15-mysql`, 127.0.0.1:3317), no contra tu `antua-mysql`.
+
+### Qué se hizo
+
+| Parte | Resultado |
+|---|---|
+| 15.1 Perfil | Avisa antes de salir con cambios sin guardar. `useUnsavedChanges` y su diálogo pasaron a `hooks/` y `components/ui/` (la tienda no puede importar del panel) |
+| 15.1 Borde | Tokens `border-control` `#7E8A74` (3,50 / 3,37 / 3,24 en claro) y `dark-border-control` `#8A8378` (4,87 / 4,49 / 3,92 en oscuro). Medidos con `qa/contrast.ts` y en el navegador (`e2e/control-contrast.spec.ts`). DESIGN.md actualizado |
+| 15.1 Marca | "Antojarte" en el título del pedido para Mercado Pago y en el favicon. Pendiente de decisión: los emails de prueba `@antua.test` del seed (ver abajo) |
+| 15.2 Home 3D | Poster real, escena encima solo con GPU, pausa con pestaña oculta, `dpr` 1 en equipos modestos. Lighthouse móvil 67 → 96 (ver `qa/informe-qa.md`, "Fase 15") |
+| 15.3 Correos | SMTP con plantillas (confirmación, estado y recuperación), Mailpit en desarrollo y página `/pedido/:id#t=` para el enlace del invitado |
+| 15.4 CSV | Pedidos y productos para admins, con auditoría, anti-fórmulas y streaming. Botones en el panel |
+| 15.5 SEO | `/sitemap.xml` y `/robots.txt` generados por la API y servidos por Caddy |
+| 15.6 Mercado Pago | `pnpm payments:check` sin conectarse y `docs/mercadopago-prueba.md`, verificada contra la documentación oficial de Uruguay. `payments-design.md` corregido: el token de prueba empieza con `APP_USR-`, no con `TEST-` |
+| Seguridad | El log de accesos de Caddy guardaba `X-Order-Token`, `X-Guest-Token` y el `?token=` de recuperación (falla de la Fase 14). Ahora los filtra |
+
+### Cambios en el backend, explicados
+
+**Correo: configuración** (`src/config/env.validation.ts`, línea 103, `parseMailConfig`).
+- *Qué faltaba:* el único "transporte" escribía el correo en el log. En producción se negaba a funcionar: no había forma de mandar un correo de verdad.
+- *Qué cambió:* `MAIL_TRANSPORT=log` (como antes) o `smtp`.
+  - Con `smtp` hacen falta `MAIL_HOST`, `MAIL_PORT` y `MAIL_FROM`. `MAIL_USER` y `MAIL_PASSWORD` van juntas y en producción son obligatorias.
+  - Si falta algo, la API **no arranca** y dice qué falta.
+  - `MAIL_SECURE` vacío usa TLS directo solo en el puerto 465.
+- *Por qué:* es mejor que la API no levante a descubrir con un pedido real que los correos no salen.
+
+**`PUBLIC_URL`** (misma archivo, línea 95, `siteUrlOf`).
+- Es la URL pública del sitio para los enlaces de los correos y del sitemap.
+- Si no está, se usa `FRONTEND_URL`, así un `.env.prod` de la Fase 14 sigue andando.
+- En producción tiene que ser HTTPS.
+
+**Transporte SMTP** (`src/mail/smtp-mail.transport.ts`, nuevo; `src/mail/mail.module.ts`).
+- Usa nodemailer 10.3.1, con versión exacta.
+- Un *provider* de Nest con `useFactory` elige el transporte según la configuración. Un provider es lo que Nest "inyecta" cuando un servicio pide algo en su constructor.
+
+**`MailService.deliver`** (`src/mail/mail.service.ts`, línea 50).
+- *Qué faltaba:* si el envío fallaba, el error subía y podía cortar lo que lo llamó.
+- *Qué cambió:* arma el correo con la plantilla, lo manda y, si falla, reintenta una vez. **Nunca rechaza:** devuelve `false`.
+- En el log queda solo el tipo de correo, el número de pedido y el **código** del error (línea 22, `errorCode`). Nunca el mensaje, porque un servidor SMTP puede incluir la dirección ("550 <ana@…>: unknown user").
+- *En simple:* el cartero no puede hacer que se pierda el pedido. Si no puede entregar la carta, lo anota (sin escribir a quién era) y sigue.
+
+**Plantillas** (`src/mail/templates/`).
+- Son funciones puras que devuelven asunto, texto y HTML, con la paleta de DESIGN.md, sin imágenes remotas ni rastreadores.
+- `escapeHtml` (`layout.ts`, línea 15) convierte `<`, `>`, `&` y comillas en texto. Todo dato del cliente pasa por ahí: un nombre `<script>` se lee, no se ejecuta.
+- `safeUrl` (línea 25) solo acepta enlaces `http(s)`.
+
+**Cuándo salen** (`src/notifications/order-notifications.service.ts`, nuevo).
+- `orderPlaced` (línea 35) se llama en `src/orders/orders.service.ts`, línea 85.
+- `statusChanged` (línea 48) se llama en `src/admin/orders/admin-orders.service.ts`, línea 275.
+- Los dos corren **después** de confirmar la transacción y con `void` (no se esperan): la respuesta no se demora y un correo caído no deshace nada.
+- El invitado recibe `/pedido/:id#t=<token>`. Es la única vez que el token existe en claro (en la base solo está el hash), y va en el fragmento `#`, que el navegador nunca manda al servidor.
+- El aviso de estado no lleva el token (ya no se puede recuperar). Le dice que use el enlace de la confirmación.
+
+**Transporte `log`** (`src/mail/log-mail.transport.ts`, línea 21).
+- *Qué cambió:* antes escribía todo el cuerpo del correo en el log. Con la confirmación, eso habría incluido nombre y dirección.
+- Ahora escribe solo el destinatario enmascarado, el asunto y los enlaces (necesarios para probar la recuperación sin SMTP).
+
+**Exportaciones CSV** (`src/admin/exports/`).
+- `GET /admin/exports/orders.csv` (servicio, línea 120) y `GET /admin/exports/products.csv` (línea 214), con `@AdminController`: solo admins. La matriz de autorización las recorre sola.
+- Primero se **cuenta**: si pasa de `EXPORT_MAX_ROWS` (línea 30, 10.000), responde 422 y explica qué hacer. Después se **audita** quién exportó, qué y cuántas filas. Recién ahí se manda el archivo en **streaming** (línea 301): las filas salen de MySQL de a una (`qb.stream()`) y un `Transform` las convierte en texto CSV, sin juntarlas en memoria.
+- **Formato:**
+  - UTF-8 con BOM, separador `;` (o `?separator=comma`) y CRLF;
+  - montos con punto (`1500.00`) y la moneda en otra columna;
+  - fechas ISO 8601 en hora de Montevideo (`2026-11-20T12:30:05-03:00`).
+- **Inyección de fórmulas** (`csv.ts`, línea 22): un texto que empieza con `=`, `+`, `-`, `@`, tab o retorno de carro, Excel lo ejecuta como fórmula. Se le antepone un apóstrofo. Solo a los textos: los montos son números.
+- **Datos personales mínimos:** nombre, ciudad y código postal. Sin email, teléfono, calle, hashes ni tokens.
+
+**SEO** (`src/seo/`).
+- `GET /sitemap.xml` (controller, línea 22): páginas públicas y productos **activos**. `lastmod` es el último cambio en la auditoría del panel, porque los productos no tienen columna de fecha de actualización.
+- `GET /robots.txt` (línea 50): con la URL absoluta del sitemap.
+- Caddy los sirve en la raíz del sitio.
+
+**`payments:check`** (`src/config/payments-check.ts`, línea 27; `scripts/payments-check.ts`).
+- Revisa la configuración de Mercado Pago **sin conectarse**: modo, formato del token, URLs HTTPS y la URL del webhook.
+- No imprime secretos completos.
+
+**Marca:** `src/payments/mercadopago.provider.ts`, línea 40: el título del pedido que ve quien paga dice "Antojarte". No cambia nada más del módulo Payments.
+
+### Para probarlo con curl
+
+```bash
+# Correos de desarrollo: Mailpit (y en antua-api/.env: MAIL_TRANSPORT=smtp, MAIL_HOST=127.0.0.1,
+# MAIL_PORT=1025, MAIL_FROM="Antojarte <pedidos@antojarte.example>"); los correos, en http://127.0.0.1:8025
+docker compose --profile mail up -d mailpit
+
+# Exportaciones (con el token de un admin: POST /auth/login)
+TOKEN=…
+curl -H "Authorization: Bearer $TOKEN" -o pedidos.csv \
+  "http://localhost:3000/admin/exports/orders.csv?from=2026-11-01&to=2026-11-30"
+curl -H "Authorization: Bearer $TOKEN" -o productos.csv \
+  "http://localhost:3000/admin/exports/products.csv?separator=comma"
+curl -i "http://localhost:3000/admin/exports/orders.csv"     # sin token: 401
+
+# SEO
+curl http://localhost:3000/sitemap.xml
+curl http://localhost:3000/robots.txt
+
+# Mercado Pago, sin conectarse
+pnpm --filter antua-api payments:check
+```
+
+### Front
+
+- **`/pedido/:id#t=<token>`** (`pages/GuestOrder.tsx`): el pedido del invitado por el enlace del correo, con noindex y excluido de `robots.txt`.
+- **"Exportar CSV"** en Pedidos (usa los filtros y pide el rango) y en Productos, con el separador elegible.
+- **Home:**
+  - poster `public/hero-cookie.webp`; se regenera con `qa/hero-poster.ts` si cambia el modelo;
+  - `useWebGLSupport` descarta WebGL por software;
+  - `usePageVisible` y `lib/deviceTier.ts`.
+- **`vite.config.ts`:** `DEV_ALLOWED_HOSTS` opcional, solo para el túnel de Mercado Pago.
+
+### Tests
+
+- **Back:** 113 unit y 112 e2e.
+- **Front:** 59 unit.
+- **Contra el despliegue de prueba:**
+  - `test:e2e:deploy` 6/6;
+  - axe y teclado 34/34, con 0 hallazgos;
+  - bordes 2/2;
+  - correos con Mailpit 1/1;
+  - resiliencia 6/6;
+  - Firefox y WebKit OK (una falla intermitente en 5 corridas).
+- Un caso unitario de `GuestOrder` (404 con un mock de axios) daba un rechazo sin manejar que vino del mock, no de la página. Se pasó a Playwright contra la API real (`e2e/guest-order.spec.ts`).
+
+### `/web-interface-guidelines` (comando real)
+
+Corrido sobre todo lo que se tocó en `src/`. Hallazgos corregidos:
+- "Mercado Pago" sin `translate="no"`;
+- el aviso de Perfil;
+- un nombre largo en el pedido de invitado.
+
+### Pendientes y decisiones tuyas
+
+- **Emails de prueba `@antua.test`** (cuentas del seed, e2e y tests): cambiarlos a `@antojarte.example` toca las cuentas que ya existen en tu base de desarrollo y el patrón de `seed:clean`.
+- **`updated_at` en productos:** daría un `lastmod` exacto en el sitemap, pero requiere una migración (hoy sale de la auditoría).
+- **Medir la Home 3D en un teléfono con GPU** (Lighthouse no tiene GPU).
+- **Probar con un SMTP real** (SPF, DKIM y DMARC dependen del dominio) y **Mercado Pago de prueba** (`docs/mercadopago-prueba.md`).
+- Siguen los de antes: lector de pantalla, WebKit en Linux, migración de índices.
+
+---

@@ -44,7 +44,8 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 - La seguridad está en el backend: toda ruta nueva de la API va bajo `/admin` con `@AdminController(...)`, y `test/admin-auth.e2e-spec.ts` falla si queda alguna abierta. El front solo esconde.
 - El rol `admin` solo se da con `pnpm admin:create`. Nada en la web asigna roles.
 - Toda escritura del panel queda en la auditoría (`AuditService.record`, en la misma transacción). Lo que tiene historial se desactiva, no se borra.
-- Listas con filtros, orden y página en la URL (`useAdminQuery`), tablas con `DataTable`, resultados con `toast()` (aria-live) y formularios con `useUnsavedChanges`.
+- Listas con filtros, orden y página en la URL (`useAdminQuery`), tablas con `DataTable`, resultados con `toast()` (aria-live) y formularios con `useUnsavedChanges` (en `hooks/`: también lo usa Perfil).
+- Exportaciones: `components/admin/ExportCsv.tsx` con `downloadOrdersCsv`/`downloadProductsCsv`. Toda exportación nueva va en la API bajo `/admin/exports`, con tope de filas, auditoría y `textCell` (anti-fórmulas) para los textos.
 
 ### Pagos
 - El estado de pago lo define solo el servidor (webhook firmado o consulta al proveedor); nunca la URL de retorno ni un monto enviado por el cliente.
@@ -52,6 +53,7 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 
 ### Acceso a pedidos de invitado
 - Con el token del pedido (`X-Order-Token`, guardado en `lib/placedOrder.ts`). Nunca por email.
+- El correo de confirmación lleva `/pedido/:id#t=<token>` (`pages/GuestOrder.tsx`): el token va en el fragmento, que no viaja al servidor. Nunca ponerlo en la query.
 
 ### Montos y formato
 - **Ningún monto se calcula en el cliente:** subtotal, descuento, envío y total salen del backend (carrito o pedido). Se muestra "cantidad × precio unitario", nunca un total por línea calculado.
@@ -92,6 +94,12 @@ Los textos van en español con voseo. 3D solo en el hero de Home.
 - Pruebas del despliegue: siempre en un proyecto aparte (`-p antojarte-test`), con puertos propios (8080/8443) y un `.env` fuera del repo. Nunca contra el entorno de desarrollo. `pnpm test:e2e:deploy` con `E2E_BASE_URL`, `E2E_API_URL`, `E2E_IGNORE_HTTPS_ERRORS=1` y `E2E_ADMIN_*`.
 - En producción la API usa `antua_app` (solo datos): las migraciones van por `run --rm migrate`, a mano. La migración de `database/proposed/` no se aplica sin que el usuario la lea.
 - Scripts de operación en `../scripts/` (bash comentado, LF por `.gitattributes`, con `git update-index --chmod=+x`). Antes de un commit: `../scripts/check-repo.sh`.
+
+### Fase 15
+- Bordes de controles: siempre `border-border-control` / `dark:border-dark-border-control` (3:1). `#A8B89A` es solo para rellenos y badges. `node qa/contrast.ts --check` y `e2e/control-contrast.spec.ts` lo verifican.
+- Home: poster `public/hero-cookie.webp` + escena 3D solo con WebGL por hardware. Si cambia el modelo o las luces, regenerar el poster con `qa/hero-poster.ts` y actualizar `POSTER_HEIGHT_RATIO`. `localStorage['antua.force3d']` es solo para esa herramienta y para `e2e/csp.spec.ts`.
+- Correos (API): plantillas en `src/mail/templates/` con `escapeHtml` en todo dato del cliente y `safeUrl` en los enlaces. Se envían después de la transacción con `OrderNotificationsService`, nunca dentro, y un fallo no puede romper el flujo.
+- Para trabajar sin tocar el entorno de desarrollo del usuario (API en `nest start --watch`), usar un git worktree aparte.
 
 ### Registro de trabajo
 - `docs/progreso.md`: qué se hizo en cada fase, commits, decisiones y pendientes.
