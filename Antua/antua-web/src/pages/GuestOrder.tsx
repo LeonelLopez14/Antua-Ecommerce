@@ -33,9 +33,9 @@ export default function GuestOrder() {
   const orderId = Number(id)
   const token = tokenFromHash(hash)
   const valid = Number.isInteger(orderId) && orderId > 0 && token !== null
-  const { state, retry } = useResource(valid ? `pedido-invitado-${orderId}` : null, (signal) => fetchGuestOrder(orderId, token ?? '', signal))
+  const { state, retry } = useResource(valid ? `pedido-invitado-${orderId}-${token}` : null, (signal) => fetchGuestOrder(orderId, token ?? '', signal))
   const order = state.status === 'ready' ? state.data : null
-  const payment = useResource(order ? `pago-invitado-${order.id}` : null, (signal) => fetchPaymentState(orderId, token, undefined, signal))
+  const payment = useResource(order ? `pago-invitado-${order.id}-${token}` : null, (signal) => fetchPaymentState(orderId, token, undefined, signal))
 
   usePageMeta(valid ? `Pedido #${orderId}` : 'Pedido', 'El estado de tu pedido en Antojarte.')
 
