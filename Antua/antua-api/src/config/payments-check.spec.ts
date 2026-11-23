@@ -1,8 +1,7 @@
 import { checkPaymentsEnv } from './payments-check';
 
 const complete = {
-  MP_ACCESS_TOKEN:
-    'APP_USR-prueba-de-ejemplo-sin-valor-real-para-tests',
+  MP_ACCESS_TOKEN: 'APP_USR-prueba-de-ejemplo-sin-valor-real-para-tests',
   MP_WEBHOOK_SECRET: 'f'.repeat(64),
   MP_PUBLIC_API_URL: 'https://api-tunel.ejemplo.test/',
   MP_PUBLIC_FRONTEND_URL: 'https://tienda-tunel.ejemplo.test',

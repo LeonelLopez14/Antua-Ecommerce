@@ -34,7 +34,9 @@ x-api-env: &api-env
   SHIPPING_FLAT_RATE: ${SHIPPING_FLAT_RATE:?Definí SHIPPING_FLAT_RATE en .env.prod}
   SHIPPING_ETA_DAYS: ${SHIPPING_ETA_DAYS:-}
   # URL pública del sitio (enlaces de los correos). FRONTEND_URL queda como nombre anterior.
-  PUBLIC_URL: ${PUBLIC_URL:-${FRONTEND_URL:?Definí PUBLIC_URL en .env.prod}}
+  # Sin "?" anidado: algunas versiones de Compose lo evalúan aunque PUBLIC_URL tenga valor. Que sea
+  # obligatoria lo controla la API al arrancar en producción ("Faltan variables obligatorias: PUBLIC_URL").
+  PUBLIC_URL: ${PUBLIC_URL:-${FRONTEND_URL:-}}
   # Front y API en el mismo dominio (Caddy): no hace falta CORS. Solo si el front viviera en
   # otro origen, se lista acá (nunca "*").
   CORS_ORIGINS: ${CORS_ORIGINS:-}
