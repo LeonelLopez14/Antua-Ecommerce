@@ -11,7 +11,7 @@ const variants: Record<ButtonVariant, string> = {
     'bg-accent-main text-bg hover:bg-accent-main/90 dark:bg-dark-accent-main dark:text-dark-bg dark:hover:bg-dark-accent-main/90',
   // DESIGN.md §2: el borde accent-tertiary no llega a 3:1, por eso el texto va en text-main.
   secondary:
-    'border-2 border-accent-tertiary text-text-main hover:bg-accent-secondary dark:border-dark-text-secondary dark:text-dark-text-main dark:hover:bg-dark-card',
+    'border-2 border-border-control text-text-main hover:bg-accent-secondary dark:border-dark-border-control dark:text-dark-text-main dark:hover:bg-dark-card',
 }
 
 /** Clases de botón pill (DESIGN.md §4). Compartidas por Button (acciones) y ButtonLink (navegación). */

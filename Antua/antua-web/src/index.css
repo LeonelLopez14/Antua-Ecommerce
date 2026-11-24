@@ -90,6 +90,11 @@
   --color-dark-text-secondary: #CFC8BC;
   --color-dark-accent-main: #D7A46A;
 
+  /* Borde de controles (inputs, selects, textareas, botón secundario). #A8B89A daba 2,03:1 sobre bg:
+     estos llegan a 3:1 (WCAG 1.4.11) sobre todas las superficies del tema. Medido con qa/contrast.ts. */
+  --color-border-control: #7E8A74;
+  --color-dark-border-control: #8A8378;
+
   /* Footer: el wireframe lo dibuja oscuro (DESIGN.md §4, decisión abierta 1) */
   --color-footer: var(--color-text-main);
   --color-dark-footer: var(--color-dark-surface);

@@ -1,4 +1,4 @@
-# DESIGN.md — Antojarte (alias Antua)
+# DESIGN.md — Antojarte
 
 Sistema de diseño de un e-commerce de cookies caseras artesanales. Los agentes que generen UI deben leer este archivo antes de tocar estilos.
 
@@ -33,7 +33,8 @@ Stack: React + Vite + Tailwind CSS v4 + GSAP + Three.js (R3F/drei) + Zustand + A
 | `bg` | `#FFFBE9` | Fondo principal | Fondo de página, secciones amplias, espacios en blanco |
 | `accent-secondary` | `#FFF2BD` | Acento secundario | Etiquetas ("Nuevo", "Oferta"), highlights, estados hover, cajas informativas, banners promocionales |
 | `accent-main` | `#8D572E` | Acento principal | Botones principales, "Agregar al carrito", precios, enlaces activos, CTA |
-| `accent-tertiary` | `#A8B89A` | Acento terciario | Botones secundarios, filtros de producto, badges de ingredientes, íconos secundarios, indicadores de estado |
+| `accent-tertiary` | `#A8B89A` | Acento terciario | Rellenos: filtros de producto, badges de ingredientes, íconos secundarios, indicadores de estado. **No** se usa como borde de controles |
+| `border-control` | `#7E8A74` | Borde de controles | Borde de inputs, selects, textareas, stepper y botón secundario (3:1 sobre todas las superficies claras) |
 
 ### Modo oscuro (secundario) [D]
 
@@ -45,6 +46,7 @@ Stack: React + Vite + Tailwind CSS v4 + GSAP + Three.js (R3F/drei) + Zustand + A
 | `dark-text-main` | `#F5F2E8` | Texto principal | Títulos, descripciones, info clave, íconos principales |
 | `dark-text-secondary` | `#CFC8BC` | Texto secundario | Fechas, detalles, placeholders, info auxiliar, íconos secundarios |
 | `dark-accent-main` | `#D7A46A` | Acento principal | Botones principales, precios, enlaces activos, CTA |
+| `dark-border-control` | `#8A8378` | Borde de controles | Lo mismo que `border-control` en modo oscuro (3:1 sobre `#151515`, `#1E1D1C` y `#2A2826`) |
 
 ### Reglas de color
 
@@ -66,9 +68,11 @@ Stack: React + Vite + Tailwind CSS v4 + GSAP + Three.js (R3F/drei) + Zustand + A
 | `#CFC8BC` sobre `#1E1D1C` / `#2A2826` | 10,13 / 8,84 | AA |
 | `#D7A46A` sobre `#151515` / `#2A2826` | 8,18 / 6,58 | AA |
 | `#151515` sobre `#D7A46A` (botón oscuro) | 8,18 | AA |
-| **Borde `#A8B89A` sobre `#FFFBE9`** | **2,03** | **No llega a 3:1 para límites de componentes** |
+| Borde `#A8B89A` sobre `#FFFBE9` (anterior) | 2,03 | No llega a 3:1: ya no se usa como borde de controles |
+| **Borde de control `#7E8A74`** sobre `#FFFBE9` / `#F7F5FF` / `#FFF2BD` (hover) | 3,50 / 3,37 / 3,24 | 3:1 (WCAG 1.4.11) |
+| **Borde de control oscuro `#8A8378`** sobre `#151515` / `#1E1D1C` / `#2A2826` | 4,87 / 4,49 / 3,92 | 3:1 (WCAG 1.4.11) |
 
-Consecuencia: el botón secundario `[D]` (borde `#A8B89A`, fondo transparente) debe llevar el texto en `#2E2D2C`, para que el significado no dependa del borde. Los **inputs** necesitan un borde más oscuro que `#A8B89A`. [P]
+Los ratios de esta tabla salen de `node qa/contrast.ts` (fórmula de WCAG, con composición de opacidad); `--check` falla si un borde de control baja de 3:1. El botón secundario lleva igual el texto en `#2E2D2C`: el significado no depende solo del borde.
 
 ## 3. Typography Rules
 
@@ -94,7 +98,7 @@ Las dos familias están en Google Fonts. Cargar solo los pesos usados.
 
 ### Botones [D]
 - **Primario:** pill (`999px`), fondo `accent-main`, texto `bg`. Hover: elevación leve y cambio de color suave. "Agregar al carrito", "Comprar ahora" (en ficha, ambos CTA conviven), "Ir a checkout", "Iniciar sesión", "Crear cuenta".
-- **Secundario:** pill, borde `accent-tertiary`, fondo transparente, texto `text-main`. Ej.: "Continuar con Google" [W].
+- **Secundario:** pill, borde `border-control` (oscuro: `dark-border-control`), fondo transparente, texto `text-main`. Ej.: "Continuar con Google" [W].
 - Padding sugerido: `px-6 py-3`. [P]
 
 ### Chips y badges [D]
@@ -108,7 +112,7 @@ Las dos familias están en Google Fonts. Cargar solo los pesos usados.
 - Hover: elevación leve (ver sección 6).
 
 ### Inputs [D]
-- Radio `12px`. Fondo `bg` dentro de modales y formularios sobre `surface` [W]. Borde sutil. [W] Usar un borde más oscuro que `#A8B89A` por contraste (sección 2). [P]
+- Radio `12px`. Fondo `bg` dentro de modales y formularios sobre `surface` [W]. Borde `border-control` (oscuro: `dark-border-control`), que cumple 3:1 (sección 2). [W]
 - Link "¿Olvidaste tu contraseña?" alineado a la derecha del campo contraseña. [W]
 
 ### Navbar [W]
@@ -200,7 +204,7 @@ Las dos familias están en Google Fonts. Cargar solo los pesos usados.
 - No usar el modelo 3D fuera del hero de Home.
 - No poner ingredientes, nutrición ni reviews detrás de tabs.
 - No agregar un selector de método de envío (es único y fijo).
-- No usar texto claro sobre `#D7A46A` ni depender solo del borde `#A8B89A` para delimitar un control.
+- No usar texto claro sobre `#D7A46A` ni usar `#A8B89A` como borde de un control: para eso está `border-control`.
 - No usar gradientes de colores ajenos a la paleta, ni negro o blanco puro.
 - No convertir el carrito ni el login en páginas completas: son drawer y modal.
 
@@ -230,6 +234,7 @@ Los breakpoints no están definidos; usar los de Tailwind v4 (`sm 640`, `md 768`
   --color-accent-secondary: #FFF2BD;
   --color-accent-main: #8D572E;
   --color-accent-tertiary: #A8B89A;
+  --color-border-control: #7E8A74;
 
   /* Modo oscuro */
   --color-dark-bg: #151515;
@@ -238,6 +243,7 @@ Los breakpoints no están definidos; usar los de Tailwind v4 (`sm 640`, `md 768`
   --color-dark-text-main: #F5F2E8;
   --color-dark-text-secondary: #CFC8BC;
   --color-dark-accent-main: #D7A46A;
+  --color-dark-border-control: #8A8378;
 
   --font-display: "Playfair Display", serif;
   --font-sans: "Lato", sans-serif;
@@ -264,7 +270,7 @@ Por defecto `dark:` sigue la preferencia del sistema. Para un toggle manual, def
 
 ## 11. Reglas de interfaz web (Vercel Web Interface Guidelines) [V]
 
-Resumen de las reglas del texto de Vercel que pegaste, aplicadas a Antua. Para auditar código: "revisá `<archivo>` contra la sección 11 de `DESIGN.md` y devolvé `archivo:línea - problema`, sin preámbulo".
+Resumen de las reglas del texto de Vercel que pegaste, aplicadas a Antojarte. Para auditar código: "revisá `<archivo>` contra la sección 11 de `DESIGN.md` y devolvé `archivo:línea - problema`, sin preámbulo".
 
 **Accesibilidad**
 - Botones solo con ícono (carrito, cuenta, cerrar, quitar ítem) llevan `aria-label`; los íconos decorativos de Lucide llevan `aria-hidden="true"`.
@@ -296,7 +302,7 @@ Resumen de las reglas del texto de Vercel que pegaste, aplicadas a Antua. Para a
 - Contenedores de texto con `truncate`, `line-clamp-*` o `break-words`; hijos de flex con `min-w-0`.
 - Resolver estados vacíos (carrito vacío, sin resultados) en vez de mostrar UI rota. Prever reviews cortas y larguísimas.
 - Etiquetas de botón específicas ("Agregar al carrito", no "Continuar"). Los errores dicen cómo arreglarlo.
-- La regla de Vercel de Title Case es para inglés: **no aplica** al español de Antua. Mantener el voseo de la sección 1.
+- La regla de Vercel de Title Case es para inglés: **no aplica** al español de Antojarte. Mantener el voseo de la sección 1.
 
 **Imágenes y rendimiento**
 - `<img>` con `width` y `height` explícitos (evita saltos de layout). `loading="lazy"` bajo el pliegue; imagen crítica del hero con `fetchpriority="high"`.
@@ -324,7 +330,7 @@ Resumen de las reglas del texto de Vercel que pegaste, aplicadas a Antua. Para a
 1. **Footer:** `#2E2D2C` (wireframe) o `#F7F5FF` (paleta). El archivo sigue el wireframe.
 2. **Modo oscuro sin acento secundario/terciario:** definir colores de badges, filtros y hovers.
 3. **Escala tipográfica, sombras, ancho máximo y breakpoints:** son propuestas `[P]`.
-4. **Borde de inputs y del botón secundario:** `#A8B89A` no alcanza 3:1 sobre `#FFFBE9`.
+4. ~~Borde de inputs y del botón secundario~~: resuelto en la Fase 15 con `border-control` (`#7E8A74`) y `dark-border-control` (`#8A8378`), ver sección 2.
 5. **Login social (Google):** pendiente de confirmar alcance.
 6. **Logo:** no está definido en el material.
 7. **Panel de Admin:** fuera del mapa del sitio por ahora.

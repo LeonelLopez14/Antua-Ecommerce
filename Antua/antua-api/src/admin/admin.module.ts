@@ -18,10 +18,13 @@ import {
   AdminUsersController,
 } from './moderation/admin-moderation.controller';
 import { AdminModerationService } from './moderation/admin-moderation.service';
+import { NotificationsModule } from 'src/notifications/notifications.module';
+import { AdminExportsController } from './exports/admin-exports.controller';
+import { AdminExportsService } from './exports/admin-exports.service';
 
 /** Panel de administración: todo lo que vive bajo /admin. */
 @Module({
-  imports: [TypeOrmModule.forFeature([AdminAuditLog])],
+  imports: [TypeOrmModule.forFeature([AdminAuditLog]), NotificationsModule],
   controllers: [
     AdminAuditController,
     AdminProductsController,
@@ -31,6 +34,7 @@ import { AdminModerationService } from './moderation/admin-moderation.service';
     AdminStatsController,
     AdminReviewsController,
     AdminUsersController,
+    AdminExportsController,
   ],
   providers: [
     AuditService,
@@ -38,6 +42,7 @@ import { AdminModerationService } from './moderation/admin-moderation.service';
     AdminTagsService,
     AdminCouponsService,
     AdminOrdersService,
+    AdminExportsService,
     AdminStatsService,
     AdminModerationService,
   ],

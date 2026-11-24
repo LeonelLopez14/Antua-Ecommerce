@@ -15,6 +15,11 @@ Copiá `.env.example` a `.env`. La API valida el entorno al arrancar (`src/confi
 | `SHIPPING_ETA_DAYS` | No | Plazo estimado en días; vacía, no se muestra |
 | `FRONTEND_URL` | No | Links de los mails. Por defecto, `http://localhost:5173` |
 | `CORS_ORIGINS` | No | Orígenes permitidos, separados por coma; nunca `*` |
+| `PUBLIC_URL` | En producción | URL pública del sitio para los enlaces de los correos y el sitemap. Si falta, se usa `FRONTEND_URL` |
+| `MAIL_TRANSPORT` | No | `log` (por defecto, no envía) o `smtp` |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` | Con `smtp` | Servidor SMTP y remitente (`Antojarte <pedidos@dominio>`) |
+| `MAIL_SECURE` | No | `true` = TLS directo; vacío = `true` solo en el puerto 465 |
+| `MAIL_USER`, `MAIL_PASSWORD` | Con `smtp` en producción | Van juntas; en desarrollo (Mailpit) pueden faltar |
 | `TRUST_PROXY` | No | Proxies delante de la API (`1` detrás de Caddy) o lista de redes; nunca `true`. Así el límite de intentos usa la IP real del cliente |
 | `UPLOADS_DIR` | No | Carpeta de las imágenes del panel. Por defecto `uploads/` (en `.gitignore`); nunca dentro de `src/` |
 | `LOW_STOCK_THRESHOLD` | No | Umbral de "stock bajo" del panel. Por defecto `5` |
@@ -42,12 +47,14 @@ Copiá `.env.example` a `.env`. La API valida el entorno al arrancar (`src/confi
 | `pnpm seed` / `pnpm seed:clean --yes` | Carga o borra los datos de prueba (con `SEED_ADMIN_PASSWORD`, también un admin de desarrollo) |
 | `pnpm seed --catalog-only` | Solo tags y productos, sin usuarios, cupones ni reseñas. Es el único modo que corre en producción |
 | `pnpm payments:simulate <pedido> <estado>` | Envía un webhook firmado a una API simulada |
+| `pnpm payments:check` | Revisa la configuración de Mercado Pago sin conectarse (ver `antua-web/docs/mercadopago-prueba.md`) |
 
 ## Endpoints
 
 | Área | Rutas |
 |---|---|
 | Salud | `GET /health` |
+| SEO | `GET /sitemap.xml` (páginas públicas y productos activos), `GET /robots.txt` |
 | Auth | `POST /auth/register`, `/auth/login`, `/auth/change-password`, `/auth/forgot-password`, `/auth/reset-password`; `GET /auth/me` |
 | Usuario | `GET` y `PATCH /users/me` |
 | Direcciones | CRUD de `/addresses` y `PATCH /addresses/:id/default` |
@@ -57,7 +64,7 @@ Copiá `.env.example` a `.env`. La API valida el entorno al arrancar (`src/confi
 | Pedidos | `POST /orders`, `GET /orders`, `GET /orders/:id`, `GET /orders/guest/:id`, `POST /orders/:id/claim` |
 | Pagos | `GET /payments/config`, `POST /orders/:id/payment`, `POST /orders/:id/payment/retry`, `GET /orders/:id/payment`, `POST /payments/webhook` |
 | Newsletter | `POST /newsletter/subscribe` |
-| Panel (solo admins) | `/admin/stats`, `/admin/products` (variantes, stock e imágenes), `/admin/tags`, `/admin/coupons`, `/admin/orders`, `/admin/reviews`, `/admin/users`, `/admin/audit`. Detalle en [`antua-web/docs/admin.md`](../antua-web/docs/admin.md) |
+| Panel (solo admins) | `/admin/stats`, `/admin/products` (variantes, stock e imágenes), `/admin/tags`, `/admin/coupons`, `/admin/orders`, `/admin/reviews`, `/admin/users`, `/admin/audit`, `/admin/exports/orders.csv` y `/admin/exports/products.csv`. Detalle en [`antua-web/docs/admin.md`](../antua-web/docs/admin.md) |
 | Imágenes subidas | `GET /uploads/products/<archivo>` (estático) |
 
 Un invitado se identifica con `X-Guest-Token` (carrito) y `X-Order-Token` (su pedido); un usuario, con `Authorization: Bearer`.
@@ -71,7 +78,10 @@ src/
 ├── common/           tokens seguros, política de contraseñas, hora de la tienda
 ├── config/           validación del entorno
 ├── database/         data source y migraciones
-├── mail/             MailService y transporte de desarrollo (escribe en el log)
+├── mail/             MailService (reintento, log sin datos personales), transportes log y SMTP, plantillas
+├── notifications/    correos de pedidos (confirmación y cambios de estado), después de cada transacción
+├── admin/exports/    exportaciones CSV (streaming, anti-fórmulas, auditoría)
+├── seo/              sitemap.xml y robots.txt
 └── payments/         estados, proveedor de Mercado Pago, proveedor simulado, webhook, vencimientos
 ```
 

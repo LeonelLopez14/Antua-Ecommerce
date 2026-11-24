@@ -163,7 +163,8 @@ export function Hero() {
         {/* Escena: galleta 3D y, encima, el carrusel que aparece con el scroll. */}
         <div className={`relative min-h-0 ${reduced ? 'aspect-square max-h-120 w-full' : 'h-full'}`}>
           <HeroCookieStage active={inView} reducedMotion={reduced} paused={paused} onReady={setCookie} />
-          {!reduced && (
+          {/* Solo con la escena 3D en marcha (con el poster no hay nada que pausar). */}
+          {!reduced && cookie && (
             <button
               type="button"
               aria-pressed={paused}

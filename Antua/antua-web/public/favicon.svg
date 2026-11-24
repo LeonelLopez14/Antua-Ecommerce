@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Galleta de Antua con colores de la paleta (DESIGN.md §2): #8D572E, #D7A46A y chips #2E2D2C. -->
+  <!-- Galleta de Antojarte con colores de la paleta (DESIGN.md §2): #8D572E, #D7A46A y chips #2E2D2C. -->
   <circle cx="32" cy="32" r="29" fill="#8D572E"/>
   <circle cx="32" cy="32" r="25" fill="#D7A46A"/>
   <g fill="#2E2D2C">

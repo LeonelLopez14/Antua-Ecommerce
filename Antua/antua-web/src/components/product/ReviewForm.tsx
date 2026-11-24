@@ -156,7 +156,7 @@ export function ReviewForm({ slug, alreadyReviewed, editing, onSaved, onCancelEd
           value={comment}
           onChange={(event) => setComment(event.target.value)}
           placeholder="¿Qué te gustó? ¿La volverías a pedir?…"
-          className="mt-1 w-full resize-y rounded-xl border border-text-main/60 bg-bg px-3 py-2.5 text-base text-text-main placeholder:text-text-main/50 dark:border-dark-text-secondary/60 dark:bg-dark-bg dark:text-dark-text-main dark:placeholder:text-dark-text-secondary/70"
+          className="mt-1 w-full resize-y rounded-xl border border-border-control bg-bg px-3 py-2.5 text-base text-text-main placeholder:text-text-main/50 dark:border-dark-border-control dark:bg-dark-bg dark:text-dark-text-main dark:placeholder:text-dark-text-secondary/70"
         />
         <p className="mt-1 text-right text-sm text-text-main/70 tabular-nums dark:text-dark-text-secondary">
           {comment.length} / {REVIEW_COMMENT_MAX}

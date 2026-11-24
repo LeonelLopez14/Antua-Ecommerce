@@ -29,7 +29,8 @@ La estructura de `src/`, las reglas de rutas, montos, errores y accesibilidad es
 |---|---|
 | [`docs/estado-frontend.md`](./docs/estado-frontend.md) | Qué está hecho, qué falta y decisiones abiertas |
 | [`docs/progreso.md`](./docs/progreso.md) | Registro por fase: qué cambió y por qué |
-| [`docs/payments-design.md`](./docs/payments-design.md) | Diseño de pagos y cómo probar con Mercado Pago |
+| [`docs/payments-design.md`](./docs/payments-design.md) | Diseño de pagos |
+| [`docs/mercadopago-prueba.md`](./docs/mercadopago-prueba.md) | Paso a paso para probar Mercado Pago en modo prueba con tus cuentas |
 | [`docs/qa/informe-qa.md`](./docs/qa/informe-qa.md) | Control de calidad: Lighthouse, axe, teclado, resiliencia, hallazgos y cómo repetirlo |
 | [`docs/despliegue.md`](./docs/despliegue.md) | Despliegue en un servidor: Docker, Caddy y HTTPS, usuarios de base, secretos, respaldos, CI y la guía paso a paso |
 | [`docs/admin.md`](./docs/admin.md) | Panel de administración: roles, primer admin, rutas, endpoints y estados de pedidos |

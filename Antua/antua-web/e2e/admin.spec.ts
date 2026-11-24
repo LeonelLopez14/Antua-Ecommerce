@@ -166,12 +166,28 @@ test('un admin crea un producto con variante e imagen, un cupón, y cancela un p
   const after = (await (await request.get(`${API}/products/${SLUG}`)).json()) as { variants: { stock: number }[] }
   expect(after.variants[0]?.stock).toBe(10)
 
+  // ---- Exportación CSV de los pedidos de hoy (hora de Montevideo) ----
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montevideo' }).format(new Date())
+  await page.goto(`/admin/pedidos?from=${today}&to=${today}`)
+  const exporting = page.waitForEvent('download')
+  await page.getByRole('region', { name: 'Exportar pedidos' }).getByRole('button', { name: 'Exportar CSV' }).click()
+  const download = await exporting
+  expect(download.suggestedFilename()).toBe(`pedidos_${today}_${today}.csv`)
+  const stream = await download.createReadStream()
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) chunks.push(chunk as Buffer)
+  const csv = Buffer.concat(chunks).toString('utf8')
+  expect(csv.charCodeAt(0)).toBe(0xfeff)
+  expect(csv.slice(1)).toMatch(/^pedido;fecha_montevideo;estado;/)
+  await expect(page.getByText(/Exportamos \d+ pedidos/)).toBeVisible()
+
   // ---- Resumen y auditoría ----
   await page.getByRole('navigation', { name: 'Secciones del panel' }).getByRole('link', { name: 'Resumen' }).click()
   await expect(page.getByRole('heading', { name: 'Ventas de los últimos 30 días' })).toBeVisible()
   await expect(page.getByRole('img', { name: /Ventas por día/ })).toBeVisible()
   await page.getByRole('navigation', { name: 'Secciones del panel' }).getByRole('link', { name: 'Auditoría' }).click()
   await expect(page.getByRole('cell', { name: 'Cambió el estado de un pedido' }).first()).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Exportó pedidos (CSV)' }).first()).toBeVisible()
 
   // Limpieza: el producto de prueba no queda a la venta en la tienda (tiene un pedido, así que se desactiva).
   const token = await page.evaluate(() => (JSON.parse(localStorage.getItem('antua.auth') ?? '{}') as { state?: { token?: string } }).state?.token)

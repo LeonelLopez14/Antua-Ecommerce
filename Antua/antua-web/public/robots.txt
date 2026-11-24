@@ -2,3 +2,8 @@ User-agent: *
 Disallow: /admin
 Disallow: /cuenta
 Disallow: /checkout
+Disallow: /pedido
+Disallow: /pago
+Disallow: /api
+# Solo para el servidor de desarrollo. En producción, /robots.txt lo genera la API (con la URL
+# absoluta del sitemap, que sale de PUBLIC_URL) y Caddy lo sirve en su lugar.

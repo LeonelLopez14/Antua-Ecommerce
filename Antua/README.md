@@ -1,6 +1,6 @@
 # Antojarte
 
-E-commerce de práctica de galletas caseras: catálogo con filtros, carrito para invitados y usuarios, checkout en 4 pasos, cuenta con pedidos y direcciones, reseñas, pagos de prueba con Mercado Pago y un panel de administración en `/admin`.
+E-commerce de práctica de galletas caseras: catálogo con filtros, carrito para invitados y usuarios, checkout en 4 pasos, cuenta con pedidos y direcciones, reseñas, pagos de prueba con Mercado Pago (hoy simulados), correos de pedido, sitemap y un panel de administración en `/admin` con exportación a CSV.
 
 Es un monorepo con pnpm:
 
@@ -65,6 +65,22 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d db
 docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm migrate   # después de leer las migraciones
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 ```
+
+### Correos en desarrollo (Mailpit)
+
+Los correos de pedido y de recuperación de contraseña se ven en el navegador sin enviar nada:
+
+```bash
+docker compose --profile mail up -d mailpit     # http://127.0.0.1:8025
+# en antua-api/.env: MAIL_TRANSPORT=smtp, MAIL_HOST=127.0.0.1, MAIL_PORT=1025,
+#                    MAIL_FROM="Antojarte <pedidos@antojarte.example>"
+```
+
+Con `MAIL_TRANSPORT=log` (el valor por defecto) no se envía nada: el log muestra el destinatario enmascarado, el asunto y los enlaces. En producción, ver [Correo](./antua-web/docs/despliegue.md#correo).
+
+### Mercado Pago de prueba
+
+Hoy los pagos están simulados. Para probar con tus cuentas de prueba, seguí [`antua-web/docs/mercadopago-prueba.md`](./antua-web/docs/mercadopago-prueba.md). `pnpm --filter antua-api payments:check` revisa la configuración sin conectarse.
 
 ### Panel de administración
 

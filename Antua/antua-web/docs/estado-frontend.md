@@ -1,6 +1,6 @@
 # Estado del frontend de Antojarte
 
-Última actualización: 20/11/2026 (Fase 14, despliegue de prueba, respaldos y CI). Stack: React 19 + TypeScript estricto + Vite 8 + Tailwind v4 + GSAP + Three.js/R3F + Zustand + Axios + Lucide. Gestor de paquetes: **pnpm**. Registro detallado por fase: [`progreso.md`](./progreso.md).
+Última actualización: 21/11/2026 (Fase 15: correos, exportaciones, Home 3D y pulido). Stack: React 19 + TypeScript estricto + Vite 8 + Tailwind v4 + GSAP + Three.js/R3F + Zustand + Axios + Lucide. Gestor de paquetes: **pnpm**. Registro detallado por fase: [`progreso.md`](./progreso.md).
 
 ## Qué está hecho
 
@@ -18,6 +18,7 @@
 | Perfil | `/cuenta/perfil` | Nombre, teléfono y cambio de contraseña. |
 | Recuperar contraseña | `/olvide-mi-contrasena`, `/restablecer-contrasena` | Token de un solo uso. Sin SMTP, el link aparece en el log de la API. |
 | Institucionales | `/nosotros`, `/preguntas-frecuentes`, `/contacto`, `/terminos`, `/privacidad` | Texto real de `docs/contenido-sitio.md`, verificado contra la app. Términos y Privacidad con aviso de "Borrador de práctica", índice y fecha. Enlazadas desde el footer y el menú "Ayuda" de la Navbar. |
+| Pedido de invitado | `/pedido/:id#t=<token>` | El enlace del correo de confirmación. Token en el fragmento; sin token o con uno equivocado, "No encontramos ese pedido". noindex. |
 | Errores | 404 y `RouteError` | 404 con la marca. ErrorBoundary global (errorElement del router) con "Reintentar", que también cubre un chunk que no se pudo bajar. |
 | Tema | `ThemeToggle` | Sistema → claro → oscuro, guardado en localStorage. `public/theme-init.js` lo aplica antes de pintar (fuera de `index.html` para que la CSP no necesite `unsafe-inline`); `theme-color` acorde. |
 | SEO básico | `usePageMeta`, `useNoIndex`, `useJsonLd` | Título, description, `canonical` y Open Graph por página; `noindex` en cuenta, checkout y panel; `robots.txt` excluye `/admin`, `/cuenta` y `/checkout`. Sin SSR: quien no ejecuta JavaScript ve los valores de `index.html`. |
@@ -52,15 +53,15 @@ Para probar los pagos sin credenciales: levantá la API con `PAYMENTS_SIMULATED=
 ## Qué falta
 
 - **Pagos reales de prueba:** faltan las credenciales y una URL pública (ver abajo). El flujo se probó con un proveedor simulado y eventos firmados.
-- **Envío de mails:** sin SMTP; `MailService` escribe en el log y en producción se niega a funcionar. Para conectarlo, se implementa `MailTransport`.
+- **Correo real:** el SMTP ya está implementado (`MAIL_TRANSPORT=smtp`). Falta configurarlo con tu proveedor y dominio (SPF, DKIM y DMARC). En desarrollo se prueba con Mailpit.
 - **Textos legales:** Términos y Privacidad son un borrador de práctica (con el aviso visible); antes de un uso real necesitan revisión legal.
 - **Información nutricional:** los valores cargados son de ejemplo (`pnpm --filter antua-api nutrition:examples`, reversible). La caja surtida no tiene valores.
-- **Pendientes de QA:** lector de pantalla real, la Home 3D en un teléfono con GPU, WebKit en Linux (en Windows ya pasa) y la migración de índices propuesta (ver `qa/informe-qa.md`).
-- **Despliegue:** la puesta en marcha real en srv-proyecto (guía en [`despliegue.md`](./despliegue.md)); la primera corrida de la CI en GitHub; el aviso al salir con cambios sin guardar en Perfil (hallazgo de `/web-interface-guidelines`).
+- **Pendientes de QA:** lector de pantalla real, la Home 3D en un teléfono con GPU (Lighthouse no tiene GPU y recibe el poster), WebKit en Linux (en Windows ya pasa) y la migración de índices propuesta (ver `qa/informe-qa.md`).
+- **Despliegue:** la puesta en marcha real en srv-proyecto (guía en [`despliegue.md`](./despliegue.md)); la primera corrida de la CI en GitHub. Mercado Pago de prueba: [`mercadopago-prueba.md`](./mercadopago-prueba.md).
 - **Panel:**
   - no hay reembolsos desde el panel (se hacen en Mercado Pago);
   - no hay gestión de roles (es a propósito, ver [`admin.md`](./admin.md));
-  - no hay exportación a CSV.
+  - la exportación CSV es de pedidos y productos (no de usuarios ni de reseñas).
 
 ## Decisiones abiertas
 
@@ -75,6 +76,8 @@ Para probar los pagos sin credenciales: levantá la API con `PAYMENTS_SIMULATED=
 9. **Pedidos pagados que se cancelan:** el panel libera el stock y avisa, pero la devolución del dinero se hace a mano en Mercado Pago.
 10. **Pedidos sin pago en línea** (los que se hicieron con los pagos deshabilitados): el panel deja prepararlos, porque el cobro se coordina por fuera. Si eso no es lo que querés, se cambia en `order-status.ts`.
 11. **Marca:** resuelto en la Fase 14: "Antojarte" en todo el sitio. Debajo de 360 px el logo es solo texto.
-12. **Borde del botón secundario** (`#A8B89A`, 2,03:1): ver `qa/informe-qa.md`, hallazgo A6.
+12. **Borde del botón secundario:** resuelto en la Fase 15 con el token `border-control` (3:1 en claro y oscuro).
 13. **Migración de índices propuesta:** `antua-api/src/database/proposed/`, para leer y aplicar (paso opcional en `despliegue.md`).
 14. **Despliegue:** dominio, modo de HTTPS (`internal` o `public`) y si se abre o no a internet.
+15. **Emails de prueba `@antua.test`** (seed, e2e y tests): pasarlos a `@antojarte.example` cambia cuentas que ya existen en la base de desarrollo y el patrón de `seed:clean`.
+16. **`updated_at` en productos:** daría un `lastmod` exacto en el sitemap (hoy sale de la auditoría del panel), pero requiere una migración.

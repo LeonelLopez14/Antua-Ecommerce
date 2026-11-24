@@ -58,7 +58,13 @@ export default defineConfig(({ mode }) => {
     // Desarrollo y preview reenvían /api a la API. En `qa:build` el front usa VITE_API_URL=/api, así
     // el build de producción servido con `vite preview` habla con la API por el mismo origen (como
     // detrás de un proxy), sin necesitar CORS.
-    server: { proxy: apiProxy },
+    // DEV_ALLOWED_HOSTS: hosts extra que acepta el servidor de desarrollo (por defecto solo
+    // localhost), separados por coma. Solo para probar Mercado Pago con un túnel temporal
+    // (docs/mercadopago-prueba.md); vacío, no cambia nada.
+    server: {
+      proxy: apiProxy,
+      ...(env.DEV_ALLOWED_HOSTS ? { allowedHosts: env.DEV_ALLOWED_HOSTS.split(',').map((host) => host.trim()).filter(Boolean) } : {}),
+    },
     preview: { proxy: apiProxy },
   }
 })

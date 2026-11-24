@@ -40,7 +40,7 @@ export function QuantityStepper({ value, onChange, min = 1, max, label = 'Cantid
     <div
       role="group"
       aria-label={label}
-      className="inline-flex items-center gap-1 rounded-full border border-text-main/60 bg-bg p-1 focus-within:border-accent-main dark:border-dark-text-secondary/60 dark:bg-dark-bg dark:focus-within:border-dark-accent-main"
+      className="inline-flex items-center gap-1 rounded-full border border-border-control bg-bg p-1 focus-within:border-accent-main dark:border-dark-border-control dark:bg-dark-bg dark:focus-within:border-dark-accent-main"
     >
       <button
         type="button"

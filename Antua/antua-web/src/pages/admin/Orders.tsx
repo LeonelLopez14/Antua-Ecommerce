@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
-import { fetchAdminOrders } from '../../api/admin'
+import { downloadOrdersCsv, fetchAdminOrders } from '../../api/admin'
 import { useResource } from '../../hooks/useResource'
 import { usePageMeta } from '../../hooks/usePageMeta'
 import { formatDateTime, formatPrice } from '../../lib/format'
 import { ORDER_STATUS_ADMIN, PAYMENT_STATUS_ADMIN, orderInfo, paymentInfo } from '../../lib/adminLabels'
 import type { OrderStatusValue } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
+import { ExportCsv } from '../../components/admin/ExportCsv'
 import { DataTable } from '../../components/admin/DataTable'
 import { LoadingRows } from '../../components/admin/LoadingRows'
 import { ResultCount } from '../../components/admin/ResultCount'
@@ -60,6 +61,24 @@ export default function Orders() {
         <FormField id="desde-pedido" type="date" label="Desde" value={query.get('from')} max={query.get('to') || undefined} onChange={(e) => query.set({ from: e.target.value })} />
         <FormField id="hasta-pedido" type="date" label="Hasta" value={query.get('to')} min={query.get('from') || undefined} onChange={(e) => query.set({ to: e.target.value })} />
       </div>
+      <section aria-label="Exportar pedidos" className="mb-4">
+        <p className="mb-2 text-sm text-text-main/80 dark:text-dark-text-secondary">
+          Exporta los pedidos de los filtros de arriba (sin la búsqueda), con el rango de fechas obligatorio. Fechas en hora de Montevideo.
+        </p>
+        <ExportCsv
+          what="pedidos"
+          validate={() => (query.get('from') && query.get('to') ? null : 'Elegí las fechas "Desde" y "Hasta" para exportar.')}
+          onExport={(separator) =>
+            downloadOrdersCsv({
+              from: query.get('from'),
+              to: query.get('to'),
+              status: query.get('status') || undefined,
+              payment_status: query.get('payment_status') || undefined,
+              separator,
+            })
+          }
+        />
+      </section>
       {state.status === 'loading' && <LoadingRows label="Cargando pedidos…" />}
       {state.status === 'error' && <ErrorState headingLevel={2} title="No pudimos cargar los pedidos" message={state.message} onRetry={retry} />}
       {state.status === 'ready' && (

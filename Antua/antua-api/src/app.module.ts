@@ -17,6 +17,7 @@ import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env.validation';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { HealthController } from './health/health.controller';
+import { SeoController } from './seo/seo.controller';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
@@ -75,7 +76,7 @@ import { AdminAccessGuard } from './admin/admin-access.guard';
     NewsletterModule,
     AdminModule,
   ],
-  controllers: [AppController, HealthController],
+  controllers: [AppController, HealthController, SeoController],
   providers: [
     AppService,
     // Los guards globales corren en este orden: primero el límite de intentos, después el rol.

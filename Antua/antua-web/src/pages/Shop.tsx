@@ -92,7 +92,7 @@ export default function Shop() {
                 type="button"
                 onClick={() => setFiltersOpen(true)}
                 aria-haspopup="dialog"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-accent-tertiary px-5 font-bold transition-[background-color] duration-200 ease-out hover:bg-accent-secondary lg:hidden dark:border-dark-text-secondary dark:hover:bg-dark-card"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-border-control px-5 font-bold transition-[background-color] duration-200 ease-out hover:bg-accent-secondary lg:hidden dark:border-dark-border-control dark:hover:bg-dark-card"
               >
                 <SlidersHorizontal aria-hidden="true" className="size-4" />
                 Filtros

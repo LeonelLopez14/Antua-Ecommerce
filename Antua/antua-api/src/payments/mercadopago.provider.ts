@@ -37,7 +37,7 @@ export class MercadoPagoProvider implements PaymentProvider {
         items: [
           {
             id: toExternalReference(orderId),
-            title: `Pedido #${orderId} de Antua`,
+            title: `Pedido #${orderId} de Antojarte`,
             quantity: 1,
             unit_price: total,
             currency_id: currency,

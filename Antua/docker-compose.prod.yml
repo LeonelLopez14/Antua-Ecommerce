@@ -33,12 +33,23 @@ x-api-env: &api-env
   JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
   SHIPPING_FLAT_RATE: ${SHIPPING_FLAT_RATE:?Definí SHIPPING_FLAT_RATE en .env.prod}
   SHIPPING_ETA_DAYS: ${SHIPPING_ETA_DAYS:-}
-  FRONTEND_URL: ${FRONTEND_URL:?Definí FRONTEND_URL en .env.prod}
+  # URL pública del sitio (enlaces de los correos). FRONTEND_URL queda como nombre anterior.
+  # Sin "?" anidado: algunas versiones de Compose lo evalúan aunque PUBLIC_URL tenga valor. Que sea
+  # obligatoria lo controla la API al arrancar en producción ("Faltan variables obligatorias: PUBLIC_URL").
+  PUBLIC_URL: ${PUBLIC_URL:-${FRONTEND_URL:-}}
   # Front y API en el mismo dominio (Caddy): no hace falta CORS. Solo si el front viviera en
   # otro origen, se lista acá (nunca "*").
   CORS_ORIGINS: ${CORS_ORIGINS:-}
   # Hay exactamente un proxy (Caddy) delante de la API.
   TRUST_PROXY: ${TRUST_PROXY:-1}
+  # Correo: log (no envía) o smtp. Con smtp en producción hacen falta las seis variables MAIL_*.
+  MAIL_TRANSPORT: ${MAIL_TRANSPORT:-log}
+  MAIL_HOST: ${MAIL_HOST:-}
+  MAIL_PORT: ${MAIL_PORT:-}
+  MAIL_SECURE: ${MAIL_SECURE:-}
+  MAIL_USER: ${MAIL_USER:-}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+  MAIL_FROM: ${MAIL_FROM:-}
   UPLOADS_DIR: /data/uploads
   LOW_STOCK_THRESHOLD: ${LOW_STOCK_THRESHOLD:-5}
   PAYMENT_CURRENCY: UYU
