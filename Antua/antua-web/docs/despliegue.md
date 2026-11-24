@@ -302,12 +302,7 @@ $DC ps                        # los tres (healthy)
 
 Si levantás la API antes de migrar una base nueva, termina con este mensaje: "No se pudo comprobar el estado de las migraciones… aplicá las migraciones primero". El motivo: `antua_app` no puede crear tablas.
 
-**Migración de índices propuesta (opcional, decisión tuya).** `antua-api/src/database/proposed/1794900000000-OrdersIndexes.ts` (Fase 13) agrega tres índices a `orders`: "Mis pedidos" deja de ordenar en memoria y los rangos de fechas del panel dejan de recorrer toda la tabla. **No se aplica sola**: está fuera de `migrations/`. Si después de leerla decidís aplicarla:
-1. Hacé un respaldo (`./scripts/backup-db.sh`).
-2. Mové el archivo a `antua-api/src/database/migrations/` y hacé el commit.
-3. `$DC build api`.
-4. `$DC run --rm migrate`.
-5. `$DC up -d`.
+**Migraciones propuestas (opcionales, decisión tuya).** En `antua-api/src/database/proposed/` hay dos: índices en `orders` (Fase 13) y `products.updated_at` para el sitemap (Fase 16). **No se aplican solas**: están fuera de `migrations/`. Qué hace cada una, sus `EXPLAIN` antes y después con 200.000 pedidos, el riesgo, el bloqueo esperado, el `down`, el respaldo y los comandos exactos: [migraciones-pendientes.md](migraciones-pendientes.md).
 
 El archivo explica qué `@Index` sumar después a la entidad.
 
