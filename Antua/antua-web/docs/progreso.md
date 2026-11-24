@@ -1316,3 +1316,34 @@ Corrido sobre todo lo que se tocó en `src/`. Hallazgos corregidos:
 - Siguen los de antes: lector de pantalla, WebKit en Linux, migración de índices.
 
 ---
+
+## Fase 16: seguridad, observabilidad y presentación
+
+Rama `feat/fase-16-seguridad-presentacion`, creada desde `main` con la Fase 15 ya incluida (PR #12).
+
+### Línea base
+
+- **Tests:** API con 113 unit y 112 e2e, front con 59 unit. Todo en verde.
+- **Entorno de desarrollo:** estaba apagado al empezar (Docker, API y front). No se tocó.
+- **Base de prueba:** todas las pruebas con base de datos usan un contenedor propio, `antojarte-f16-mysql`, en el puerto 3317, con la base `antua_test`.
+
+### 16.1: migraciones pendientes (preparadas, sin aplicar)
+
+- **Correos de prueba en `@antojarte.example`:**
+  - seed, e2e y tests de API y front;
+  - las cuentas salen de `antua-api/src/database/seed-accounts.ts`;
+  - `seed:clean` borra las de los dos dominios, así las viejas de `@antua.test` de tu base de desarrollo no quedan huérfanas;
+  - test unitario del patrón de limpieza.
+- **Nueva migración propuesta `1795000000000-ProductsUpdatedAt`:**
+  - agrega `products.updated_at` con `ALGORITHM=INSTANT` y la rellena con la auditoría;
+  - el sitemap la usa si existe y, si no, sigue con la auditoría. Sin ninguna de las dos, sale sin `lastmod`;
+  - la detección es por pedido, así que no hace falta reiniciar la API.
+- **Bug encontrado y corregido en la migración propuesta de índices (Fase 13):**
+  - su `down` fallaba con `ERROR 1553`: MySQL borra solo el índice implícito de la FK `orders.userId` cuando se crea `(userId, created_at)`;
+  - ahora el `down` lo recrea si falta;
+  - se reprodujo aislado en un esquema descartable.
+- **Nuevo e2e `test/proposed-migrations.e2e-spec.ts`:** aplica `up` y `down` de las dos migraciones solo en `antua_test` y comprueba que el esquema queda idéntico.
+- **`docs/migraciones-pendientes.md`:**
+  - `EXPLAIN ANALYZE` con 200.000 pedidos. El rango del panel baja de 60 a 4 ms y el vencimiento de pagos de 59 a 0,6 ms;
+  - bloqueo: índices en línea (`LOCK=NONE` aceptado) y columna `INSTANT`;
+  - `down`, respaldo y comandos.
