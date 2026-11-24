@@ -38,6 +38,18 @@ export class OrdersIndexes1794900000000 implements MigrationInterface {
       'DROP INDEX `IDX_orders_status_payment` ON `orders`',
     );
     await queryRunner.query('DROP INDEX `IDX_orders_created` ON `orders`');
+    // El índice de la FK de userId lo creó MySQL solo (InitialSchema no lo declara), y MySQL borra en
+    // silencio ese tipo de índice cuando otro puede sostener la FK: el (userId, created_at) del up.
+    // Sin recrearlo, el DROP falla con "needed in a foreign key constraint" (1553). Se recrea con el
+    // nombre de la FK, que es el que tenía, y solo si falta.
+    const [userIndex] = (await queryRunner.query(
+      "SELECT COUNT(DISTINCT INDEX_NAME) AS found FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'userId' AND SEQ_IN_INDEX = 1 AND INDEX_NAME <> 'IDX_orders_user_created'",
+    )) as { found: string | number }[];
+    if (Number(userIndex?.found) === 0) {
+      await queryRunner.query(
+        'CREATE INDEX `FK_151b79a83ba240b0cb31b2302d1` ON `orders` (`userId`)',
+      );
+    }
     await queryRunner.query('DROP INDEX `IDX_orders_user_created` ON `orders`');
   }
 }
