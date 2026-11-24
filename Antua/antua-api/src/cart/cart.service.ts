@@ -445,7 +445,9 @@ export class CartService {
     }
     const warnings = await this.syncCoupon(cart);
     return {
-      cart,
+      // El token del invitado viaja solo en la cabecera X-Guest-Token, no en el cuerpo: es una
+      // credencial y no tiene por qué quedar en logs o cachés de respuestas.
+      cart: { ...cart, guest_token: undefined },
       summary: this.getSummary(cart),
       warnings,
     };
