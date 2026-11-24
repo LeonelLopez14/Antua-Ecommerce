@@ -57,7 +57,11 @@ export function configureApp(app: INestApplication): void {
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
+      // Un campo que el DTO no declara (por ejemplo `role` en el registro) se rechaza con 400 en vez
+      // de ignorarse en silencio: la asignación masiva no pasa ni por error, y un cliente con un
+      // nombre de campo equivocado se entera. El webhook de Mercado Pago no usa DTO: no le afecta.
       whitelist: true,
+      forbidNonWhitelisted: true,
     }),
   );
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));

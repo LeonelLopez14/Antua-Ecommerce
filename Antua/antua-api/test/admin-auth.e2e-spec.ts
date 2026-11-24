@@ -106,15 +106,19 @@ describe('autorización de /admin', () => {
     await call('get', '/admin/audit', session.token).expect(403);
   });
 
-  it('nadie se vuelve admin desde la web: el registro y el perfil ignoran `role`', async () => {
+  it('nadie se vuelve admin desde la web: el registro y el perfil rechazan `role`', async () => {
+    const intruder = {
+      full_name: 'Intruso',
+      email: 'intruso@antojarte.example',
+      password: 'ClaveSegura123',
+    };
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ ...intruder, role: 'admin' })
+      .expect(400);
     const res = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({
-        full_name: 'Intruso',
-        email: 'intruso@antojarte.example',
-        password: 'ClaveSegura123',
-        role: 'admin',
-      })
+      .send(intruder)
       .expect(201);
     const { token, user } = res.body as {
       token: string;
@@ -126,7 +130,7 @@ describe('autorización de /admin', () => {
       .patch('/users/me')
       .set('Authorization', `Bearer ${token}`)
       .send({ full_name: 'Intruso', role: 'admin' })
-      .expect(200);
+      .expect(400);
     await call('get', '/admin/audit', token).expect(403);
   });
 });

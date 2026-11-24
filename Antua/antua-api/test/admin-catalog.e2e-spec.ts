@@ -111,14 +111,17 @@ describe('panel: catálogo', () => {
     await post({ name: 'x6', price: 10, stock: -3, sku: 'A1' }).expect(400);
     await post({ name: 'x6', price: 10, stock: 1, sku: 'MANI-X1' }).expect(409);
     await post({ name: 'x1', price: 10, stock: 1, sku: 'OTRO' }).expect(409);
-    // Campos de más se descartan (whitelist): el stock no se puede tocar por PATCH.
+    // Un campo que el DTO no declara (el id) se rechaza (forbidNonWhitelisted).
     await post({
       name: 'x6',
       price: 5400,
       stock: 4,
       sku: 'MANI-X6',
       id: 999,
-    }).expect(201);
+    }).expect(400);
+    await post({ name: 'x6', price: 5400, stock: 4, sku: 'MANI-X6' }).expect(
+      201,
+    );
 
     const variant = (await auth(request(server()).get(`/admin/products/${id}`)))
       .body as AdminProduct;
@@ -126,8 +129,9 @@ describe('panel: catálogo', () => {
     await auth(
       request(server()).patch(`/admin/products/${id}/variants/${x6.id}`),
     )
+      // El stock no se toca por PATCH (solo con un movimiento de stock, que queda en la auditoría).
       .send({ stock: 999 })
-      .expect(200);
+      .expect(400);
     const after = (await auth(request(server()).get(`/admin/products/${id}`)))
       .body as AdminProduct;
     expect(after.variants.find((v) => v.name === 'x6')!.stock).toBe(4);

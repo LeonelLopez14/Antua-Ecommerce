@@ -162,14 +162,21 @@ describe('panel: pedidos', () => {
       await auth(request(server()).get(`/admin/orders/${order.id}`)).expect(200)
     ).body as OrderDetail;
 
+    // Un monto junto a la nota se rechaza entero (forbidNonWhitelisted): ni la nota se guarda.
     await auth(request(server()).patch(`/admin/orders/${order.id}/note`))
       .send({ note: 'Llamar antes de ir', total: 1, subtotal: 1 })
+      .expect(400);
+    await auth(request(server()).patch(`/admin/orders/${order.id}/note`))
+      .send({ note: 'Llamar antes de ir' })
       .expect(200);
     await auth(request(server()).patch(`/admin/orders/${order.id}`))
       .send({ total: 1 })
       .expect(404);
     await auth(request(server()).patch(`/admin/orders/${order.id}/status`))
       .send({ status: 'canceled', total: 1 })
+      .expect(400);
+    await auth(request(server()).patch(`/admin/orders/${order.id}/status`))
+      .send({ status: 'canceled' })
       .expect(200);
 
     const after = (

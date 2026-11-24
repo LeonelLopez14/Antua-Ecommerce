@@ -43,8 +43,15 @@ describe('cuenta', () => {
           phone: '+598 99 123 456',
           email: 'otra@antojarte.example',
         })
+        .expect(400);
+      // El email no se cambia desde el perfil: con él, el pedido entero se rechaza.
+      expect(JSON.stringify(res.body)).toContain('email');
+      const ok = await request(server())
+        .patch('/users/me')
+        .set('Authorization', auth(token))
+        .send({ full_name: 'Nombre Nuevo', phone: '+598 99 123 456' })
         .expect(200);
-      expect(res.body).toMatchObject({
+      expect(ok.body).toMatchObject({
         full_name: 'Nombre Nuevo',
         phone: '+598 99 123 456',
         email: 'a@antojarte.example',

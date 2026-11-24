@@ -75,11 +75,14 @@ describe('panel: cupones', () => {
     await auth(request(server()).post('/admin/coupons'))
       .send({ ...valid, code: 'a b' })
       .expect(400);
-    // times_used no se puede mandar: la whitelist lo descarta.
-    const sneaky = await auth(request(server()).post('/admin/coupons'))
+    // times_used no se puede mandar: se rechaza (forbidNonWhitelisted) y el cupón no se crea.
+    await auth(request(server()).post('/admin/coupons'))
       .send({ ...valid, code: 'TRAMPA', times_used: 50 })
+      .expect(400);
+    const created = await auth(request(server()).post('/admin/coupons'))
+      .send({ ...valid, code: 'TRAMPA' })
       .expect(201);
-    expect((sneaky.body as CouponView).times_used).toBe(0);
+    expect((created.body as CouponView).times_used).toBe(0);
   });
 
   it('el cupón creado en el panel se puede aplicar en el carrito', async () => {
