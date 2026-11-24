@@ -2,7 +2,9 @@ packages:
   - antua-api
   - antua-web
 allowBuilds:
-  '@scarf/scarf': true
+  # @scarf/scarf (lo trae swagger-ui-dist) solo manda estadísticas de instalación a un servidor
+  # externo. No hace falta para Swagger: su script no se ejecuta.
+  '@scarf/scarf': false
   bcrypt: true
   unrs-resolver: true
 # Los scripts usan sintaxis POSIX (por ejemplo `VITE_API_URL=/api vite build`).
