@@ -8,3 +8,7 @@ allowBuilds:
 # Los scripts usan sintaxis POSIX (por ejemplo `VITE_API_URL=/api vite build`).
 # Con el emulador de shell de pnpm funcionan igual en Windows (cmd) que en Linux o macOS.
 shellEmulator: true
+# Solo se instalan versiones publicadas hace al menos 7 días (en minutos). Si alguien secuestra un
+# paquete y publica una versión maliciosa, suele detectarse y retirarse antes. La CI no se ve
+# afectada: instala exactamente lo del pnpm-lock.yaml (--frozen-lockfile).
+minimumReleaseAge: 10080

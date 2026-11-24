@@ -10,6 +10,10 @@ updates:
       interval: weekly
       day: monday
       timezone: America/Montevideo
+    # Solo versiones publicadas hace al menos 7 días: si alguien secuestra un paquete y publica una
+    # versión maliciosa, suele detectarse y retirarse antes. Las actualizaciones de seguridad no esperan.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     # Menores y parches agrupados en un solo PR por tipo. Las versiones mayores llegan de a una:
     # pueden romper cosas y conviene leer sus notas.
