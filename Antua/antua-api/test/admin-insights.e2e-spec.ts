@@ -43,7 +43,7 @@ describe('panel: resumen, reseñas y usuarios', () => {
   it('resume ventas por período, colas, más vendidos, stock bajo y reseñas', async () => {
     const { variant } = await createProduct(db, 'top', 1000, 6);
     await createProduct(db, 'poco', 500, 2);
-    const buyer = await registerUser(app, 'comprador@antua.test');
+    const buyer = await registerUser(app, 'comprador@antojarte.example');
     const delivered = await buyAndDeliver(app, db, buyer.token, variant.id);
     const old = await buyAndDeliver(app, db, buyer.token, variant.id);
     // Uno de hace 10 días: cuenta en 30 días pero no en 7 ni hoy.
@@ -77,7 +77,7 @@ describe('panel: resumen, reseñas y usuarios', () => {
 
   it('oculta una reseña (reversible): sale del listado público y del promedio', async () => {
     const { product, variant } = await createProduct(db, 'resenada');
-    const buyer = await registerUser(app, 'autor@antua.test');
+    const buyer = await registerUser(app, 'autor@antojarte.example');
     await buyAndDeliver(app, db, buyer.token, variant.id);
     await request(server())
       .post(`/products/${product.slug}/reviews`)
@@ -130,7 +130,7 @@ describe('panel: resumen, reseñas y usuarios', () => {
   });
 
   it('lista usuarios en solo lectura, sin hashes ni tokens', async () => {
-    const buyer = await registerUser(app, 'cliente@antua.test');
+    const buyer = await registerUser(app, 'cliente@antojarte.example');
     const { variant } = await createProduct(db, 'u');
     await buyAndDeliver(app, db, buyer.token, variant.id);
 
@@ -140,7 +140,7 @@ describe('panel: resumen, reseñas y usuarios', () => {
     const body = res.body as { items: Record<string, unknown>[] };
     expect(body.items).toEqual([
       expect.objectContaining({
-        email: 'cliente@antua.test',
+        email: 'cliente@antojarte.example',
         role: 'customer',
         orders: 1,
       }),

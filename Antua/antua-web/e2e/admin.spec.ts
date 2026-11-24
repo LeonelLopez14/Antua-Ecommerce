@@ -8,7 +8,7 @@ import { API } from './env'
  * - Crea un admin de prueba con el script del servidor (`pnpm admin:create`), como se haría en producción.
  * - Cada corrida inicia sesión 3 veces; el login admite 10 por minuto por IP (también para admins),
  *   así que correr la suite muchas veces seguidas puede dar "Hiciste muchos intentos".
- * - Todo lo que crea usa el prefijo seed (seed.e2e-…@antua.test, seed-e2e-…, SEEDE2E…):
+ * - Todo lo que crea usa el prefijo seed (seed.e2e-…@antojarte.example, seed-e2e-…, SEEDE2E…):
  *   `pnpm --filter antua-api seed:clean --yes` lo borra.
  */
 // URL de la API: e2e/env.ts (por defecto, la de desarrollo).
@@ -20,8 +20,8 @@ const RUN = `${Date.now().toString(36)}${randomBytes(2).toString('hex')}`
 const PRESET_ADMIN = process.env.E2E_ADMIN_EMAIL && process.env.E2E_ADMIN_PASSWORD
 const ADMIN = PRESET_ADMIN
   ? { email: process.env.E2E_ADMIN_EMAIL ?? '', password: process.env.E2E_ADMIN_PASSWORD ?? '' }
-  : { email: `seed.e2e-admin-${RUN}@antua.test`, password: `E2e${randomBytes(6).toString('hex')}9` }
-const CUSTOMER = { email: `seed.e2e-cliente-${RUN}@antua.test`, password: 'ClienteE2e123' }
+  : { email: `seed.e2e-admin-${RUN}@antojarte.example`, password: `E2e${randomBytes(6).toString('hex')}9` }
+const CUSTOMER = { email: `seed.e2e-cliente-${RUN}@antojarte.example`, password: 'ClienteE2e123' }
 const SLUG = `seed-e2e-${RUN}`
 const COUPON = `SEEDE2E${RUN.toUpperCase()}`
 
@@ -140,7 +140,7 @@ test('un admin crea un producto con variante e imagen, un cupón, y cancela un p
   const placed = await request.post(`${API}/orders`, {
     headers: { 'X-Guest-Token': guestToken ?? '' },
     data: {
-      guest_email: `seed.e2e-invitado-${RUN}@antua.test`,
+      guest_email: `seed.e2e-invitado-${RUN}@antojarte.example`,
       shipping_full_name: 'Invitado E2E',
       shipping_phone: '099 123 456',
       shipping_street: 'Av. 18 de Julio 1234',

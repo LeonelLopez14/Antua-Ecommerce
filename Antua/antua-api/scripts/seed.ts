@@ -9,7 +9,7 @@
  * La contraseña de los usuarios de prueba es SEED_PASSWORD o, por defecto, SeedPass123!.
  * No es una credencial real: no la uses fuera de desarrollo.
  *
- * Admin de prueba (solo desarrollo): seed.admin@antua.test, SOLO si se define SEED_ADMIN_PASSWORD.
+ * Admin de prueba (solo desarrollo): seed.admin@antojarte.example, SOLO si se define SEED_ADMIN_PASSWORD.
  * No tiene contraseña por defecto, a propósito: un admin con clave conocida sería una puerta abierta.
  *   SEED_ADMIN_PASSWORD='…' pnpm seed
  */
@@ -32,6 +32,11 @@ import { Product } from '../src/products/entities/product.entity';
 import { Review } from '../src/reviews/entities/review.entity';
 import { Tag } from '../src/tags/entities/tag.entity';
 import { User, UserRole } from '../src/users/entities/user.entity';
+import {
+  SEED_ADMIN_EMAIL,
+  SEED_CUSTOMER_EMAIL,
+  seedEmail,
+} from '../src/database/seed-accounts';
 
 interface SeedData {
   tags: { name: string; slug: string }[];
@@ -203,14 +208,12 @@ async function main() {
       process.env.SEED_PASSWORD ?? 'SeedPass123!',
       10,
     );
-    const emailOf = (author: string) =>
-      `seed.${author.split(' ')[0].normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()}@antua.test`;
     const authors = [...new Set(data.reviews.map((r) => r.author))];
     for (const full_name of [...authors, 'Cliente de Prueba']) {
       const email =
         full_name === 'Cliente de Prueba'
-          ? 'seed.cliente@antua.test'
-          : emailOf(full_name);
+          ? SEED_CUSTOMER_EMAIL
+          : seedEmail(full_name);
       await saveBy(users, { email }, { full_name, email, password_hash });
     }
 
@@ -229,10 +232,10 @@ async function main() {
       }
       await saveBy(
         users,
-        { email: 'seed.admin@antua.test' },
+        { email: SEED_ADMIN_EMAIL },
         {
           full_name: 'Admin de Prueba',
-          email: 'seed.admin@antua.test',
+          email: SEED_ADMIN_EMAIL,
           password_hash: await bcrypt.hash(adminPassword, 10),
           role: UserRole.ADMIN,
         },
@@ -243,7 +246,7 @@ async function main() {
     for (const review of data.reviews) {
       const product = await products.findOneByOrFail({ slug: review.product });
       const user = await users.findOneByOrFail({
-        email: emailOf(review.author),
+        email: seedEmail(review.author),
       });
       await saveBy(
         reviews,
@@ -263,7 +266,7 @@ async function main() {
       ? `Catálogo de ejemplo listo: ${data.products.length} productos y ${data.tags.length} tags (sin usuarios, cupones ni reseñas).\n`
       : `Seed listo: ${data.products.length} productos, ${data.tags.length} tags, 3 cupones${
           process.env.SEED_ADMIN_PASSWORD
-            ? ' y el admin seed.admin@antua.test'
+            ? ` y el admin ${SEED_ADMIN_EMAIL}`
             : ''
         }.\n`,
   );

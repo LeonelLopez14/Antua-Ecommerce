@@ -24,7 +24,7 @@ describe('reseñas', () => {
 
   const authorWithReview = async () => {
     const { product, variant } = await createProduct(db, 'a');
-    const author = await registerUser(app, 'autora@antua.test');
+    const author = await registerUser(app, 'autora@antojarte.example');
     await buyAndDeliver(app, db, author.token, variant.id);
     const res = await request(server())
       .post(`/products/${product.slug}/reviews`)
@@ -46,12 +46,12 @@ describe('reseñas', () => {
       .expect(200);
     const [review] = res.body as { user: Record<string, unknown> }[];
     expect(Object.keys(review.user).sort()).toEqual(['full_name', 'id']);
-    expect(JSON.stringify(res.body)).not.toContain('autora@antua.test');
+    expect(JSON.stringify(res.body)).not.toContain('autora@antojarte.example');
   });
 
   it('mantiene las reglas: comprar y recibir, y una por producto', async () => {
     const { product, author } = await authorWithReview();
-    const other = await registerUser(app, 'sin-compra@antua.test');
+    const other = await registerUser(app, 'sin-compra@antojarte.example');
 
     await request(server())
       .post(`/products/${product.slug}/reviews`)
@@ -91,7 +91,7 @@ describe('reseñas', () => {
 
   it('otra persona no puede editarla ni borrarla', async () => {
     const { product, reviewId } = await authorWithReview();
-    const other = await registerUser(app, 'otra@antua.test');
+    const other = await registerUser(app, 'otra@antojarte.example');
     const url = `/products/${product.slug}/reviews/${reviewId}`;
 
     await request(server())

@@ -95,7 +95,7 @@ test('checkout completo solo con teclado, con el foco en el título de cada paso
   await expect(page.getByLabel('Email')).toHaveAttribute('aria-invalid', 'true')
 
   const fields: [string, string][] = [
-    ['Email', 'seed.teclado@antua.test'],
+    ['Email', 'seed.teclado@antojarte.example'],
     ['Nombre y apellido', 'Prueba Teclado'],
     ['Teléfono', '099 123 456'],
     ['Calle y número', 'Av. 18 de Julio 1234'],

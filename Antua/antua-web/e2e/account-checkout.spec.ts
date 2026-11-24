@@ -7,11 +7,11 @@ import { API } from './env'
  * Tienda → Ficha → agregar → checkout → iniciar sesión desde el checkout (el carrito de invitado
  * se une al de la cuenta) → dirección → envío → pago → confirmar → el pedido aparece en Mis pedidos.
  *
- * Crea un cliente propio por corrida (seed.e2e-cuenta-…@antua.test: `seed:clean --yes` lo borra).
+ * Crea un cliente propio por corrida (seed.e2e-cuenta-…@antojarte.example: `seed:clean --yes` lo borra).
  * Además falla si el navegador reporta alguna violación de la Content-Security-Policy.
  */
 const RUN = `${Date.now().toString(36)}${randomBytes(2).toString('hex')}`
-const CUSTOMER = { name: 'Cuenta E2E', email: `seed.e2e-cuenta-${RUN}@antua.test`, password: `Cuenta${randomBytes(4).toString('hex')}7` }
+const CUSTOMER = { name: 'Cuenta E2E', email: `seed.e2e-cuenta-${RUN}@antojarte.example`, password: `Cuenta${randomBytes(4).toString('hex')}7` }
 
 /** Junta las violaciones de CSP que reporta el navegador (evento securitypolicyviolation). */
 async function watchCsp(page: Page): Promise<string[]> {

@@ -12,7 +12,10 @@ import {
   TestApp,
 } from './helpers';
 
-const GUEST_ORDER = { ...SHIPPING_DATA, guest_email: 'invitado@antua.test' };
+const GUEST_ORDER = {
+  ...SHIPPING_DATA,
+  guest_email: 'invitado@antojarte.example',
+};
 
 describe('POST /orders', () => {
   let app: TestApp;
@@ -130,7 +133,7 @@ describe('POST /orders', () => {
   });
 
   describe('pedidos de invitado', () => {
-    const placeGuestOrder = async (email = 'invitado@antua.test') => {
+    const placeGuestOrder = async (email = 'invitado@antojarte.example') => {
       const { variant } = await createProduct(db, `p-${Date.now()}`);
       const token = await guestCartWith(variant.id, 1);
       const res = await request(server())
@@ -156,13 +159,13 @@ describe('POST /orders', () => {
     it('no deja ver el pedido sabiendo solo el email', async () => {
       const { order } = await placeGuestOrder();
       await request(server())
-        .get(`/orders/guest/${order.id}?email=invitado@antua.test`)
+        .get(`/orders/guest/${order.id}?email=invitado@antojarte.example`)
         .expect(404);
     });
 
     it('registrarse con el mismo email NO da acceso al pedido', async () => {
-      const { order } = await placeGuestOrder('victima@antua.test');
-      const attacker = await registerUser(app, 'victima@antua.test');
+      const { order } = await placeGuestOrder('victima@antojarte.example');
+      const attacker = await registerUser(app, 'victima@antojarte.example');
 
       await request(server())
         .get(`/orders/${order.id}`)
@@ -176,7 +179,7 @@ describe('POST /orders', () => {
 
     it('otro usuario no puede reclamarlo con un token equivocado', async () => {
       const { order } = await placeGuestOrder();
-      const other = await registerUser(app, 'otro@antua.test');
+      const other = await registerUser(app, 'otro@antojarte.example');
 
       await request(server())
         .post(`/orders/${order.id}/claim`)
@@ -187,8 +190,8 @@ describe('POST /orders', () => {
 
     it('con el token, lo vincula a la cuenta una sola vez', async () => {
       const { order, accessToken } = await placeGuestOrder();
-      const user = await registerUser(app, 'duena@antua.test');
-      const other = await registerUser(app, 'otra@antua.test');
+      const user = await registerUser(app, 'duena@antojarte.example');
+      const other = await registerUser(app, 'otra@antojarte.example');
 
       await request(server())
         .post(`/orders/${order.id}/claim`)
@@ -216,7 +219,7 @@ describe('POST /orders', () => {
 
     it('no se puede reclamar pasado el plazo', async () => {
       const { order, accessToken } = await placeGuestOrder();
-      const user = await registerUser(app, 'tarde@antua.test');
+      const user = await registerUser(app, 'tarde@antojarte.example');
       await db.query(
         'UPDATE orders SET created_at = DATE_SUB(NOW(), INTERVAL 2 DAY) WHERE id = ?',
         [order.id],

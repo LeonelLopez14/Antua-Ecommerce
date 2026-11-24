@@ -115,7 +115,7 @@ El esquema se gestiona con migraciones de TypeORM (`antua-api/src/database/migra
 | `admin:create` | Crea el primer administrador (ver arriba) |
 | `nutrition:examples --yes` | Carga información nutricional de ejemplo en los campos vacíos (`--undo --yes` la quita) |
 
-Datos de prueba: cupones `SEED10` (−10 %, mínimo 5000), `SEEDFIJO` (−1000) y `SEEDVENCIDO`; usuario `seed.cliente@antua.test` con contraseña `SeedPass123!` (solo desarrollo; se cambia con `SEED_PASSWORD`).
+Datos de prueba: cupones `SEED10` (−10 %, mínimo 5000), `SEEDFIJO` (−1000) y `SEEDVENCIDO`; usuario `seed.cliente@antojarte.example` con contraseña `SeedPass123!` (solo desarrollo; se cambia con `SEED_PASSWORD`).
 
 ## Tests
 

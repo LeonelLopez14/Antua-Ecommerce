@@ -156,7 +156,7 @@ cd antua-web
 
 # Lighthouse sobre el build de producción
 pnpm qa:build && pnpm qa:preview           # en otra terminal: http://localhost:4173
-QA_ADMIN_EMAIL=seed.admin@antua.test QA_ADMIN_PASSWORD='…' pnpm qa:lighthouse -- --run=nueva
+QA_ADMIN_EMAIL=seed.admin@antojarte.example QA_ADMIN_PASSWORD='…' pnpm qa:lighthouse -- --run=nueva
 #   opciones: --only=tienda,ficha  --runs=3 (mediana)
 #   resultados: docs/qa/lighthouse/nueva/ (JSON sin capturas + resumen.md)
 

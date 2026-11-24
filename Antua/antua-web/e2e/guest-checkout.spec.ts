@@ -32,7 +32,7 @@ test('un invitado compra con cupón y ve la confirmación', async ({ page }) => 
   await expect(page).toHaveURL(/\/checkout/)
   await expect(page.getByRole('heading', { name: 'Paso 1 de 4: Dirección' })).toBeVisible()
 
-  await page.getByLabel('Email').fill(`e2e.${Date.now()}@antua.test`)
+  await page.getByLabel('Email').fill(`e2e.${Date.now()}@antojarte.example`)
   await page.getByLabel('Nombre y apellido').fill('Prueba E2E')
   await page.getByLabel('Teléfono').fill('11 5555 4444')
   await page.getByLabel('Calle y número').fill('Av. Corrientes 1234')

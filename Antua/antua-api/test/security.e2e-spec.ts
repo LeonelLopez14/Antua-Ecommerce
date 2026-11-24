@@ -69,7 +69,11 @@ describe('endurecimiento', () => {
   it('el registro aplica la política de contraseñas', async () => {
     await request(server())
       .post('/auth/register')
-      .send({ full_name: 'A', email: 'a@antua.test', password: 'sinnumeros' })
+      .send({
+        full_name: 'A',
+        email: 'a@antojarte.example',
+        password: 'sinnumeros',
+      })
       .expect(400);
   });
 
@@ -91,7 +95,7 @@ describe('endurecimiento', () => {
       .set('X-Guest-Token', token)
       .send({
         ...SHIPPING_DATA,
-        guest_email: 'a@antua.test',
+        guest_email: 'a@antojarte.example',
         shipping_postal_code: '1'.repeat(21),
       })
       .expect(400);
@@ -100,8 +104,8 @@ describe('endurecimiento', () => {
   describe('ownership', () => {
     it('un usuario no ve ni toca pedidos ni direcciones de otro', async () => {
       const { variant } = await createProduct(db, 'a');
-      const owner = await registerUser(app, 'duena@antua.test');
-      const other = await registerUser(app, 'otra@antua.test');
+      const owner = await registerUser(app, 'duena@antojarte.example');
+      const other = await registerUser(app, 'otra@antojarte.example');
       const bearer = (token: string) => `Bearer ${token}`;
 
       await request(server())
@@ -171,7 +175,7 @@ describe('endurecimiento', () => {
       for (let i = 0; i < 12; i++) {
         const res = await request(server())
           .post('/auth/login')
-          .send({ email: 'a@antua.test', password: 'x' });
+          .send({ email: 'a@antojarte.example', password: 'x' });
         attempts.push(res.status);
       }
       expect(attempts.slice(0, 10).every((status) => status === 401)).toBe(

@@ -53,7 +53,7 @@ describe('pagos', () => {
     const res = await request(server())
       .post('/orders')
       .set('X-Guest-Token', token)
-      .send({ ...SHIPPING_DATA, guest_email: 'a@antua.test' })
+      .send({ ...SHIPPING_DATA, guest_email: 'a@antojarte.example' })
       .expect(201);
     const body = res.body as {
       order: { id: number; total: number };
@@ -110,7 +110,7 @@ describe('pagos', () => {
 
     it('solo deja pagar al dueño', async () => {
       const { order } = await guestOrder();
-      const user = await registerUser(app, 'otra@antua.test');
+      const user = await registerUser(app, 'otra@antojarte.example');
       await request(server()).post(`/orders/${order.id}/payment`).expect(404);
       await start(order.id, 'token-inventado').expect(404);
       await request(server())

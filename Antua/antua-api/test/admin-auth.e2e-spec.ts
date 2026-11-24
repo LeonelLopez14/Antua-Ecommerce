@@ -29,7 +29,8 @@ describe('autorización de /admin', () => {
   beforeAll(async () => {
     ({ app, db } = await createTestApp());
     await resetDatabase(db);
-    customerToken = (await registerUser(app, 'cliente@antua.test')).token;
+    customerToken = (await registerUser(app, 'cliente@antojarte.example'))
+      .token;
     adminToken = (await registerAdmin(app, db)).token;
     adminRoutes = listRoutes(app)
       .filter(({ path }) => /^\/admin(\/|$)/.test(path))
@@ -97,7 +98,7 @@ describe('autorización de /admin', () => {
   });
 
   it('el rol se lee de la base en cada request: al quitarlo, el mismo token deja de servir', async () => {
-    const session = await registerAdmin(app, db, 'ex-admin@antua.test');
+    const session = await registerAdmin(app, db, 'ex-admin@antojarte.example');
     await call('get', '/admin/audit', session.token).expect(200);
     await db.query("UPDATE users SET role = 'customer' WHERE id = ?", [
       session.user.id,
@@ -110,7 +111,7 @@ describe('autorización de /admin', () => {
       .post('/auth/register')
       .send({
         full_name: 'Intruso',
-        email: 'intruso@antua.test',
+        email: 'intruso@antojarte.example',
         password: 'ClaveSegura123',
         role: 'admin',
       })

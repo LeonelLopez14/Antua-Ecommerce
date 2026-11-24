@@ -51,7 +51,7 @@ describe('correos de pedidos', () => {
     const res = await request(server())
       .post('/orders')
       .set('X-Guest-Token', guest)
-      .send({ ...shipping, guest_email: 'invitada@antua.test' })
+      .send({ ...shipping, guest_email: 'invitada@antojarte.example' })
       .expect(201);
     return res.body as { order: { id: number }; accessToken: string };
   }
@@ -62,7 +62,7 @@ describe('correos de pedidos', () => {
 
     expect(sentMails).toHaveLength(1);
     const [mail] = sentMails;
-    expect(mail.to).toBe('invitada@antua.test');
+    expect(mail.to).toBe('invitada@antojarte.example');
     expect(mail.subject).toBe(`Recibimos tu pedido #${order.id}`);
     expect(mail.text).toContain('Producto correo: 2 ×');
     expect(mail.text).toContain(`/pedido/${order.id}#t=${accessToken}`);
@@ -78,7 +78,7 @@ describe('correos de pedidos', () => {
   });
 
   it('con cuenta: el enlace lleva a Mis pedidos, sin token', async () => {
-    const { token } = await registerUser(app, 'cuenta@antua.test');
+    const { token } = await registerUser(app, 'cuenta@antojarte.example');
     await request(server())
       .post('/cart/items')
       .set('Authorization', `Bearer ${token}`)
@@ -92,7 +92,7 @@ describe('correos de pedidos', () => {
     const { id } = (res.body as { order: { id: number } }).order;
     await waitFor(() => sentMails.length > 0);
 
-    expect(sentMails[0].to).toBe('cuenta@antua.test');
+    expect(sentMails[0].to).toBe('cuenta@antojarte.example');
     expect(sentMails[0].text).toContain(`/cuenta/pedidos/${id}`);
     expect(sentMails[0].text).not.toContain('#t=');
   });

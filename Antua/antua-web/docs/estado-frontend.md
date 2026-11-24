@@ -79,5 +79,5 @@ Para probar los pagos sin credenciales: levantá la API con `PAYMENTS_SIMULATED=
 12. **Borde del botón secundario:** resuelto en la Fase 15 con el token `border-control` (3:1 en claro y oscuro).
 13. **Migración de índices propuesta:** `antua-api/src/database/proposed/`, para leer y aplicar (paso opcional en `despliegue.md`).
 14. **Despliegue:** dominio, modo de HTTPS (`internal` o `public`) y si se abre o no a internet.
-15. **Emails de prueba `@antua.test`** (seed, e2e y tests): pasarlos a `@antojarte.example` cambia cuentas que ya existen en la base de desarrollo y el patrón de `seed:clean`.
+15. ~~**Emails de prueba `@antua.test`**~~ **Resuelto en la Fase 16:** el seed, los e2e y los tests usan `@antojarte.example`, y `seed:clean` borra las cuentas de los dos dominios.
 16. **`updated_at` en productos:** daría un `lastmod` exacto en el sitemap (hoy sale de la auditoría del panel), pero requiere una migración.

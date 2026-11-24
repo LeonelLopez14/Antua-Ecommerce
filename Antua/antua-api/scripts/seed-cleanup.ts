@@ -13,10 +13,12 @@ import { join } from 'node:path';
 import dataSource from '../src/database/data-source';
 import { parseUploadsDir } from '../src/config/env.validation';
 import { UPLOADED_FILE_NAME } from '../src/admin/catalog/image-file';
+import { SEED_USERS_WHERE } from '../src/database/seed-accounts';
 
 const SEED_PRODUCTS = `SELECT id FROM products WHERE slug LIKE 'seed-%'`;
 const SEED_VARIANTS = `SELECT id FROM product_variants WHERE productId IN (${SEED_PRODUCTS})`;
-const SEED_USERS = `SELECT id FROM users WHERE email LIKE 'seed.%@antua.test'`;
+// Borra las cuentas de @antojarte.example y las viejas de @antua.test (ver seed-accounts.ts).
+const SEED_USERS = `SELECT id FROM users WHERE ${SEED_USERS_WHERE}`;
 const SEED_COUPONS = `SELECT id FROM coupons WHERE code LIKE 'SEED%'`;
 
 async function main() {

@@ -3,7 +3,7 @@
  *
  *   pnpm qa:lighthouse -- --run=despues [--only=home,tienda]
  *
- * Requiere la API en :3000 con los datos de prueba. Para Mis pedidos usa seed.cliente@antua.test
+ * Requiere la API en :3000 con los datos de prueba. Para Mis pedidos usa seed.cliente@antojarte.example
  * (SEED_PASSWORD, por defecto SeedPass123!); para el panel, QA_ADMIN_EMAIL y QA_ADMIN_PASSWORD
  * (si faltan, el panel se saltea). Usa el Chromium de Playwright (o CHROME_PATH).
  *
@@ -73,7 +73,7 @@ async function storageFor(setup: Setup): Promise<Record<string, string> | null> 
   }
   const credentials =
     setup === 'customer'
-      ? { email: 'seed.cliente@antua.test', password: process.env.SEED_PASSWORD ?? 'SeedPass123!' }
+      ? { email: 'seed.cliente@antojarte.example', password: process.env.SEED_PASSWORD ?? 'SeedPass123!' }
       : { email: process.env.QA_ADMIN_EMAIL ?? '', password: process.env.QA_ADMIN_PASSWORD ?? '' }
   if (!credentials.email || !credentials.password) return null
   const session = await login(credentials.email, credentials.password)

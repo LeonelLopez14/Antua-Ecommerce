@@ -8,7 +8,7 @@ import { useAuthStore } from '../../stores/authStore'
 const user = (role: 'customer' | 'admin') => ({
   id: 1,
   full_name: 'Ana Pérez',
-  email: 'ana@antua.test',
+  email: 'ana@antojarte.example',
   phone: null,
   role,
   created_at: '2026-11-01T10:00:00Z',

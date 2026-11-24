@@ -23,36 +23,36 @@ describe('cuenta', () => {
 
   describe('perfil', () => {
     it('GET /users/me nunca devuelve datos sensibles', async () => {
-      const { token } = await registerUser(app, 'a@antua.test');
+      const { token } = await registerUser(app, 'a@antojarte.example');
       const res = await request(server())
         .get('/users/me')
         .set('Authorization', auth(token))
         .expect(200);
-      expect(res.body).toMatchObject({ email: 'a@antua.test' });
+      expect(res.body).toMatchObject({ email: 'a@antojarte.example' });
       expect(res.body).not.toHaveProperty('password_hash');
       expect(res.body).not.toHaveProperty('password_changed_at');
     });
 
     it('PATCH /users/me actualiza nombre y teléfono, y solo eso', async () => {
-      const { token } = await registerUser(app, 'a@antua.test');
+      const { token } = await registerUser(app, 'a@antojarte.example');
       const res = await request(server())
         .patch('/users/me')
         .set('Authorization', auth(token))
         .send({
           full_name: 'Nombre Nuevo',
           phone: '+598 99 123 456',
-          email: 'otra@antua.test',
+          email: 'otra@antojarte.example',
         })
         .expect(200);
       expect(res.body).toMatchObject({
         full_name: 'Nombre Nuevo',
         phone: '+598 99 123 456',
-        email: 'a@antua.test',
+        email: 'a@antojarte.example',
       });
     });
 
     it('valida el teléfono y exige sesión', async () => {
-      const { token } = await registerUser(app, 'a@antua.test');
+      const { token } = await registerUser(app, 'a@antojarte.example');
       await request(server())
         .patch('/users/me')
         .set('Authorization', auth(token))
@@ -74,19 +74,19 @@ describe('cuenta', () => {
         .send({ currentPassword, newPassword });
 
     it('exige la contraseña actual', async () => {
-      const { token } = await registerUser(app, 'a@antua.test');
+      const { token } = await registerUser(app, 'a@antojarte.example');
       await change(token, 'equivocada1', 'NuevaClave123').expect(401);
     });
 
     it('aplica la política mínima', async () => {
-      const { token } = await registerUser(app, 'a@antua.test');
+      const { token } = await registerUser(app, 'a@antojarte.example');
       for (const weak of ['corta1', 'sololetras', '1234567890']) {
         await change(token, 'ClaveSegura123', weak).expect(400);
       }
     });
 
     it('cambia la contraseña e invalida las sesiones anteriores', async () => {
-      const { token } = await registerUser(app, 'a@antua.test');
+      const { token } = await registerUser(app, 'a@antojarte.example');
       // iat tiene precisión de segundos: la sesión vieja tiene que ser de antes.
       await new Promise((resolve) => setTimeout(resolve, 1100));
 
@@ -105,11 +105,11 @@ describe('cuenta', () => {
         .expect(200);
       await request(server())
         .post('/auth/login')
-        .send({ email: 'a@antua.test', password: 'NuevaClave123' })
+        .send({ email: 'a@antojarte.example', password: 'NuevaClave123' })
         .expect(201);
       await request(server())
         .post('/auth/login')
-        .send({ email: 'a@antua.test', password: 'ClaveSegura123' })
+        .send({ email: 'a@antojarte.example', password: 'ClaveSegura123' })
         .expect(401);
     });
   });
@@ -124,7 +124,7 @@ describe('cuenta', () => {
     const login = (password: string) =>
       request(server())
         .post('/auth/login')
-        .send({ email: 'a@antua.test', password });
+        .send({ email: 'a@antojarte.example', password });
 
     /** El envío corre en segundo plano: espera a que llegue el mail. */
     const tokenFromMail = async (expected = 1) => {
@@ -142,18 +142,18 @@ describe('cuenta', () => {
     });
 
     it('responde exactamente igual exista o no la cuenta', async () => {
-      await registerUser(app, 'a@antua.test');
-      const exists = await forgot('a@antua.test').expect(200);
-      const missing = await forgot('nadie@antua.test').expect(200);
+      await registerUser(app, 'a@antojarte.example');
+      const exists = await forgot('a@antojarte.example').expect(200);
+      const missing = await forgot('nadie@antojarte.example').expect(200);
       expect(missing.body).toEqual(exists.body);
       await tokenFromMail();
       await settle();
-      expect(sentMails.map((mail) => mail.to)).toEqual(['a@antua.test']);
+      expect(sentMails.map((mail) => mail.to)).toEqual(['a@antojarte.example']);
     });
 
     it('guarda solo el hash del token', async () => {
-      await registerUser(app, 'a@antua.test');
-      await forgot('a@antua.test').expect(200);
+      await registerUser(app, 'a@antojarte.example');
+      await forgot('a@antojarte.example').expect(200);
       const token = await tokenFromMail();
       const rows: { token_hash: string }[] = await db.query(
         'SELECT token_hash FROM password_reset_tokens',
@@ -164,8 +164,8 @@ describe('cuenta', () => {
     });
 
     it('restablece la contraseña y el token sirve una sola vez', async () => {
-      await registerUser(app, 'a@antua.test');
-      await forgot('a@antua.test').expect(200);
+      await registerUser(app, 'a@antojarte.example');
+      await forgot('a@antojarte.example').expect(200);
       const token = await tokenFromMail();
 
       await reset(token).expect(200);
@@ -175,8 +175,8 @@ describe('cuenta', () => {
     });
 
     it('rechaza un token vencido, uno inventado y una contraseña débil', async () => {
-      await registerUser(app, 'a@antua.test');
-      await forgot('a@antua.test').expect(200);
+      await registerUser(app, 'a@antojarte.example');
+      await forgot('a@antojarte.example').expect(200);
       const token = await tokenFromMail();
 
       await reset(token, 'debil').expect(400);
@@ -188,10 +188,10 @@ describe('cuenta', () => {
     });
 
     it('un link nuevo anula el anterior', async () => {
-      await registerUser(app, 'a@antua.test');
-      await forgot('a@antua.test').expect(200);
+      await registerUser(app, 'a@antojarte.example');
+      await forgot('a@antojarte.example').expect(200);
       const first = await tokenFromMail(1);
-      await forgot('a@antua.test').expect(200);
+      await forgot('a@antojarte.example').expect(200);
       const second = await tokenFromMail(2);
 
       await reset(first).expect(400);
@@ -199,9 +199,9 @@ describe('cuenta', () => {
     });
 
     it('limita los pedidos por cuenta y por hora', async () => {
-      await registerUser(app, 'a@antua.test');
+      await registerUser(app, 'a@antojarte.example');
       for (let i = 1; i <= 3; i++) {
-        await forgot('a@antua.test').expect(200);
+        await forgot('a@antojarte.example').expect(200);
         await tokenFromMail(i);
       }
       await db.query(
@@ -214,7 +214,7 @@ describe('cuenta', () => {
         "INSERT INTO password_reset_tokens (token_hash, expires_at, used_at, userId) SELECT REPEAT('c', 64), NOW() + INTERVAL 1 HOUR, NOW(), id FROM users LIMIT 1",
       );
       const before = sentMails.length;
-      await forgot('a@antua.test').expect(200);
+      await forgot('a@antojarte.example').expect(200);
       await settle();
       expect(sentMails).toHaveLength(before);
     });

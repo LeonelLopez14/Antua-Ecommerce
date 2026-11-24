@@ -33,7 +33,7 @@ ADMIN_EMAIL=persona@ejemplo.com pnpm --filter antua-api admin:create --promote
 
 - La contraseña sigue la misma política que el registro: de 8 a 72 caracteres, con al menos una letra y un número.
 - **Con la base en Docker:** corrélo desde tu máquina. El script usa las variables `DB_*` de `antua-api/.env` y se conecta al puerto publicado (por defecto, el 3307).
-- **Admin solo para desarrollo:** `SEED_ADMIN_PASSWORD='…' pnpm --filter antua-api seed` crea `seed.admin@antua.test`. No tiene contraseña por defecto, y `seed:clean --yes` lo borra.
+- **Admin solo para desarrollo:** `SEED_ADMIN_PASSWORD='…' pnpm --filter antua-api seed` crea `seed.admin@antojarte.example`. No tiene contraseña por defecto, y `seed:clean --yes` lo borra.
 
 **Para quitarle el rol a alguien** (no hay pantalla para eso, a propósito):
 

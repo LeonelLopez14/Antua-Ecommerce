@@ -325,7 +325,7 @@ $DC run --rm api node dist-tools/scripts/nutrition-examples.js --dry-run --allow
 $DC run --rm api node dist-tools/scripts/nutrition-examples.js --yes --allow-production
 ```
 
-**Por qué NO el seed completo.** El seed de desarrollo crea cuentas con una contraseña conocida (`seed.cliente@antua.test` / `SeedPass123!`) y cupones con códigos públicos. En un servidor que alguien más puede ver, cualquiera entraría con esas cuentas. Por eso el seed completo se niega a correr en producción, y `--catalog-only` carga solo tags y productos.
+**Por qué NO el seed completo.** El seed de desarrollo crea cuentas con una contraseña conocida (`seed.cliente@antojarte.example` / `SeedPass123!`) y cupones con códigos públicos. En un servidor que alguien más puede ver, cualquiera entraría con esas cuentas. Por eso el seed completo se niega a correr en producción, y `--catalog-only` carga solo tags y productos.
 
 Para retirar el catálogo de ejemplo antes de abrir al público, **desactivá esos productos desde el panel**: quedan en la auditoría y se pueden reactivar. `seed:clean` no corre en producción, porque también borra los pedidos que incluyan esos productos.
 
@@ -514,7 +514,7 @@ Otra forma de tener versiones: `IMAGE_TAG=v2` en `.env.prod` antes de `$DC build
 - [ ] Ninguna cuenta de prueba:
 
   ```bash
-  $DC exec db sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot antua_db -e "SELECT id,email,role FROM users WHERE email LIKE \"%antua.test\" OR email LIKE \"%.example\""'
+  $DC exec db sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot antua_db -e "SELECT id,email,role FROM users WHERE email LIKE \"seed.%\" OR email LIKE \"%@antojarte.example\" OR email LIKE \"%@antua.test\""'
   ```
 
   Tiene que dar vacío (o solo cuentas que reconozcas).

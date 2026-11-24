@@ -62,13 +62,13 @@ describe('panel: exportaciones CSV', () => {
       .send({
         ...SHIPPING_DATA,
         shipping_full_name: name,
-        guest_email: 'privado@antua.test',
+        guest_email: 'privado@antojarte.example',
       })
       .expect(201);
   }
 
   it('un cliente no puede exportar (403), ni sin sesión (401)', async () => {
-    const { token } = await registerUser(app, 'cliente@antua.test');
+    const { token } = await registerUser(app, 'cliente@antojarte.example');
     await get(
       `/admin/exports/orders.csv?from=${today}&to=${today}`,
       token,
@@ -107,7 +107,7 @@ describe('panel: exportaciones CSV', () => {
       'UYU',
     ]);
     // Ni el email, ni el teléfono, ni la calle, ni tokens o hashes.
-    expect(csv).not.toContain('privado@antua.test');
+    expect(csv).not.toContain('privado@antojarte.example');
     expect(csv).not.toContain(SHIPPING_DATA.shipping_phone);
     expect(csv).not.toContain(SHIPPING_DATA.shipping_street);
     expect(csv).not.toMatch(/[a-f0-9]{64}/);
@@ -189,6 +189,6 @@ describe('panel: exportaciones CSV', () => {
     ]);
     expect(log[0].changes).toMatchObject({ from: today, to: today, rows: 1 });
     expect(log[1].changes).toMatchObject({ separator: ',', rows: 1 });
-    expect(log[0].admin?.email).toBe('admin@antua.test');
+    expect(log[0].admin?.email).toBe('admin@antojarte.example');
   });
 });

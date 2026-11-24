@@ -181,7 +181,7 @@ export async function buyAndDeliver(
 export async function registerAdmin(
   app: TestApp,
   db: DataSource,
-  email = 'admin@antua.test',
+  email = 'admin@antojarte.example',
 ) {
   const session = await registerUser(app, email);
   await db

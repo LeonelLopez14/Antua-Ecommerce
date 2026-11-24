@@ -11,7 +11,7 @@ import { API } from './env'
  *
  *   pnpm qa:a11y
  *
- * Requiere la API con los datos de prueba. Mis pedidos usa seed.cliente@antua.test; el panel,
+ * Requiere la API con los datos de prueba. Mis pedidos usa seed.cliente@antojarte.example; el panel,
  * QA_ADMIN_EMAIL y QA_ADMIN_PASSWORD (si faltan, se saltea). No crea pedidos: el paso 4 del
  * checkout se alcanza simulando que los pagos online están desactivados (el estado real sin credenciales).
  */
@@ -47,7 +47,7 @@ test.beforeAll(async ({ request }) => {
     expect(res.ok()).toBe(true)
     return JSON.stringify({ state: await res.json(), version: 0 })
   }
-  customerAuth = await login('seed.cliente@antua.test', process.env.SEED_PASSWORD ?? 'SeedPass123!')
+  customerAuth = await login('seed.cliente@antojarte.example', process.env.SEED_PASSWORD ?? 'SeedPass123!')
   if (process.env.QA_ADMIN_EMAIL && process.env.QA_ADMIN_PASSWORD) {
     adminAuth = await login(process.env.QA_ADMIN_EMAIL, process.env.QA_ADMIN_PASSWORD)
   }
@@ -177,7 +177,7 @@ for (const viewport of VIEWPORTS) {
         await page.getByRole('button', { name: 'Continuar al envío' }).click()
         await scan(page, testInfo, `${label}-checkout-1-errores`)
 
-        await page.getByLabel('Email').fill('seed.a11y@antua.test')
+        await page.getByLabel('Email').fill('seed.a11y@antojarte.example')
         await page.getByLabel('Nombre y apellido').fill('Prueba Accesible')
         await page.getByLabel('Teléfono').fill('099 123 456')
         await page.getByLabel('Calle y número').fill('Av. 18 de Julio 1234')

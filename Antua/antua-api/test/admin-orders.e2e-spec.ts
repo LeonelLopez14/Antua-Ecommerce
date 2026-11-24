@@ -64,7 +64,10 @@ describe('panel: pedidos', () => {
     const res = await request(server())
       .post('/orders')
       .set('X-Guest-Token', guest)
-      .send({ ...SHIPPING_DATA, guest_email: 'cliente.invitado@antua.test' })
+      .send({
+        ...SHIPPING_DATA,
+        guest_email: 'cliente.invitado@antojarte.example',
+      })
       .expect(201);
     return res.body as { order: { id: number }; accessToken: string };
   }
@@ -206,7 +209,7 @@ describe('panel: pedidos', () => {
 
     expect(await list('status=canceled')).toEqual([second.id]);
     expect(await list(`q=${first.id}`)).toEqual([first.id]);
-    expect(await list('q=invitado@antua')).toEqual([second.id, first.id]);
+    expect(await list('q=invitado@antojarte')).toEqual([second.id, first.id]);
     expect(await list('from=2026-11-14&to=2026-11-14')).toEqual([first.id]);
     expect(await list('from=2026-11-15&to=2026-11-15')).toEqual([second.id]);
     await auth(

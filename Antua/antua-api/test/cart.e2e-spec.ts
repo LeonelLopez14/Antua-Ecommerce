@@ -82,7 +82,7 @@ describe('respuesta del carrito', () => {
     const res = await request(app.getHttpServer())
       .post('/orders')
       .set('X-Guest-Token', token)
-      .send({ ...SHIPPING_DATA, guest_email: 'a@antua.test' })
+      .send({ ...SHIPPING_DATA, guest_email: 'a@antojarte.example' })
       .expect(201);
     expect(
       (res.body as { order: { shipping_eta_days: number } }).order

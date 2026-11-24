@@ -13,7 +13,7 @@ vi.mock('../../api/auth', () => ({ login: vi.fn(), register: vi.fn(), fetchMe: v
 
 const session = {
   token: 'jwt-1',
-  user: { id: 7, full_name: 'Ana Pérez', email: 'ana@antua.test', phone: null, role: 'customer' as const, created_at: '2026-11-01T10:00:00Z' },
+  user: { id: 7, full_name: 'Ana Pérez', email: 'ana@antojarte.example', phone: null, role: 'customer' as const, created_at: '2026-11-01T10:00:00Z' },
 }
 
 const unauthorized = new AxiosError('Unauthorized', '401', undefined, undefined, {
@@ -74,7 +74,7 @@ describe('AuthModal', () => {
   it('traduce el 401 del backend junto a la contraseña', async () => {
     vi.mocked(authApi.login).mockRejectedValue(unauthorized)
     openModal()
-    await userEvent.type(screen.getByLabelText('Email'), 'ana@antua.test')
+    await userEvent.type(screen.getByLabelText('Email'), 'ana@antojarte.example')
     await userEvent.type(screen.getByLabelText('Contraseña'), 'equivocada')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
@@ -85,12 +85,12 @@ describe('AuthModal', () => {
   it('al iniciar sesión guarda la sesión, suma el carrito y cierra', async () => {
     vi.mocked(authApi.login).mockResolvedValue(session)
     openModal()
-    await userEvent.type(screen.getByLabelText('Email'), 'ana@antua.test')
+    await userEvent.type(screen.getByLabelText('Email'), 'ana@antojarte.example')
     await userEvent.type(screen.getByLabelText('Contraseña'), 'SeedPass123!')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
     await waitFor(() => expect(useAuthModalStore.getState().isOpen).toBe(false))
-    expect(authApi.login).toHaveBeenCalledWith('ana@antua.test', 'SeedPass123!')
+    expect(authApi.login).toHaveBeenCalledWith('ana@antojarte.example', 'SeedPass123!')
     expect(useAuthStore.getState().token).toBe('jwt-1')
     expect(useCartStore.getState().mergeGuestCart).toHaveBeenCalledOnce()
   })

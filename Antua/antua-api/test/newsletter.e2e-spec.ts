@@ -16,8 +16,8 @@ describe('POST /newsletter/subscribe', () => {
     request(app.getHttpServer()).post('/newsletter/subscribe').send({ email });
 
   it('no revela si el email ya estaba y no lo duplica', async () => {
-    const first = await subscribe('a@antua.test').expect(200);
-    const again = await subscribe('A@antua.test').expect(200);
+    const first = await subscribe('a@antojarte.example').expect(200);
+    const again = await subscribe('A@antojarte.example').expect(200);
     expect(again.body).toEqual(first.body);
     const rows: unknown[] = await db.query(
       'SELECT id FROM newsletter_subscribers',

@@ -73,7 +73,7 @@ test('404: ruta inexistente y producto inexistente', async ({ page }) => {
 test('sesión vencida a mitad del checkout: pide iniciar sesión de nuevo, sin "Unauthorized"', async ({ page, request }) => {
   const errors = trackErrors(page)
   const login = await request.post(`${API}/auth/login`, {
-    data: { email: 'seed.cliente@antua.test', password: process.env.SEED_PASSWORD ?? 'SeedPass123!' },
+    data: { email: 'seed.cliente@antojarte.example', password: process.env.SEED_PASSWORD ?? 'SeedPass123!' },
   })
   const session = (await login.json()) as { token: string }
   const product = (await (await request.get(`${API}/products/seed-clasica-chips`)).json()) as { variants: { id: number }[] }
