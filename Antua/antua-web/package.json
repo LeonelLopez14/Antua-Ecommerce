@@ -28,12 +28,12 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@tailwindcss/vite": "^4.3.2",
-    "axios": "^1.18.1",
+    "axios": "^1.21.1",
     "gsap": "^3.15.0",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1",
+    "react-router-dom": "^7.18.5",
     "tailwindcss": "^4.3.2",
     "three": "^0.185.1",
     "zustand": "^5.0.14"
@@ -59,7 +59,7 @@
     "lighthouse": "13.0.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.62.1",
-    "vite": "^8.1.1",
+    "vite": "^8.3.8",
     "vitest": "^5.1.0"
   }
 }
