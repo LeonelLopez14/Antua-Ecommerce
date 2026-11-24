@@ -43,4 +43,39 @@ describe('TRUST_PROXY=1 (e2e)', () => {
       .expect(200);
     expect(res.body).toEqual({ ip: '198.51.100.4' });
   });
+
+  it('el límite de login cuenta por IP real: cambiar lo que escribe el cliente no lo esquiva', async () => {
+    // Los e2e desactivan el límite con NODE_ENV=test; acá se reactiva.
+    process.env.NODE_ENV = 'e2e-rate-limit';
+    try {
+      const login = (
+        forwardedFor: string,
+        extra: Record<string, string> = {},
+      ) =>
+        request(app.getHttpServer())
+          .post('/auth/login')
+          .set({ 'X-Forwarded-For': forwardedFor, ...extra })
+          .send({ email: 'nadie@antojarte.example', password: 'x' });
+
+      // Mismo cliente real (el último salto, el que agrega Caddy) con un valor inventado distinto
+      // cada vez delante, y con otras cabeceras de IP que la API no debe mirar.
+      const statuses: number[] = [];
+      for (let i = 0; i < 12; i++) {
+        const res = await login(`10.0.0.${i}, 192.0.2.50`, {
+          'X-Real-IP': `10.1.1.${i}`,
+          Forwarded: `for=10.2.2.${i}`,
+        });
+        statuses.push(res.status);
+      }
+      expect(statuses.slice(0, 10).every((status) => status === 401)).toBe(
+        true,
+      );
+      expect(statuses.slice(10)).toEqual([429, 429]);
+
+      // Otro cliente real no queda bloqueado por el anterior.
+      expect((await login('192.0.2.51')).status).toBe(401);
+    } finally {
+      process.env.NODE_ENV = 'test';
+    }
+  });
 });
