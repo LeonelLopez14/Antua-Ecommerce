@@ -2,7 +2,7 @@
 # Las credenciales y los puertos salen de .env (ver .env.example). Acá no hay ninguna credencial.
 services:
   db:
-    image: mysql:8
+    image: mysql:26
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?Definí DB_PASSWORD en .env}
       MYSQL_DATABASE: ${DB_DATABASE:-antua_db}
