@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import type { HtmlTagDescriptor, Plugin } from 'vite'
 
+/** Aviso que GSAP trae en su código y que su licencia pide conservar (https://gsap.com/standard-license). */
+const GSAP_NOTICE = '/*! GSAP | https://gsap.com | @license Copyright 2008-2026, GreenSock. All rights reserved. Subject to the terms at https://gsap.com/standard-license */'
+
 /** Fuentes críticas (texto y h1): se precargan para que no se note el cambio de fuente. */
 const CRITICAL_FONTS = [/lato-latin-400-normal-[\w-]+\.woff2$/, /playfair-display-latin-700-normal-[\w-]+\.woff2$/]
 
@@ -47,6 +50,16 @@ export default defineConfig(({ mode }) => {
       // El único chunk grande es Three/R3F (~880 kB, 234 kB gzip): está aislado y solo lo baja
       // el hero de la Home. El límite queda justo encima para que cualquier otro chunk grande avise.
       chunkSizeWarningLimit: 900,
+      // Las licencias de todo lo que entra en el bundle, en /licencias.md (docs/creditos.md).
+      license: { fileName: 'licencias.md' },
+      rolldownOptions: {
+        output: {
+          // El minificador borra los comentarios de licencia (/*! … @license … */), y la licencia de
+          // GSAP prohíbe quitar sus avisos. postBanner se agrega después de minificar: el aviso
+          // vuelve a los archivos que contienen GSAP.
+          postBanner: (chunk) => (chunk.moduleIds.some((id) => /[\\/]node_modules[\\/](\.pnpm[\\/])?gsap/.test(id)) ? GSAP_NOTICE : ''),
+        },
+      },
     },
     test: {
       // Unit tests (Vitest + Testing Library). El flujo completo está en e2e/ (Playwright).
