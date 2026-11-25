@@ -50,7 +50,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const body = exception.getResponse();
-      if (status >= 500) this.logger.error(exception);
+      // Un 5xx pedido a propósito (503 de /health con la base caída): aviso sin stack, que el
+      // healthcheck lo repite cada 30 s. Los errores inesperados van abajo, con stack.
+      if (status >= 500) this.logger.warn(`${status} ${exception.message}`);
       const payload =
         typeof body === 'string' ? { statusCode: status, message: body } : body;
       res.status(status).json({ ...payload, requestId });
