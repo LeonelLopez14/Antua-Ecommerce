@@ -52,6 +52,16 @@ describe('seed:demo', () => {
     }
   });
 
+  it('ningún producto se llama igual que uno del seed de desarrollo', () => {
+    // Con los dos juegos cargados, un nombre repetido vuelve ambiguos los e2e y confunde en la tienda.
+    const seed = (
+      JSON.parse(
+        readFileSync(join(__dirname, '../../scripts/seed-data.json'), 'utf8'),
+      ) as { products: { name: string }[] }
+    ).products.map((p) => p.name);
+    expect(data.products.filter((p) => seed.includes(p.name))).toEqual([]);
+  });
+
   it('todo lleva prefijo de demo y está marcado como ejemplo', () => {
     for (const product of data.products)
       expect(product.slug).toMatch(/^demo-[a-z0-9-]+$/);

@@ -42,11 +42,11 @@ async function main() {
   await shot(page, 'home')
 
   await page.goto(`${base}/tienda`)
-  await page.getByRole('link', { name: /Clásica con chips/ }).first().waitFor()
+  await page.getByRole('link', { name: /Chips de chocolate/ }).first().waitFor()
   await shot(page, 'tienda')
 
   await page.goto(`${base}/producto/${PRODUCT}`)
-  await page.getByRole('heading', { level: 1, name: 'Clásica con chips' }).waitFor()
+  await page.getByRole('heading', { level: 1, name: 'Chips de chocolate' }).waitFor()
   await shot(page, 'ficha')
 
   // Carrito: se agrega desde la ficha, que abre el drawer.
@@ -61,7 +61,7 @@ async function main() {
   // Modo oscuro, en la ficha (se ven la paleta, el precio y las reseñas).
   await page.evaluate(() => localStorage.setItem('antua.theme', 'dark'))
   await page.goto(`${base}/producto/${PRODUCT}`)
-  await page.getByRole('heading', { level: 1, name: 'Clásica con chips' }).waitFor()
+  await page.getByRole('heading', { level: 1, name: 'Chips de chocolate' }).waitFor()
   await shot(page, 'oscuro')
   await page.evaluate(() => localStorage.removeItem('antua.theme'))
 
@@ -79,7 +79,7 @@ async function main() {
     // La lista de productos: con los datos de demostración no hay pedidos, y el resumen saldría en cero.
     await page.goto(`${base}/admin/productos`)
     await page.getByRole('heading', { level: 1 }).waitFor()
-    await page.getByText('Clásica con chips').first().waitFor()
+    await page.getByText('Chips de chocolate').first().waitFor()
     await shot(page, 'panel')
   } else {
     console.log('panel: falta QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD, se saltea')

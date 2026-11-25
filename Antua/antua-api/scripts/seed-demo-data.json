@@ -11,7 +11,7 @@
   "products": [
     {
       "slug": "demo-clasica-chips",
-      "name": "Clásica con chips",
+      "name": "Chips de chocolate",
       "tags": ["clasicas"],
       "price": 130,
       "description": "Manteca, azúcar rubia y chips de chocolate semiamargo. Crocante en el borde y tierna en el centro.",
@@ -27,7 +27,7 @@
     },
     {
       "slug": "demo-doble-cacao",
-      "name": "Doble cacao",
+      "name": "Cacao intenso",
       "tags": ["clasicas"],
       "price": 150,
       "description": "Masa de cacao amargo con trozos de chocolate con leche. Para quien no tiene suficiente chocolate.",
@@ -107,7 +107,7 @@
     },
     {
       "slug": "demo-vainilla-eritritol",
-      "name": "Vainilla sin azúcar",
+      "name": "Vainilla y canela",
       "tags": ["sin-azucar"],
       "price": 150,
       "description": "Endulzada con eritritol y estevia. Masa de vainilla con un toque de canela.",
