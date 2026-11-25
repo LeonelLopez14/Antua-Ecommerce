@@ -1172,7 +1172,7 @@ Los 15 conteos por tabla, los hashes de usuarios y pedidos, una consulta de ejem
 ### Paso 0: estado base
 
 - Rama `feat/fase-15-pulido`, creada desde `feat/fase-14-despliegue` (todavía no se mezcló a `main`).
-- **Trabajo en un git worktree aparte** (`D:/Antua/Antua-Ecommerce-f15`). Tu API corre con `nest start --watch` y el front con Vite: cualquier cambio en la carpeta del repo los habría recompilado y reiniciado solos. En el worktree, tu entorno no se enteró de nada.
+- **Trabajo en un git worktree aparte** (una carpeta hermana del repo). Tu API corre con `nest start --watch` y el front con Vite: cualquier cambio en la carpeta del repo los habría recompilado y reiniciado solos. En el worktree, tu entorno no se enteró de nada.
 - **Línea base:**
   - Front: typecheck, lint y build OK; 49 unit tests.
   - Back: tipos, lint y build OK; 78 unit tests y **98/98 e2e**. Los e2e de la API eran el pendiente de la Fase 14.
