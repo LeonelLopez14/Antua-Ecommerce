@@ -34,7 +34,8 @@
     "seed": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed.ts",
     "seed:clean": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed-cleanup.ts",
     "seed:demo": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed-demo.ts",
-    "seed:demo:clean": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed-cleanup.ts --demo"
+    "seed:demo:clean": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed-cleanup.ts --demo",
+    "docs:er": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/er-diagram.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.10",
