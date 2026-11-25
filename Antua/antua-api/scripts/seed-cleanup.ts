@@ -66,7 +66,10 @@ async function main() {
     const variants = await ids(SEED_VARIANTS);
     const users = await ids(SEED_USERS);
     const coupons = await ids(SEED_COUPONS);
-    const orders = variants.length
+    // Los pedidos con productos de prueba y, además, todos los de las cuentas de prueba: una de
+    // esas cuentas puede haber comprado otro producto, y sin esto sus ítems frenaban el borrado
+    // (clave foránea de order_items).
+    const byProduct = variants.length
       ? (
           await manager.query<{ id: number }[]>(
             'SELECT DISTINCT orderId AS id FROM order_items WHERE variantId IN (?)',
@@ -74,6 +77,15 @@ async function main() {
           )
         ).map((row) => row.id)
       : [];
+    const byUser = users.length
+      ? (
+          await manager.query<{ id: number }[]>(
+            'SELECT id FROM orders WHERE userId IN (?)',
+            [users],
+          )
+        ).map((row) => row.id)
+      : [];
+    const orders = [...new Set([...byProduct, ...byUser])];
     const carts = users.length
       ? (
           await manager.query<{ id: number }[]>(
