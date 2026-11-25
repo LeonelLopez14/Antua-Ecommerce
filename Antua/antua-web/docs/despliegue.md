@@ -532,8 +532,9 @@ Otra forma de tener versiones: `IMAGE_TAG=v2` en `.env.prod` antes de `$DC build
 |---|---|
 | Ver el estado y la salud | `$DC ps` |
 | Logs en vivo | `$DC logs -f api` (o `proxy`, `db`) |
-| Últimos errores de la API | `$DC logs --since 1h api \| grep -i error` |
-| Salud desde afuera | `curl https://tu-sitio/api/health` → `{"status":"ok","database":"up"}` |
+| Últimos errores de la API | `$DC logs --since 1h api \| grep '"level":"error"'` |
+| Buscar todo lo de una petición | `$DC logs api \| grep '"requestId":"<id>"'` (el id sale en la cabecera `X-Request-Id` y en cada error) |
+| Salud desde afuera | `./scripts/check-health.sh https://tu-sitio` (ver abajo) |
 | Reiniciar un servicio | `$DC restart api` |
 | Detener todo (los datos quedan) | `$DC down`. **Nunca `down -v`**: borra los volúmenes (base, subidas, certificados) |
 | Levantar todo | `$DC up -d` |
@@ -541,6 +542,59 @@ Otra forma de tener versiones: `IMAGE_TAG=v2` en `.env.prod` antes de `$DC build
 | Entrar a MySQL | `$DC exec db sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot antua_db'` |
 
 Los logs de Docker rotan solos. Los de acceso de Caddy, en JSON, salen por `$DC logs proxy` e incluyen la IP de cada visita.
+
+#### Logs de la API
+
+Con `NODE_ENV=production`, la API escribe **una línea JSON por evento** (`src/observability/`):
+
+```json
+{"time":"2026-11-24T21:10:03.120Z","level":"log","context":"HTTP","requestId":"5f0c…","msg":"POST /orders 201 84 ms","method":"POST","path":"/orders","status":201,"ms":84}
+```
+
+- **`requestId`:** está en cada línea de una misma petición. La API lo devuelve en la cabecera `X-Request-Id` y en el cuerpo de cada error. Si alguien reporta un error, con ese código encontrás todo lo que pasó.
+- **Log de accesos:** guarda método, ruta **sin query string**, estado y duración. Los chequeos de salud que salen bien no se registran, porque llega uno cada 30 s.
+- **Redacción:** nunca se escriben contraseñas, tokens, JWT, cabeceras `Authorization` ni campos `*hash*`, `*secret*` o `*token*`. Los emails quedan como `a***@dominio`. Se aplica a todo lo que pasa por el logger, también a un objeto o error logueado entero.
+- **Errores:** un error inesperado (por ejemplo, de la base) responde 500 con un mensaje genérico y el `requestId`. El detalle y el stack quedan **solo en el log** (`"level":"error"`).
+
+Con `jq` se leen mejor:
+
+```bash
+$DC logs --no-log-prefix api | grep '^{' | jq -c 'select(.level=="error") | {time, requestId, msg, message}'
+```
+
+En desarrollo los logs salen en el formato legible de siempre. Para ver el JSON en tu máquina: `LOG_FORMAT=json pnpm dev`.
+
+#### Salud: vivo y listo
+
+| Ruta (por el proxy, con `/api`) | Qué dice | Para qué |
+|---|---|---|
+| `/api/health/live` | `{"status":"ok"}` si el proceso atiende. No toca la base | Saber si hay que reiniciar la API |
+| `/api/health/ready` | `{"status":"ok","database":"up"}`, o **503** si la base no contesta en 2 s | Saber si puede atender pedidos |
+| `/api/health` | Igual que `/ready` | El healthcheck de Docker |
+
+No devuelven versiones, nombres de host ni mensajes de error.
+
+`scripts/check-health.sh` las consulta y devuelve un código de salida útil para un monitor o un cron:
+
+```bash
+./scripts/check-health.sh https://tienda.tu-dominio.com          # listo
+./scripts/check-health.sh https://tienda.tu-dominio.com --live   # solo vivo
+CURL_OPTS="--cacert caddy-root.crt" ./scripts/check-health.sh https://localhost:8443   # certificado interno
+```
+
+| Código | Significa |
+|---|---|
+| `0` | Sano |
+| `1` | Responde, pero no está listo (503: casi siempre, la base) |
+| `2` | No responde (caído, DNS, certificado, timeout) o respondió algo inesperado |
+
+Ejemplo de cron, cada 5 minutos, que deja un aviso en el log del sistema si falla:
+
+```cron
+*/5 * * * * /opt/antojarte/Antua/scripts/check-health.sh https://tienda.tu-dominio.com || logger -t antojarte "health: código $?"
+```
+
+Un monitor externo (UptimeRobot, Healthchecks.io o similar) puede consultar directamente `https://tu-sitio/api/health/ready` y alertar si no da 200.
 
 ## Verificar el despliegue
 

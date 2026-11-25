@@ -10,6 +10,8 @@ import compression from 'compression';
 import { static as serveStatic } from 'express';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { TrustProxy } from './config/env.validation';
+import { AllExceptionsFilter } from './observability/all-exceptions.filter';
+import { requestIdMiddleware } from './observability/request-id.middleware';
 
 /** Configuración global de la app. La comparten main.ts y los tests e2e. */
 export function configureApp(app: INestApplication): void {
@@ -21,6 +23,12 @@ export function configureApp(app: INestApplication): void {
     (app as NestExpressApplication).set('trust proxy', trustProxy);
   }
 
+  // Primero de todo: el id de la petición (cabecera X-Request-Id, logs y errores). Ver
+  // src/observability/. En los tests no hay log de accesos: solo ensuciaría la salida.
+  const nodeEnv = app.get(ConfigService).get<string>('NODE_ENV');
+  app.use(requestIdMiddleware({ accessLog: nodeEnv !== 'test' }));
+  app.useGlobalFilters(new AllExceptionsFilter(nodeEnv === 'production'));
+
   app.use(helmet());
   // gzip para respuestas de texto de más de 1 kB (JSON del catálogo, por ejemplo). Las imágenes ya
   // vienen comprimidas: compression las saltea por su Content-Type.
@@ -29,7 +37,10 @@ export function configureApp(app: INestApplication): void {
   // Solo los orígenes de CORS_ORIGINS. Vacío: sin CORS (en desarrollo, Vite hace de proxy).
   const origins = app.get(ConfigService).get<string[]>('CORS_ORIGINS') ?? [];
   if (origins.length > 0) {
-    app.enableCors({ origin: origins, exposedHeaders: ['X-Guest-Token'] });
+    app.enableCors({
+      origin: origins,
+      exposedHeaders: ['X-Guest-Token', 'X-Request-Id'],
+    });
   }
 
   // Imágenes subidas desde el panel. Solo archivos con nombre generado por el servidor

@@ -3,9 +3,12 @@ import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { configureApp } from './app.setup';
+import { createAppLogger } from './observability/app-logger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // bufferLogs: los mensajes del arranque esperan al logger propio (JSON en producción, con redacción).
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(createAppLogger());
   configureApp(app);
   // Las migraciones no se aplican solas (ver app.module.ts): solo se avisa si falta alguna.
   const logger = new Logger('Migraciones');

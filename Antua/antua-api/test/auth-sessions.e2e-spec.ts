@@ -172,7 +172,14 @@ describe('enumeración de cuentas', () => {
     const missing = await login('no-existe@antojarte.example');
     expect(existing.status).toBe(401);
     expect(missing.status).toBe(401);
-    expect(existing.body).toEqual(missing.body);
+    // Iguales salvo el id de la petición, que es distinto en cada una.
+    const withoutId = (body: Record<string, unknown>) => ({
+      ...body,
+      requestId: undefined,
+    });
+    expect(withoutId(existing.body as Record<string, unknown>)).toEqual(
+      withoutId(missing.body as Record<string, unknown>),
+    );
 
     const withAccount = await medianMs(() => login('existe@antojarte.example'));
     const without = await medianMs(() => login('no-existe@antojarte.example'));
