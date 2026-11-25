@@ -26,7 +26,9 @@ async function bootstrap() {
     );
     throw error;
   }
-  await app.listen(3000);
+  // PORT es opcional (por ejemplo, para levantar una segunda copia en desarrollo). En Docker y en
+  // producción es siempre 3000: lo esperan el healthcheck y Caddy.
+  await app.listen(Number(process.env.PORT) || 3000);
 }
 
 void bootstrap();
