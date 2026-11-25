@@ -39,7 +39,9 @@ test.beforeAll(async ({ request }) => {
 test('un cliente inicia sesión en el checkout, compra y ve el pedido en Mis pedidos', async ({ page }) => {
   const cspViolations = await watchCsp(page)
 
-  await page.goto('/tienda')
+  // Filtrada por Clásicas: sin filtro, con los datos de demostración cargados el producto puede
+  // quedar en la segunda página.
+  await page.goto('/tienda?categoria=clasicas')
   await page.getByRole('link', { name: 'Clásica con chips' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Clásica con chips' })).toBeVisible()
 
