@@ -69,6 +69,9 @@ jobs:
       - run: pnpm --filter antua-web typecheck
       - run: pnpm --filter antua-web lint
       - run: pnpm --filter antua-web test
+      - name: Ilustraciones de demostración al día
+        working-directory: Antua/antua-web
+        run: node qa/demo-images.ts --check
       - run: pnpm --filter antua-web build
         env:
           VITE_API_URL: /api
@@ -95,6 +98,8 @@ jobs:
         run: pnpm exec tsc --noEmit
       - run: pnpm --filter antua-api lint:check
       - run: pnpm --filter antua-api test
+      - name: Diagrama ER de los README al día
+        run: pnpm --filter antua-api docs:er --check
       - run: pnpm --filter antua-api build
       - run: pnpm --filter antua-api build:tools
 
