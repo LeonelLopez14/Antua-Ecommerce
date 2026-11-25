@@ -1,0 +1,259 @@
+{
+  "notice": "DATOS DE EJEMPLO para mostrar el proyecto. Productos, precios, reseñas y personas son inventados. Lo carga `pnpm seed:demo` y lo borra `pnpm seed:demo:clean`. Las ilustraciones de antua-web/public/demo/productos/ las genera `node antua-web/qa/demo-images.ts` a partir de este archivo.",
+  "tags": [
+    { "name": "Clásicas", "slug": "clasicas" },
+    { "name": "Sin gluten", "slug": "sin-gluten" },
+    { "name": "Veganas", "slug": "veganas" },
+    { "name": "Sin azúcar", "slug": "sin-azucar" },
+    { "name": "De temporada", "slug": "de-temporada" },
+    { "name": "Packs y regalos", "slug": "packs" }
+  ],
+  "products": [
+    {
+      "slug": "demo-clasica-chips",
+      "name": "Clásica con chips",
+      "tags": ["clasicas"],
+      "price": 130,
+      "description": "Manteca, azúcar rubia y chips de chocolate semiamargo. Crocante en el borde y tierna en el centro.",
+      "ingredients": "Harina de trigo, manteca, azúcar rubia, huevo, chocolate semiamargo, vainilla, sal",
+      "allergens": "Gluten, lácteos, huevo, puede contener soja",
+      "art": {
+        "background": "#FFF2BD",
+        "dough": "#D9A066",
+        "edge": "#B97F45",
+        "style": "chips",
+        "topping": "#4A2E1C"
+      }
+    },
+    {
+      "slug": "demo-doble-cacao",
+      "name": "Doble cacao",
+      "tags": ["clasicas"],
+      "price": 150,
+      "description": "Masa de cacao amargo con trozos de chocolate con leche. Para quien no tiene suficiente chocolate.",
+      "ingredients": "Harina de trigo, cacao amargo, manteca, azúcar, huevo, chocolate con leche, sal",
+      "allergens": "Gluten, lácteos, huevo, puede contener soja",
+      "art": {
+        "background": "#F7F5FF",
+        "dough": "#6B4430",
+        "edge": "#4E3022",
+        "style": "chunks",
+        "topping": "#C89A6A"
+      }
+    },
+    {
+      "slug": "demo-almendra-naranja",
+      "name": "Almendra y naranja",
+      "tags": ["sin-gluten"],
+      "price": 160,
+      "description": "Harina de almendras y ralladura de naranja, sin trigo. Se elabora en una línea separada.",
+      "ingredients": "Harina de almendras, almidón de maíz, manteca, azúcar, huevo, ralladura de naranja",
+      "allergens": "Frutos secos, lácteos, huevo",
+      "art": {
+        "background": "#FFFBE9",
+        "dough": "#E3B77A",
+        "edge": "#C4955A",
+        "style": "nuts",
+        "topping": "#F2D3A2"
+      }
+    },
+    {
+      "slug": "demo-coco-limon",
+      "name": "Coco y limón",
+      "tags": ["sin-gluten"],
+      "price": 150,
+      "description": "Coco rallado y limón, con harina de arroz. Fresca y apenas dulce.",
+      "ingredients": "Harina de arroz, coco rallado, manteca, azúcar, huevo, jugo y ralladura de limón",
+      "allergens": "Lácteos, huevo",
+      "art": {
+        "background": "#F7F5FF",
+        "dough": "#EFD9A8",
+        "edge": "#D3B77F",
+        "style": "flakes",
+        "topping": "#FFFBE9"
+      }
+    },
+    {
+      "slug": "demo-avena-banana",
+      "name": "Avena y banana",
+      "tags": ["veganas"],
+      "price": 140,
+      "description": "Avena, banana madura y nueces, sin ingredientes de origen animal.",
+      "ingredients": "Avena, harina de trigo, banana, aceite de girasol, azúcar mascabo, nueces, canela",
+      "allergens": "Gluten, frutos secos",
+      "art": {
+        "background": "#FFF2BD",
+        "dough": "#C9995C",
+        "edge": "#A8783F",
+        "style": "oats",
+        "topping": "#F5E3C0"
+      }
+    },
+    {
+      "slug": "demo-mani-cacao",
+      "name": "Maní y cacao",
+      "tags": ["veganas"],
+      "price": 140,
+      "description": "Pasta de maní y cacao, con bebida de avena en lugar de leche.",
+      "ingredients": "Harina de trigo, pasta de maní, cacao, aceite de coco, azúcar, bebida de avena",
+      "allergens": "Gluten, maní",
+      "art": {
+        "background": "#FFFBE9",
+        "dough": "#A9714A",
+        "edge": "#835535",
+        "style": "nuts",
+        "topping": "#E7C08E"
+      }
+    },
+    {
+      "slug": "demo-vainilla-eritritol",
+      "name": "Vainilla sin azúcar",
+      "tags": ["sin-azucar"],
+      "price": 150,
+      "description": "Endulzada con eritritol y estevia. Masa de vainilla con un toque de canela.",
+      "ingredients": "Harina de trigo, manteca, eritritol, estevia, huevo, vainilla, canela",
+      "allergens": "Gluten, lácteos, huevo",
+      "art": {
+        "background": "#F7F5FF",
+        "dough": "#EDCB91",
+        "edge": "#CFA96B",
+        "style": "plain",
+        "topping": "#B97F45"
+      }
+    },
+    {
+      "slug": "demo-datiles-nuez",
+      "name": "Dátiles y nuez",
+      "tags": ["sin-azucar", "veganas"],
+      "price": 160,
+      "description": "Dulce solo por los dátiles. Con nueces tostadas y harina integral.",
+      "ingredients": "Harina integral, dátiles, nueces, aceite de girasol, avena, canela",
+      "allergens": "Gluten, frutos secos",
+      "art": {
+        "background": "#FFF2BD",
+        "dough": "#9C6B45",
+        "edge": "#7A5233",
+        "style": "chunks",
+        "topping": "#5C3A24"
+      }
+    },
+    {
+      "slug": "demo-calabaza-especias",
+      "name": "Calabaza y especias",
+      "tags": ["de-temporada"],
+      "price": 150,
+      "description": "Puré de calabaza, canela, jengibre y clavo. Solo mientras haya calabaza de estación.",
+      "ingredients": "Harina de trigo, puré de calabaza, manteca, azúcar mascabo, huevo, especias",
+      "allergens": "Gluten, lácteos, huevo",
+      "art": {
+        "background": "#FFFBE9",
+        "dough": "#D98B45",
+        "edge": "#B56D2E",
+        "style": "sprinkles",
+        "topping": "#FFF2BD"
+      }
+    },
+    {
+      "slug": "demo-frutilla-blanco",
+      "name": "Frutilla y chocolate blanco",
+      "tags": ["de-temporada"],
+      "price": 160,
+      "description": "Frutillas deshidratadas y chocolate blanco. Edición de primavera.",
+      "ingredients": "Harina de trigo, manteca, azúcar, huevo, frutillas deshidratadas, chocolate blanco",
+      "allergens": "Gluten, lácteos, huevo, puede contener soja",
+      "art": {
+        "background": "#F7F5FF",
+        "dough": "#E8C48F",
+        "edge": "#C9A06A",
+        "style": "berries",
+        "topping": "#C2414B"
+      }
+    },
+    {
+      "slug": "demo-caja-surtida",
+      "name": "Caja surtida",
+      "tags": ["packs", "clasicas"],
+      "price": 140,
+      "description": "Una selección de la casa en caja de regalo, con una tarjeta para escribir un mensaje.",
+      "ingredients": "Según las galletas de la caja: ver cada producto",
+      "allergens": "Gluten, lácteos, huevo, frutos secos, maní",
+      "art": {
+        "background": "#FFF2BD",
+        "dough": "#D9A066",
+        "edge": "#B97F45",
+        "style": "box",
+        "topping": "#8D572E"
+      }
+    },
+    {
+      "slug": "demo-caja-sin-gluten",
+      "name": "Caja sin gluten",
+      "tags": ["packs", "sin-gluten"],
+      "price": 160,
+      "description": "Las galletas sin gluten de la casa, en una caja cerrada en la línea sin trigo.",
+      "ingredients": "Según las galletas de la caja: ver cada producto",
+      "allergens": "Frutos secos, lácteos, huevo",
+      "art": {
+        "background": "#F7F5FF",
+        "dough": "#E3B77A",
+        "edge": "#C4955A",
+        "style": "box",
+        "topping": "#A8B89A"
+      }
+    }
+  ],
+  "reviews": [
+    {
+      "product": "demo-clasica-chips",
+      "author": "Lucía (ejemplo)",
+      "rating": 5,
+      "comment": "Crocante por fuera y blanda en el centro, como tiene que ser."
+    },
+    {
+      "product": "demo-clasica-chips",
+      "author": "Martín (ejemplo)",
+      "rating": 4,
+      "comment": "Muy rica. Le pondría un poco más de chips."
+    },
+    {
+      "product": "demo-doble-cacao",
+      "author": "Sofía (ejemplo)",
+      "rating": 5,
+      "comment": "Intensa. Ideal con un café."
+    },
+    {
+      "product": "demo-almendra-naranja",
+      "author": "Lucía (ejemplo)",
+      "rating": 5,
+      "comment": "La mejor sin gluten que probé: nadie se da cuenta."
+    },
+    {
+      "product": "demo-avena-banana",
+      "author": "Martín (ejemplo)",
+      "rating": 4,
+      "comment": "Rendidora para la merienda."
+    },
+    {
+      "product": "demo-calabaza-especias",
+      "author": "Sofía (ejemplo)",
+      "rating": 5,
+      "comment": "Huele a otoño. Ojalá dure todo el año."
+    },
+    {
+      "product": "demo-caja-surtida",
+      "author": "Martín (ejemplo)",
+      "rating": 5,
+      "comment": "La regalé para un cumpleaños y llegó impecable."
+    }
+  ],
+  "coupon": {
+    "code": "DEMO10",
+    "discount_type": "percentage",
+    "discount_value": 10,
+    "min_order_amount": 1000
+  },
+  "customer": {
+    "full_name": "Cliente de Demostración",
+    "email": "demo.cliente@antojarte.example"
+  }
+}

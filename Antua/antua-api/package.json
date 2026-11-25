@@ -32,7 +32,9 @@
     "admin:create": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/admin-create.ts",
     "nutrition:examples": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/nutrition-examples.ts",
     "seed": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed.ts",
-    "seed:clean": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed-cleanup.ts"
+    "seed:clean": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed-cleanup.ts",
+    "seed:demo": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed-demo.ts",
+    "seed:demo:clean": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed-cleanup.ts --demo"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.10",

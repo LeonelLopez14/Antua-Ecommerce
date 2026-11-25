@@ -9,18 +9,31 @@ export const SEED_USER_DOMAINS = [SEED_DOMAIN, 'antua.test'] as const;
 export const SEED_CUSTOMER_EMAIL = `seed.cliente@${SEED_DOMAIN}`;
 export const SEED_ADMIN_EMAIL = `seed.admin@${SEED_DOMAIN}`;
 
-/** "Lucía Fernández" → "seed.lucia@antojarte.example" (sin tildes, en minúsculas). */
-export function seedEmail(fullName: string): string {
-  const first = fullName
+/** Primer nombre sin tildes ni signos, en minúsculas: "Lucía (ejemplo)" → "lucia". */
+const firstName = (fullName: string): string =>
+  fullName
     .trim()
     .split(/\s+/)[0]
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9]/gi, '')
     .toLowerCase();
-  return `seed.${first}@${SEED_DOMAIN}`;
+
+/** "Lucía Fernández" → "seed.lucia@antojarte.example". */
+export function seedEmail(fullName: string): string {
+  return `seed.${firstName(fullName)}@${SEED_DOMAIN}`;
 }
 
 /** Condición SQL de las cuentas de prueba (las de ahora y las de antes). Sin datos del usuario: es fija. */
 export const SEED_USERS_WHERE = SEED_USER_DOMAINS.map(
   (domain) => `email LIKE 'seed.%@${domain}'`,
 ).join(' OR ');
+
+/**
+ * Cuentas de los datos de DEMOSTRACIÓN (`pnpm seed:demo`): prefijo `demo.`, aparte de las del seed
+ * de desarrollo, así cada limpieza borra solo lo suyo.
+ */
+export function demoEmail(fullName: string): string {
+  return `demo.${firstName(fullName)}@${SEED_DOMAIN}`;
+}
+export const DEMO_USERS_WHERE = `email LIKE 'demo.%@${SEED_DOMAIN}'`;

@@ -2,7 +2,8 @@
  * Borra los datos de prueba del seed. También borra los pedidos que incluyan productos
  * de prueba, porque no pueden existir sin ellos: por eso pide confirmación explícita.
  *
- *   pnpm seed:clean --yes
+ *   pnpm seed:clean --yes         # datos del seed de desarrollo (seed-…)
+ *   pnpm seed:demo:clean --yes    # datos de demostración (demo-…)
  *
  * Las tags se conservan: el catálogo real también las usa.
  * También borra los archivos de imagen que se subieron a esos productos desde el panel
@@ -13,13 +14,21 @@ import { join } from 'node:path';
 import dataSource from '../src/database/data-source';
 import { parseUploadsDir } from '../src/config/env.validation';
 import { UPLOADED_FILE_NAME } from '../src/admin/catalog/image-file';
-import { SEED_USERS_WHERE } from '../src/database/seed-accounts';
+import {
+  DEMO_USERS_WHERE,
+  SEED_USERS_WHERE,
+} from '../src/database/seed-accounts';
 
-const SEED_PRODUCTS = `SELECT id FROM products WHERE slug LIKE 'seed-%'`;
+// --demo: borra los datos de demostración (`pnpm seed:demo`) en vez de los del seed de desarrollo.
+// Los prefijos son distintos, así que una limpieza nunca toca lo de la otra.
+const DEMO = process.argv.includes('--demo');
+const COMMAND = DEMO ? 'pnpm seed:demo:clean --yes' : 'pnpm seed:clean --yes';
+const PREFIX = DEMO ? 'demo-' : 'seed-';
+const SEED_PRODUCTS = `SELECT id FROM products WHERE slug LIKE '${PREFIX}%'`;
 const SEED_VARIANTS = `SELECT id FROM product_variants WHERE productId IN (${SEED_PRODUCTS})`;
-// Borra las cuentas de @antojarte.example y las viejas de @antua.test (ver seed-accounts.ts).
-const SEED_USERS = `SELECT id FROM users WHERE ${SEED_USERS_WHERE}`;
-const SEED_COUPONS = `SELECT id FROM coupons WHERE code LIKE 'SEED%'`;
+// Seed: las cuentas de @antojarte.example y las viejas de @antua.test. Demo: las demo.* (ver seed-accounts.ts).
+const SEED_USERS = `SELECT id FROM users WHERE ${DEMO ? DEMO_USERS_WHERE : SEED_USERS_WHERE}`;
+const SEED_COUPONS = `SELECT id FROM coupons WHERE code LIKE '${DEMO ? 'DEMO' : 'SEED'}%'`;
 
 async function main() {
   if (process.env.NODE_ENV === 'production') {
@@ -30,7 +39,7 @@ async function main() {
 
   if (!process.argv.includes('--yes')) {
     throw new Error(
-      `Esto borra los datos seed- de "${database}" y los pedidos que los incluyan. Confirmá con: pnpm seed:clean --yes`,
+      `Esto borra los datos ${PREFIX} de "${database}" y los pedidos que los incluyan. Confirmá con: ${COMMAND}`,
     );
   }
 
