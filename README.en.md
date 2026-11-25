@@ -87,7 +87,7 @@ Then:
 - **Remove the demo data:** `pnpm seed:demo:clean --yes`.
 
 Variations:
-- **Other ports:** `MYSQL_PORT` in `.env`; `DB_PORT` and `PORT` in `antua-api/.env`; `VITE_API_URL` in `antua-web/.env`; and `pnpm dev:web -- --port 5180`.
+- **Other ports:** `MYSQL_PORT` in `.env`; `DB_PORT` and `PORT` in `antua-api/.env`; `VITE_API_URL` in `antua-web/.env`; and `pnpm dev:web --port 5180`.
 - **Everything in Docker:** `docker compose --profile web up -d --build`.
 - **Emails in the browser** (Mailpit), **a real admin** and **the development test data:** see [Antua/README.md](Antua/README.md) (Spanish).
 
