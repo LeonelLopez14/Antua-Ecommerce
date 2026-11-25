@@ -1,5 +1,7 @@
 # Antojarte
 
+> Guía de desarrollo. La presentación del proyecto (capturas, arquitectura y arranque rápido) está en el [README de la raíz](../README.md).
+
 E-commerce de práctica de galletas caseras: catálogo con filtros, carrito para invitados y usuarios, checkout en 4 pasos, cuenta con pedidos y direcciones, reseñas, pagos de prueba con Mercado Pago (hoy simulados), correos de pedido, sitemap y un panel de administración en `/admin` con exportación a CSV.
 
 Es un monorepo con pnpm:
@@ -112,10 +114,23 @@ El esquema se gestiona con migraciones de TypeORM (`antua-api/src/database/migra
 | `migration:run:dist` | Igual que `migration:run`, pero con el código compilado (`dist/`). En producción se usa el servicio `migrate` (ver la guía de despliegue) |
 | `seed` | Carga productos, tags, cupones y usuarios de prueba. Se puede repetir. |
 | `seed:clean --yes` | Borra los datos de prueba, los pedidos que los incluyan y las imágenes subidas a esos productos |
+| `seed:demo` | Carga los datos de **demostración** (ver abajo). Pide `DEMO_PASSWORD` |
+| `seed:demo:clean --yes` | Borra solo los datos de demostración |
 | `admin:create` | Crea el primer administrador (ver arriba) |
 | `nutrition:examples --yes` | Carga información nutricional de ejemplo en los campos vacíos (`--undo --yes` la quita) |
+| `docs:er` | Regenera el diagrama entidad-relación de los README desde las entidades (`--check` verifica que esté al día) |
 
-Datos de prueba: cupones `SEED10` (−10 %, mínimo 5000), `SEEDFIJO` (−1000) y `SEEDVENCIDO`; usuario `seed.cliente@antojarte.example` con contraseña `SeedPass123!` (solo desarrollo; se cambia con `SEED_PASSWORD`).
+**Dos juegos de datos, cada uno con su limpieza:**
+
+- **Demostración** (`seed:demo`): para mostrar la tienda.
+  - 12 productos `demo-…` en las seis categorías de DESIGN.md, con ilustraciones propias (`antua-web/public/demo/productos/`, generadas por `node antua-web/qa/demo-images.ts`).
+  - Reseñas, el cupón `DEMO10` (−10 %, mínimo 1000) y la cuenta `demo.cliente@antojarte.example`.
+  - Con `DEMO_ADMIN_PASSWORD`, también `demo.admin@antojarte.example`.
+  - Las contraseñas salen **solo** de esas variables de entorno, y se niega a correr con `NODE_ENV=production`.
+- **Desarrollo y e2e** (`seed`): productos `seed-…` con casos de borde (sin stock, inactivo, sin imágenes).
+  - Cupones `SEED10` (−10 %, mínimo 5000), `SEEDFIJO` (−1000) y `SEEDVENCIDO`.
+  - Usuario `seed.cliente@antojarte.example` con contraseña `SeedPass123!` (solo desarrollo; se cambia con `SEED_PASSWORD`).
+  - Los e2e del front usan estos datos.
 
 ## Tests
 
@@ -153,6 +168,8 @@ DB_DATABASE=antua_test pnpm --filter antua-api migration:run
 ```
 
 ## Decisiones técnicas principales
+
+Cada una, con su contexto y la alternativa descartada, en [`antua-web/docs/decisiones.md`](./antua-web/docs/decisiones.md). En resumen:
 
 - **El backend calcula todos los montos.** El front nunca suma precios ni manda un total. Si un precio cambia entre el carrito y la compra, el pedido no se crea y se pide confirmar.
 - **Compra sin cuenta.** El carrito de invitado se identifica con un token. Cada pedido de invitado recibe un token propio que permite verlo y vincularlo a una cuenta; **nunca se vincula por email**, porque el email no está verificado.
