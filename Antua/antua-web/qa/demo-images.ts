@@ -189,7 +189,8 @@ function main() {
     const actual = readdirSync(outDir).filter((file) => file.endsWith('.svg'))
     const stale = [...expected].filter(([file, svg]) => {
       try {
-        return readFileSync(join(outDir, file), 'utf8') !== svg
+        // En Windows, git puede bajar el archivo con CRLF: no cuenta como cambio.
+        return readFileSync(join(outDir, file), 'utf8').replace(/\r\n/g, '\n') !== svg
       } catch {
         return true
       }
