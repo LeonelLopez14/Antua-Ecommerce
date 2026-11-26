@@ -1347,3 +1347,82 @@ Rama `feat/fase-16-seguridad-presentacion`, creada desde `main` con la Fase 15 y
   - `EXPLAIN ANALYZE` con 200.000 pedidos. El rango del panel baja de 60 a 4 ms y el vencimiento de pagos de 59 a 0,6 ms;
   - bloqueo: índices en línea (`LOCK=NONE` aceptado) y columna `INSTANT`;
   - `down`, respaldo y comandos.
+
+### 16.2: revisión de seguridad con evidencia
+
+Todo en [`seguridad.md`](seguridad.md): 16 hallazgos (8 corregidos, 4 pendientes de decisión, 4 aceptados).
+
+- **Dependencias:**
+  - `pnpm audit` bajó de 97 avisos (3 críticos) a 18, todos en herramientas de desarrollo; dentro del mismo major y solo versiones de más de 7 días;
+  - espera de 7 días permanente: `minimumReleaseAge` en pnpm y `cooldown` en Dependabot;
+  - se bloqueó la telemetría de `@scarf/scarf`.
+- **Supply chain:**
+  - CI con permisos mínimos y acciones fijadas por SHA (ya estaba);
+  - **las alertas de Dependabot están desactivadas en el repo** (decisión tuya);
+  - el historial de Git no tiene secretos, aunque tiene `node_modules` de las primeras confirmaciones.
+- **Licencias** (`creditos.md`): el minificador borraba el aviso de GSAP; `vite.config.ts` lo repone y el build publica `/licencias.md`.
+- **Autenticación** (`auth-sessions.e2e-spec.ts`):
+  - la API aceptaba JWT HS512 y ahora acepta solo HS256;
+  - tokens vencidos, falsos o cambiados, usuario borrado y rol que no sale del token;
+  - enumeración: login y recuperación responden igual; el registro revela el email (decisión).
+- **Límite de intentos:** no se esquiva con cabeceras de IP falsas (test y prueba por el proxy real).
+- **Autorización:**
+  - `idor-matrix.e2e-spec.ts` cubre las 18 rutas con id y falla si aparece una sin test;
+  - lista de campos permitidos: el carrito devolvía `guest_token` en el cuerpo.
+- **Entradas:**
+  - `forbidNonWhitelisted`: los campos de más se rechazan con 400;
+  - `inputs.e2e-spec.ts`: orden, filtros, números, tamaños, subidas y XSS;
+  - `stored-xss.test.tsx` en el front.
+- **Configuración** (stack de producción en el proyecto `antojarte-f16`):
+  - cabeceras, CORS, API sin root, base sin puertos, `antua_app` sin DDL;
+  - un 500 real (base detenida) sin detalles;
+  - **Caddy corre como root** (decisión).
+
+### 16.3: observabilidad
+
+- **Logs:** una línea JSON por evento en producción, con `requestId`, y redacción de contraseñas, tokens, JWT, `Authorization` y emails.
+- **`X-Request-Id`:** se toma de afuera si es válido o se genera, y se devuelve en cada respuesta.
+- **Errores:** filtro global; un 500 da un mensaje genérico con el id y el detalle va solo al log.
+- **Salud:** `/health/live` (sin base) y `/health/ready` (base con tope de 2 s).
+- **Monitoreo:** `scripts/check-health.sh` con códigos 0/1/2 (documentado en `despliegue.md`).
+- **Ajustes que salieron al probarlo en el stack de producción:**
+  - un 503 de salud ya no deja un stack en el log cada 30 s;
+  - el link de recuperación del transporte de desarrollo ya no queda redactado.
+
+### 16.4: datos de demostración
+
+- **Contenido:** `pnpm seed:demo` carga 12 productos `demo-…` en las seis categorías de DESIGN.md, con x1/x6/x12, reseñas, el cupón `DEMO10` y `demo.cliente@antojarte.example`.
+- **Reglas:**
+  - contraseñas solo desde `DEMO_PASSWORD` y `DEMO_ADMIN_PASSWORD`;
+  - idempotente;
+  - se niega con `NODE_ENV=production`;
+  - todo marcado como ejemplo.
+- **Limpieza:** `pnpm seed:demo:clean --yes`.
+- **Ilustraciones:** 12 SVG propios con la paleta (48 kB), generados por `qa/demo-images.ts`; la CI verifica que estén al día.
+
+### 16.5: presentación
+
+- **README:** `README.md` y `README.en.md` en la raíz del repo (antes no había), con:
+  - 7 capturas reales a 1280 px (`docs/media/`, de `qa/readme-screenshots.ts`);
+  - arquitectura y modelo de datos en Mermaid (el segundo generado desde las entidades con `pnpm --filter antua-api docs:er` y verificado en CI);
+  - arranque rápido, tests, QA, seguridad y limitaciones conocidas.
+- **Decisiones:** [`decisiones.md`](decisiones.md), con ocho decisiones técnicas.
+- **Sin LICENSE**, a propósito.
+- **Datos personales:** tu email no está en ningún archivo. Se sacó una ruta local de este archivo; los PDF solo dicen "Antojarte" como autor. `LeonelLopez14` aparece en la URL pública del repo y en tus prompts.
+
+### Check final
+
+- **API:** build, lint y tipos OK; 136 unitarios y 160 e2e.
+- **Front:** tipos, lint y build OK; 61 unitarios.
+- **Clon limpio, siguiendo el README** (proyecto `antojarte-cr`, puertos 3327/3101/5181):
+  - `pnpm install`, migraciones y `seed:demo` funcionaron tal cual;
+  - Playwright `test:e2e`: 9 pasaron y 1 se saltea a propósito.
+- **Encontrado y corregido en el clon:**
+  - `pnpm dev:web -- --port N` ignoraba el puerto (README);
+  - tres productos de demo se llamaban igual que los del seed de desarrollo (los e2e fallaban);
+  - el e2e de compra con cuenta dependía de la paginación;
+  - `seed:clean` fallaba si una cuenta de prueba compró otro producto;
+  - los `.env.example` traían contraseñas de base distintas.
+- **Stack de producción reconstruido con el código final:** cabeceras "todo cumple", salud OK, `/licencias.md` y el aviso de GSAP en el bundle.
+- **`/web-interface-guidelines`:** sobre los archivos tocados de `src/` (solo tests), sin hallazgos.
+- **Repo:** `check-repo.sh` sin archivos prohibidos ni secretos.
