@@ -102,7 +102,7 @@ pnpm --filter antua-web test:e2e      # Playwright flows (needs the API with dat
 ```
 
 At the end of Phase 16:
-- **API:** 131 unit tests and 160 end-to-end tests.
+- **API:** 136 unit tests and 160 end-to-end tests.
 - **Front end:** 61 unit tests, plus the Playwright suites.
 - **CI:** continuous integration runs all of this on every pull request, plus lint, type checks, builds and Docker images.
 

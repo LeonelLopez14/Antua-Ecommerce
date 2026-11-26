@@ -100,7 +100,7 @@ pnpm --filter antua-web test:e2e      # flujos con Playwright (necesita la API c
 ```
 
 Al cierre de la Fase 16:
-- **API:** 131 tests unitarios y 160 e2e.
+- **API:** 136 tests unitarios y 160 e2e.
 - **Front:** 61 unitarios, más los e2e de Playwright.
 - **CI:** la integración continua corre todo esto en cada PR, además de lint, tipos, build e imágenes de Docker.
 
